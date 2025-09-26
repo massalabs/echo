@@ -1,16 +1,16 @@
-import React from 'react'
-import { useAccountStore } from '../stores/accountStore'
+import React from 'react';
+import { useAccountStore } from '../stores/accountStore';
 
 const MainApp: React.FC = () => {
-  const { userProfile, resetAccount } = useAccountStore()
+  const { userProfile, resetAccount } = useAccountStore();
 
   const handleResetAccount = async () => {
     try {
-      await resetAccount()
+      await resetAccount();
     } catch (error) {
-      console.error('Failed to reset account:', error)
+      console.error('Failed to reset account:', error);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -37,7 +37,7 @@ const MainApp: React.FC = () => {
             <p className="text-sm text-gray-600">
               This is where your conversations and features will be
             </p>
-            
+
             {/* Debug info and reset button */}
             <div className="mt-8 p-4 bg-gray-50 rounded-lg">
               <p className="text-xs text-gray-500 mb-2">
@@ -57,7 +57,7 @@ const MainApp: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MainApp
+export default MainApp;

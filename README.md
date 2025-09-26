@@ -31,17 +31,20 @@ Echo is a privacy-first, secure messaging application built with React, TypeScri
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd echo
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -110,6 +113,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Security
 
 Echo prioritizes user privacy and security:
+
 - All data is stored locally on your device
 - Messages are encrypted before storage
 - No data is transmitted to external servers

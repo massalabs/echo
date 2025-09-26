@@ -1,44 +1,45 @@
-import React, { useState } from 'react'
-import appLogo from '/favicon.svg'
+import React, { useState } from 'react';
+import appLogo from '/favicon.svg';
 
 interface OnboardingFlowProps {
-  onComplete: () => void
+  onComplete: () => void;
 }
 
 const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
     {
-      title: "Welcome to Echo",
-      description: "Your private messenger for secure communication",
-      image: appLogo
+      title: 'Welcome to Echo',
+      description: 'Your private messenger for secure communication',
+      image: appLogo,
     },
     {
-      title: "Privacy First",
-      description: "All your messages are encrypted and stored locally on your device",
-      image: appLogo
+      title: 'Privacy First',
+      description:
+        'All your messages are encrypted and stored locally on your device',
+      image: appLogo,
     },
     {
-      title: "Create Your Account",
-      description: "Set up your username to get started",
-      image: appLogo
-    }
-  ]
+      title: 'Create Your Account',
+      description: 'Set up your username to get started',
+      image: appLogo,
+    },
+  ];
 
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
+      setCurrentStep(currentStep + 1);
     } else {
-      onComplete()
+      onComplete();
     }
-  }
+  };
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
@@ -59,10 +60,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
 
         {/* Content */}
         <div className="text-center mb-8">
-          <img 
-            src={steps[currentStep].image} 
-            className="w-32 h-32 mx-auto mb-6 rounded-full object-cover" 
-            alt="Echo logo" 
+          <img
+            src={steps[currentStep].image}
+            className="w-32 h-32 mx-auto mb-6 rounded-full object-cover"
+            alt="Echo logo"
           />
           <h1 className="text-2xl font-semibold text-black mb-4">
             {steps[currentStep].title}
@@ -85,7 +86,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
           >
             Back
           </button>
-          
+
           <button
             onClick={nextStep}
             className="px-6 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200"
@@ -95,7 +96,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default OnboardingFlow
+export default OnboardingFlow;

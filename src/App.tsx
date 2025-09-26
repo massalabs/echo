@@ -1,60 +1,61 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useAccountStore } from './stores/accountStore'
-import { db } from './db'
-import OnboardingFlow from './components/OnboardingFlow'
-import UsernameSetup from './components/UsernameSetup'
-import MainApp from './components/MainApp'
-import ErrorBoundary from './components/ErrorBoundary'
-import PWABadge from './PWABadge.tsx'
-import './App.css'
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAccountStore } from './stores/accountStore';
+import { db } from './db';
+import OnboardingFlow from './components/OnboardingFlow';
+import UsernameSetup from './components/UsernameSetup';
+import MainApp from './components/MainApp';
+import ErrorBoundary from './components/ErrorBoundary';
+import PWABadge from './PWABadge.tsx';
+import './App.css';
 
 const AppContent: React.FC = () => {
-  const { isInitialized, isLoading, initializeAccount, setLoading } = useAccountStore()
-  const [showUsernameSetup, setShowUsernameSetup] = useState(false)
+  const { isInitialized, isLoading, initializeAccount, setLoading } =
+    useAccountStore();
+  const [showUsernameSetup, setShowUsernameSetup] = useState(false);
 
   // Load profile from Dexie on app start
   const loadProfile = useCallback(async () => {
     try {
-      setLoading(true)
-      
+      setLoading(true);
+
       // Add a small delay to ensure database is ready
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      const profile = await db.userProfile.toCollection().first()
-      
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const profile = await db.userProfile.toCollection().first();
+
       if (profile) {
         // Update the store with the loaded profile
-        useAccountStore.setState({ userProfile: profile, isInitialized: true })
+        useAccountStore.setState({ userProfile: profile, isInitialized: true });
       } else {
         // Make sure we set isInitialized to false when no profile exists
-        useAccountStore.setState({ isInitialized: false })
+        useAccountStore.setState({ isInitialized: false });
       }
     } catch (error) {
-      console.error('Error loading user profile from Dexie:', error)
+      console.error('Error loading user profile from Dexie:', error);
       // On error, assume no profile exists
-      useAccountStore.setState({ isInitialized: false })
+      useAccountStore.setState({ isInitialized: false });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [setLoading])
+  }, [setLoading]);
 
   useEffect(() => {
-    loadProfile()
-  }, [loadProfile])
+    loadProfile();
+  }, [loadProfile]);
 
   const handleOnboardingComplete = () => {
-    setShowUsernameSetup(true)
-  }
+    setShowUsernameSetup(true);
+  };
 
   const handleUsernameComplete = async (username: string) => {
     try {
-      await initializeAccount(username)
-      setShowUsernameSetup(false)
+      await initializeAccount(username);
+      setShowUsernameSetup(false);
     } catch (error) {
-      console.error('Failed to initialize account:', error)
+      console.error('Failed to initialize account:', error);
       // You might want to show an error message to the user here
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -64,19 +65,19 @@ const AppContent: React.FC = () => {
           <p className="text-sm text-gray-600">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (showUsernameSetup) {
-    return <UsernameSetup onComplete={handleUsernameComplete} />
+    return <UsernameSetup onComplete={handleUsernameComplete} />;
   }
 
   if (!isInitialized) {
-    return <OnboardingFlow onComplete={handleOnboardingComplete} />
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
-  return <MainApp />
-}
+  return <MainApp />;
+};
 
 function App() {
   return (
@@ -87,7 +88,7 @@ function App() {
         <PWABadge />
       </div>
     </ErrorBoundary>
-  )
+  );
 }
 
-export default App
+export default App;

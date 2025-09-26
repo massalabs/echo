@@ -1,42 +1,43 @@
-import React, { useState } from 'react'
-import appLogo from '/favicon.svg'
+import React, { useState } from 'react';
+import appLogo from '/favicon.svg';
 
 interface UsernameSetupProps {
-  onComplete: (username: string) => void
+  onComplete: (username: string) => void;
 }
 
 const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
-  const [username, setUsername] = useState('')
-  const [isValid, setIsValid] = useState(false)
+  const [username, setUsername] = useState('');
+  const [isValid, setIsValid] = useState(false);
 
   const validateUsername = (value: string) => {
-    const valid = value.length >= 3 && value.length <= 20 && /^[a-zA-Z0-9_]+$/.test(value)
-    setIsValid(valid)
-    return valid
-  }
+    const valid =
+      value.length >= 3 && value.length <= 20 && /^[a-zA-Z0-9_]+$/.test(value);
+    setIsValid(valid);
+    return valid;
+  };
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setUsername(value)
-    validateUsername(value)
-  }
+    const value = e.target.value;
+    setUsername(value);
+    validateUsername(value);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (isValid) {
-      onComplete(username)
+      onComplete(username);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm mx-auto">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img 
-            src={appLogo} 
-            className="w-32 h-32 mx-auto mb-6 rounded-full object-cover" 
-            alt="Echo logo" 
+          <img
+            src={appLogo}
+            className="w-32 h-32 mx-auto mb-6 rounded-full object-cover"
+            alt="Echo logo"
           />
           <h1 className="text-2xl font-semibold text-black mb-2">
             Choose Your Username
@@ -63,7 +64,8 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
             />
             {username && !isValid && (
               <p className="text-red-500 text-xs mt-1">
-                Username must be 3-20 characters, letters, numbers, and underscores only
+                Username must be 3-20 characters, letters, numbers, and
+                underscores only
               </p>
             )}
           </div>
@@ -82,7 +84,7 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default UsernameSetup
+export default UsernameSetup;
