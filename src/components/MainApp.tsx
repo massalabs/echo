@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAccountStore } from '../stores/accountStore';
+import appLogo from '../assets/echo_face.svg';
 
 const MainApp: React.FC = () => {
   const { userProfile, resetAccount } = useAccountStore();
@@ -28,9 +29,11 @@ const MainApp: React.FC = () => {
         {/* Main content area - placeholder for now */}
         <div className="p-4">
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-2xl">💬</span>
-            </div>
+            <img
+              src={appLogo}
+              className="w-16 h-16 mx-auto mb-4 rounded-full object-cover"
+              alt="Echo logo"
+            />
             <h2 className="text-lg font-medium text-gray-900 mb-2">
               Main App Coming Soon
             </h2>

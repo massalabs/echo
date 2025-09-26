@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import appLogo from '/favicon.svg';
+import appLogo from '../assets/echo_face.svg';
 
 interface UsernameSetupProps {
   onComplete: (username: string) => void;
