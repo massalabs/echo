@@ -22,7 +22,7 @@ export interface Message {
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
   timestamp: Date
   encrypted: boolean
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface Conversation {
@@ -58,7 +58,7 @@ export interface UserProfile {
 export interface Settings {
   id?: number
   key: string
-  value: any
+  value: unknown
   updatedAt: Date
 }
 
@@ -90,7 +90,7 @@ export class EchoDatabase extends Dexie {
     })
 
     this.contacts.hook('updating', function (modifications, _primKey, _obj, _trans) {
-      (modifications as any).updatedAt = new Date()
+      (modifications as Record<string, unknown>).updatedAt = new Date()
     })
 
     this.conversations.hook('creating', function (_primKey, obj, _trans) {
@@ -99,7 +99,7 @@ export class EchoDatabase extends Dexie {
     })
 
     this.conversations.hook('updating', function (modifications, _primKey, _obj, _trans) {
-      (modifications as any).updatedAt = new Date()
+      (modifications as Record<string, unknown>).updatedAt = new Date()
     })
 
     this.userProfile.hook('creating', function (_primKey, obj, _trans) {
@@ -108,7 +108,7 @@ export class EchoDatabase extends Dexie {
     })
 
     this.userProfile.hook('updating', function (modifications, _primKey, _obj, _trans) {
-      (modifications as any).updatedAt = new Date()
+      (modifications as Record<string, unknown>).updatedAt = new Date()
     })
 
     this.settings.hook('creating', function (_primKey, obj, _trans) {
@@ -116,7 +116,7 @@ export class EchoDatabase extends Dexie {
     })
 
     this.settings.hook('updating', function (modifications, _primKey, _obj, _trans) {
-      (modifications as any).updatedAt = new Date()
+      (modifications as Record<string, unknown>).updatedAt = new Date()
     })
   }
 
@@ -193,12 +193,12 @@ export class EchoDatabase extends Dexie {
     return messageId
   }
 
-  async getSetting(key: string): Promise<any> {
+  async getSetting(key: string): Promise<unknown> {
     const setting = await this.settings.where('key').equals(key).first()
     return setting?.value
   }
 
-  async setSetting(key: string, value: any): Promise<void> {
+  async setSetting(key: string, value: unknown): Promise<void> {
     await this.settings.put({
       key,
       value,
