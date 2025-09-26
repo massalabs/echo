@@ -47,9 +47,9 @@ const AppContent: React.FC = () => {
     setShowUsernameSetup(true);
   };
 
-  const handleUsernameComplete = async (username: string) => {
+  const handleUsernameComplete = async (username: string, password: string) => {
     try {
-      await initializeAccount(username);
+      await initializeAccount(username, password);
       setShowUsernameSetup(false);
     } catch (error) {
       console.error('Failed to initialize account:', error);

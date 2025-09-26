@@ -46,8 +46,11 @@ export interface UserProfile {
   account: {
     address: string;
     publicKey: string;
-    privateKey: string;
   };
+  encryptedKey: ArrayBuffer;
+  iv: Uint8Array;
+  salt: Uint8Array;
+  kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
   bio?: string;
   status: 'online' | 'away' | 'busy' | 'offline';
   lastSeen: Date;
@@ -75,7 +78,7 @@ export class EchoDatabase extends Dexie {
     super('EchoDatabase');
 
     // Define schema
-    this.version(3).stores({
+    this.version(1).stores({
       contacts: '++id, username, displayName, isOnline, lastSeen, createdAt',
       messages:
         '++id, contactId, type, direction, status, timestamp, encrypted',
