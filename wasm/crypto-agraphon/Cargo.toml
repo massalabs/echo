@@ -1,5 +1,5 @@
 [package]
-name = "echo-session"
+name = "crypto-agraphon"
 version.workspace = true
 edition.workspace = true
 
@@ -9,4 +9,5 @@ crypto-kdf = { path = "../crypto-kdf" }
 crypto-cipher = { path = "../crypto-cipher" }
 crypto-rng = { path = "../crypto-rng" }
 
+serde = { version = "1.0", features = ["derive"] }
 zeroize = "1.8"

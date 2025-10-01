@@ -71,6 +71,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-agraphon"
+version = "0.1.0"
+dependencies = [
+ "crypto-cipher",
+ "crypto-kdf",
+ "crypto-kem",
+ "crypto-rng",
+ "serde",
+ "zeroize",
+]
+
+[[package]]
 name = "crypto-cipher"
 version = "0.1.0"
 dependencies = [
@@ -102,6 +114,7 @@ name = "crypto-kem"
 version = "0.1.0"
 dependencies = [
  "libcrux-ml-kem",
+ "serde",
 ]
 
 [[package]]
@@ -129,17 +142,6 @@ dependencies = [
  "block-buffer",
  "crypto-common",
  "subtle",
-]
-
-[[package]]
-name = "echo-session"
-version = "0.1.0"
-dependencies = [
- "crypto-cipher",
- "crypto-kdf",
- "crypto-kem",
- "crypto-rng",
- "zeroize",
 ]
 
 [[package]]

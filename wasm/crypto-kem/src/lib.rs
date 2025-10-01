@@ -41,6 +41,7 @@
 //! - This library is suitable for production use as it wraps the formally verified libcrux implementation
 
 use libcrux_ml_kem::*;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 // ML-KEM 768 size constants
 /// ML-KEM 768 private key size in bytes
@@ -103,6 +104,34 @@ impl PublicKey {
     }
 }
 
+impl Serialize for PublicKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(self.as_bytes())
+    }
+}
+
+impl<'de> Deserialize<'de> for PublicKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        if bytes.len() != PUBLIC_KEY_SIZE {
+            return Err(serde::de::Error::custom(format!(
+                "expected {} bytes, got {}",
+                PUBLIC_KEY_SIZE,
+                bytes.len()
+            )));
+        }
+        let mut array = [0u8; PUBLIC_KEY_SIZE];
+        array.copy_from_slice(&bytes);
+        Ok(PublicKey::from(array))
+    }
+}
+
 /// A secret key for the ML-KEM key encapsulation mechanism.
 ///
 /// This wraps the libcrux `MlKemPrivateKey` and provides safe byte array conversions.
@@ -145,6 +174,34 @@ impl SecretKey {
     }
 }
 
+impl Serialize for SecretKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(self.as_bytes())
+    }
+}
+
+impl<'de> Deserialize<'de> for SecretKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        if bytes.len() != PRIVATE_KEY_SIZE {
+            return Err(serde::de::Error::custom(format!(
+                "expected {} bytes, got {}",
+                PRIVATE_KEY_SIZE,
+                bytes.len()
+            )));
+        }
+        let mut array = [0u8; PRIVATE_KEY_SIZE];
+        array.copy_from_slice(&bytes);
+        Ok(SecretKey::from(array))
+    }
+}
+
 /// A ciphertext produced by the encapsulation operation.
 ///
 /// This wraps the libcrux `MlKemCiphertext` and provides safe byte array conversions.
@@ -181,6 +238,34 @@ impl Ciphertext {
     /// ```
     pub fn as_bytes(&self) -> &[u8; CIPHERTEXT_SIZE] {
         self.0.as_slice()
+    }
+}
+
+impl Serialize for Ciphertext {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bytes(self.as_bytes())
+    }
+}
+
+impl<'de> Deserialize<'de> for Ciphertext {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        if bytes.len() != CIPHERTEXT_SIZE {
+            return Err(serde::de::Error::custom(format!(
+                "expected {} bytes, got {}",
+                CIPHERTEXT_SIZE,
+                bytes.len()
+            )));
+        }
+        let mut array = [0u8; CIPHERTEXT_SIZE];
+        array.copy_from_slice(&bytes);
+        Ok(Ciphertext::from(array))
     }
 }
 
