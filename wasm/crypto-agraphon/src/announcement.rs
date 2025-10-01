@@ -356,6 +356,13 @@ impl OutgoingAnnouncementPrecursor {
     ///
     /// An `OutgoingAnnouncement` with bytes ready to send to the responder.
     ///
+    /// # Security Warning
+    ///
+    /// **Length Leakage**: This method does not pad the auth_payload, so the
+    /// announcement size reveals information about the payload length. If the
+    /// auth_payload contains sensitive information whose length should be hidden,
+    /// ensure proper padding is applied upstream before calling this method.
+    ///
     /// # Examples
     ///
     /// ```
