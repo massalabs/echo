@@ -53,13 +53,9 @@ impl MessageIntegrityKdf {
     ///
     /// A `MessageIntegrityKdf` containing the derived keys and seeds.
     ///
-    /// # Examples
+    /// # Example Usage (internal)
     ///
-    /// ```ignore
-    /// // Internal module, not directly accessible from public API
-    /// use crypto_kem as kem;
-    /// use crypto_rng as rng;
-    ///
+    /// ```text
     /// let integrity_seed = [0u8; 32];
     /// let mut pk_randomness = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
     /// rng::fill_buffer(&mut pk_randomness);

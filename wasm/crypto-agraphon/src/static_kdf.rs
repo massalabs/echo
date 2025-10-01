@@ -36,13 +36,9 @@ impl StaticKdf {
     ///
     /// A `StaticKdf` containing the derived `mk_next` and `seeker_next` values.
     ///
-    /// # Examples
+    /// # Example Usage (internal)
     ///
-    /// ```ignore
-    /// // Internal module, not directly accessible from public API
-    /// use crypto_kem as kem;
-    /// use crypto_rng as rng;
-    ///
+    /// ```text
     /// let mut randomness = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
     /// rng::fill_buffer(&mut randomness);
     /// let (sk, pk) = kem::generate_key_pair(randomness);

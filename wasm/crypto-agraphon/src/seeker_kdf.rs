@@ -41,10 +41,9 @@ impl SeekerKdf {
     ///
     /// A `SeekerKdf` containing the derived seeker value.
     ///
-    /// # Examples
+    /// # Example Usage (internal)
     ///
-    /// ```ignore
-    /// // Internal module, not directly accessible from public API
+    /// ```text
     /// let self_seed = [1u8; 32];
     /// let peer_seed = [2u8; 32];
     ///

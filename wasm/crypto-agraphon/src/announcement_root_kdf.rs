@@ -65,13 +65,9 @@ impl AnnouncementRootKdf {
     ///
     /// An `AnnouncementRootKdf` containing cipher keys, auth key, and integrity seed.
     ///
-    /// # Examples
+    /// # Example Usage (internal)
     ///
-    /// ```ignore
-    /// // Internal module, not directly accessible from public API
-    /// use crypto_kem as kem;
-    /// use crypto_rng as rng;
-    ///
+    /// ```text
     /// // Generate Bob's key pair
     /// let mut bob_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
     /// rng::fill_buffer(&mut bob_rand);

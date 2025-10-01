@@ -61,13 +61,9 @@ impl MessageRootKdf {
     ///
     /// A `MessageRootKdf` containing cipher keys and integrity seed.
     ///
-    /// # Examples
+    /// # Example Usage (internal)
     ///
-    /// ```ignore
-    /// // Internal module, not directly accessible from public API
-    /// use crypto_kem as kem;
-    /// use crypto_rng as rng;
-    ///
+    /// ```text
     /// let self_mk = [1u8; 32];
     /// let peer_mk = [2u8; 32];
     ///

@@ -8,10 +8,9 @@ use serde::{Deserialize, Serialize};
 /// Each session has one Initiator (who sends the first announcement) and
 /// one Responder (who receives the first announcement).
 ///
-/// # Examples
+/// # Example Usage (internal)
 ///
-/// ```ignore
-/// // Internal type, not directly accessible from public API
+/// ```text
 /// let role = Role::Initiator;
 /// assert_eq!(role.to_bytes(), [0]);
 /// assert_eq!(role.opposite(), Role::Responder);
@@ -43,10 +42,9 @@ impl Role {
     /// This is used when processing received messages, as the sender's role
     /// is the opposite of the receiver's role.
     ///
-    /// # Examples
+    /// # Example Usage (internal)
     ///
-    /// ```ignore
-    /// // Internal type, not directly accessible from public API
+    /// ```text
     /// assert_eq!(Role::Initiator.opposite(), Role::Responder);
     /// assert_eq!(Role::Responder.opposite(), Role::Initiator);
     /// ```
