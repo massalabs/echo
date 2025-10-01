@@ -4,6 +4,7 @@ import BottomNavigation from './BottomNavigation';
 import sendIcon from '../assets/icons/send.svg';
 import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
+import masIcon from '../assets/MAS.svg';
 import { Mas } from '@massalabs/massa-web3';
 
 interface WalletProps {
@@ -33,7 +34,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
       ticker: 'MAS',
       balance: Mas.toString(masBalance ?? 0n, 3),
       value: '$0.00', // Will be calculated from balance when price data is available
-      icon: 'M',
+      icon: masIcon,
     },
   ];
 
@@ -108,10 +109,12 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
               <div key={index}>
                 <div className="flex items-center py-4">
                   {/* Token Icon */}
-                  <div className="w-11 h-11 bg-gray-200 rounded-full flex items-center justify-center mr-4">
-                    <span className="text-sm font-bold text-black">
-                      {token.icon}
-                    </span>
+                  <div className="mr-4">
+                    <img
+                      src={token.icon}
+                      alt={token.name}
+                      className="w-11 h-11 rounded-full"
+                    />
                   </div>
 
                   {/* Token Info */}
