@@ -217,30 +217,34 @@ impl Agraphon {
         }
     }
 
-    /// Returns possible seekers for identifying incoming messages.
+    /// Returns possible seekers for fetching incoming messages from a public board.
     ///
-    /// When you receive a message from the peer, it will include a seeker that
-    /// identifies which of your sent messages they're responding to. Use this
-    /// method to compute all possible seekers, then match the received seeker
-    /// against this list to find the `our_parent_id` for decryption.
+    /// Computes all seeker values that the peer would use to post messages intended
+    /// for you. Use these seekers as lookup keys to efficiently query a public message
+    /// board for new messages, instead of scanning all messages.
+    ///
+    /// Each seeker corresponds to a potential message the peer could send in response
+    /// to one of your sent messages.
     ///
     /// # Returns
     ///
     /// A vector of `(local_id, seeker)` pairs, ordered from most recent to oldest.
+    /// The `local_id` is the `our_parent_id` to use when calling `try_feed_incoming_message`.
     ///
     /// # Examples
     ///
     /// ```no_run
     /// # use crypto_agraphon::Agraphon;
     /// # let session: Agraphon = todo!();
+    /// // Get seekers to check on the public board
     /// let seekers = session.possible_incoming_message_seekers();
     ///
-    /// // When you receive a message with seeker `received_seeker`:
-    /// # let received_seeker = [0u8; 32];
-    /// let parent_id = seekers.iter()
-    ///     .find(|(_, s)| s == &received_seeker)
-    ///     .map(|(id, _)| *id)
-    ///     .expect("No matching seeker found");
+    /// // Query the board for each seeker
+    /// for (parent_id, seeker) in seekers {
+    ///     // if let Some(ciphertext) = board.get_message(&seeker) {
+    ///     //     session.try_feed_incoming_message(parent_id, &sk, &ciphertext);
+    ///     // }
+    /// }
     /// ```
     pub fn possible_incoming_message_seekers(&self) -> Vec<(u64, [u8; 32])> {
         let mut seekers = Vec::with_capacity(self.self_msg_history.len());
@@ -374,8 +378,8 @@ impl Agraphon {
     /// Encrypts and sends an outgoing message.
     ///
     /// Encrypts the payload, generates a new ephemeral key pair for forward secrecy,
-    /// and updates the session state. Returns the encrypted message bytes to send
-    /// to the peer.
+    /// and updates the session state. Returns both a seeker value (used as a lookup key)
+    /// and the encrypted message bytes.
     ///
     /// # Arguments
     ///
@@ -383,7 +387,13 @@ impl Agraphon {
     ///
     /// # Returns
     ///
-    /// Encrypted message bytes to transmit to the peer.
+    /// A tuple containing:
+    /// - `[u8; 32]`: The seeker value - a unique lookup key for this message
+    /// - `Vec<u8>`: Encrypted message bytes to transmit to the peer
+    ///
+    /// The seeker acts as a public identifier that allows the peer to efficiently
+    /// retrieve this specific message from a public board without scanning all messages.
+    /// Store the message on a public board indexed by the seeker value.
     ///
     /// # Security Warning
     ///
@@ -404,10 +414,12 @@ impl Agraphon {
     /// # use crypto_agraphon::Agraphon;
     /// # let mut session: Agraphon = todo!();
     /// let plaintext = b"Hello, peer!";
-    /// let ciphertext = session.send_outgoing_message(plaintext);
+    /// let (seeker, ciphertext) = session.send_outgoing_message(plaintext);
     ///
-    /// // Send ciphertext to peer over your transport channel
-    /// println!("Sending {} bytes", ciphertext.len());
+    /// // Post the message to a public board using the seeker as the lookup key
+    /// // The peer can then fetch it directly without scanning all messages
+    /// println!("Post to board at key: {:?}", &seeker[..8]);
+    /// println!("Message size: {} bytes", ciphertext.len());
     /// ```
     ///
     /// # With Padding
@@ -421,9 +433,9 @@ impl Agraphon {
     /// let mut padded = plaintext.to_vec();
     /// padded.resize(target_len, 0);
     ///
-    /// let ciphertext = session.send_outgoing_message(&padded);
+    /// let (seeker, ciphertext) = session.send_outgoing_message(&padded);
     /// ```
-    pub fn send_outgoing_message(&mut self, payload: &[u8]) -> Vec<u8> {
+    pub fn send_outgoing_message(&mut self, payload: &[u8]) -> ([u8; 32], Vec<u8>) {
         let self_msg = self
             .self_msg_history
             .back()
@@ -456,6 +468,9 @@ impl Agraphon {
             &mut ciphertext,
         );
 
+        // Compute seeker before mutating self_msg_history
+        let seeker_kdf = SeekerKdf::new(&self_msg.seeker_next, &peer_msg.seeker_next);
+
         self.self_msg_history.push_back(HistoryItemSelf {
             local_id: self_msg.local_id + 1,
             sk_next: KeySource::Ephemeral(sk_next),
@@ -465,7 +480,7 @@ impl Agraphon {
 
         let message_bytes = [msg_ct.as_bytes().as_slice(), &ciphertext].concat();
 
-        message_bytes
+        (seeker_kdf.seeker, message_bytes)
     }
 
     /// Returns the number of unacknowledged messages.
@@ -553,7 +568,7 @@ mod tests {
 
         // Alice sends a message to Bob
         let plaintext = b"Hello, Bob!";
-        let ciphertext = alice_session.send_outgoing_message(plaintext);
+        let (_seeker, ciphertext) = alice_session.send_outgoing_message(plaintext);
 
         // Bob decrypts the message
         let decrypted = bob_session
@@ -592,21 +607,21 @@ mod tests {
         let mut alice_session = Agraphon::from_outgoing_announcement(announcement, bob_pk);
 
         // Alice -> Bob
-        let msg1 = alice_session.send_outgoing_message(b"Message 1");
+        let (_seeker1, msg1) = alice_session.send_outgoing_message(b"Message 1");
         let dec1 = bob_session
             .try_feed_incoming_message(0, &bob_sk, &msg1)
             .unwrap();
         assert_eq!(&dec1, b"Message 1");
 
         // Bob -> Alice (responding to Alice's message with local_id 2)
-        let msg2 = bob_session.send_outgoing_message(b"Reply to message 1");
+        let (_seeker2, msg2) = bob_session.send_outgoing_message(b"Reply to message 1");
         let dec2 = alice_session
             .try_feed_incoming_message(2, &alice_sk, &msg2)
             .unwrap();
         assert_eq!(&dec2, b"Reply to message 1");
 
         // Alice -> Bob again (responding to Bob's message with local_id 1)
-        let msg3 = alice_session.send_outgoing_message(b"Message 3");
+        let (_seeker3, msg3) = alice_session.send_outgoing_message(b"Message 3");
         let dec3 = bob_session
             .try_feed_incoming_message(1, &bob_sk, &msg3)
             .unwrap();
@@ -631,10 +646,10 @@ mod tests {
         assert_eq!(alice_session.lag_length(), 1);
 
         // Send more messages
-        alice_session.send_outgoing_message(b"msg1");
+        let _ = alice_session.send_outgoing_message(b"msg1");
         assert_eq!(alice_session.lag_length(), 2);
 
-        alice_session.send_outgoing_message(b"msg2");
+        let _ = alice_session.send_outgoing_message(b"msg2");
         assert_eq!(alice_session.lag_length(), 3);
     }
 
@@ -658,8 +673,8 @@ mod tests {
         assert_eq!(seekers[0].0, 1); // First message has ID 1
 
         // Send more messages
-        alice_session.send_outgoing_message(b"msg1");
-        alice_session.send_outgoing_message(b"msg2");
+        let _ = alice_session.send_outgoing_message(b"msg1");
+        let _ = alice_session.send_outgoing_message(b"msg2");
 
         let seekers = alice_session.possible_incoming_message_seekers();
         assert_eq!(seekers.len(), 3);
