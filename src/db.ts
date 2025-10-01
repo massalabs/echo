@@ -43,14 +43,32 @@ export interface UserProfile {
   username: string;
   displayName: string;
   avatar?: string;
-  account: {
+  wallet: {
     address: string;
     publicKey: string;
   };
-  encryptedKey: ArrayBuffer;
-  iv: Uint8Array;
-  salt: Uint8Array;
-  kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
+  // Security-related fields (encryption and authentication)
+  security: {
+    // Encrypted private key (AES-GCM)
+    encryptedKey: ArrayBuffer;
+    iv: Uint8Array;
+
+    // WebAuthn/FIDO2 (biometric) details when used
+    webauthn?: {
+      credentialId: string;
+      publicKey: ArrayBuffer;
+      counter: number;
+      deviceType: 'platform' | 'cross-platform';
+      backedUp: boolean;
+      transports?: string[];
+    };
+
+    // Password-based KDF parameters when used
+    password?: {
+      salt: Uint8Array;
+      kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
+    };
+  };
   bio?: string;
   status: 'online' | 'away' | 'busy' | 'offline';
   lastSeen: Date;

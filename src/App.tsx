@@ -9,8 +9,13 @@ import PWABadge from './PWABadge.tsx';
 import './App.css';
 
 const AppContent: React.FC = () => {
-  const { isInitialized, isLoading, initializeAccount, setLoading } =
-    useAccountStore();
+  const {
+    isInitialized,
+    isLoading,
+    setLoading,
+    webauthnSupported,
+    platformAuthenticatorAvailable,
+  } = useAccountStore();
   const [showUsernameSetup, setShowUsernameSetup] = useState(false);
 
   // Load profile from Dexie on app start
@@ -24,10 +29,30 @@ const AppContent: React.FC = () => {
       const profile = await db.userProfile.toCollection().first();
 
       if (profile) {
-        // Update the store with the loaded profile
-        useAccountStore.setState({ userProfile: profile, isInitialized: true });
+        // Check if this is a WebAuthn-based profile
+        if (
+          profile.security?.webauthn?.credentialId &&
+          webauthnSupported &&
+          platformAuthenticatorAvailable
+        ) {
+          // Don't automatically try to authenticate with biometrics
+          // Instead, show the username setup with re-authentication option
+          console.log(
+            'WebAuthn profile found, showing re-authentication option'
+          );
+          setShowUsernameSetup(true);
+        } else if (
+          profile.security?.password?.salt &&
+          profile.security?.password?.kdf
+        ) {
+          // Password-based profile - show username setup for password entry
+          setShowUsernameSetup(true);
+        } else {
+          // Unknown profile type - show username setup
+          setShowUsernameSetup(true);
+        }
       } else {
-        // Make sure we set isInitialized to false when no profile exists
+        // No profile exists - show onboarding
         useAccountStore.setState({ isInitialized: false });
       }
     } catch (error) {
@@ -37,7 +62,7 @@ const AppContent: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [setLoading]);
+  }, [setLoading, webauthnSupported, platformAuthenticatorAvailable]);
 
   useEffect(() => {
     loadProfile();
@@ -47,14 +72,10 @@ const AppContent: React.FC = () => {
     setShowUsernameSetup(true);
   };
 
-  const handleUsernameComplete = async (username: string, password: string) => {
-    try {
-      await initializeAccount(username, password);
-      setShowUsernameSetup(false);
-    } catch (error) {
-      console.error('Failed to initialize account:', error);
-      // You might want to show an error message to the user here
-    }
+  const handleUsernameComplete = async () => {
+    // Account initialization is already handled in UsernameSetup component
+    // Just hide the username setup form
+    setShowUsernameSetup(false);
   };
 
   if (isLoading) {
