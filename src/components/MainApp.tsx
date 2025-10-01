@@ -1,29 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
+import { UserProfile } from '../db';
 import appLogo from '../assets/echo_face.svg';
 import Settings from './Settings';
 import Wallet from './Wallet';
 import BottomNavigation from './BottomNavigation';
+import WelcomeBack from './WelcomeBack';
+import AccountCreation from './AccountCreation';
 
 const MainApp: React.FC = () => {
-  const { userProfile, resetAccount } = useAccountStore();
+  const {
+    userProfile,
+    resetAccount,
+    hasExistingAccount,
+    getExistingAccountInfo,
+    isInitialized,
+    isLoading,
+  } = useAccountStore();
   const [activeTab, setActiveTab] = useState<
     'wallet' | 'discussions' | 'settings'
   >('discussions');
+  const [appState, setAppState] = useState<
+    'loading' | 'welcome' | 'setup' | 'main'
+  >('loading');
+  const [existingAccountInfo, setExistingAccountInfo] =
+    useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const checkExistingAccount = async () => {
+      try {
+        const hasAccount = await hasExistingAccount();
+
+        if (hasAccount) {
+          const accountInfo = await getExistingAccountInfo();
+          setExistingAccountInfo(accountInfo);
+          setAppState('welcome');
+        } else {
+          setAppState('setup');
+        }
+      } catch (error) {
+        console.error('Error checking for existing account:', error);
+        setAppState('setup');
+      }
+    };
+
+    if (!isLoading) {
+      if (!isInitialized) {
+        // No account exists, show setup
+        setAppState('setup');
+      } else if (isInitialized && userProfile) {
+        // Account is loaded and user is authenticated, show main app
+        setAppState('main');
+      } else if (isInitialized && !userProfile) {
+        // Account exists but user not authenticated, show welcome screen
+        checkExistingAccount();
+      }
+    }
+  }, [
+    isLoading,
+    isInitialized,
+    userProfile,
+    hasExistingAccount,
+    getExistingAccountInfo,
+  ]);
 
   const handleResetAccount = async () => {
     try {
       await resetAccount();
+      setAppState('setup');
     } catch (error) {
       console.error('Failed to reset account:', error);
     }
+  };
+
+  const handleAccountSelected = () => {
+    setAppState('main');
+  };
+
+  const handleCreateNewAccount = () => {
+    setAppState('setup');
+  };
+
+  const handleSetupComplete = () => {
+    setAppState('main');
   };
 
   const handleTabChange = (tab: 'wallet' | 'discussions' | 'settings') => {
     setActiveTab(tab);
   };
 
+  // Show loading state
+  if (appState === 'loading' || isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show welcome back screen for existing accounts
+  if (appState === 'welcome') {
+    return (
+      <WelcomeBack
+        onCreateNewAccount={handleCreateNewAccount}
+        onAccountSelected={handleAccountSelected}
+        accountInfo={existingAccountInfo}
+      />
+    );
+  }
+
+  // Show account setup for new users
+  if (appState === 'setup') {
+    return <AccountCreation onComplete={handleSetupComplete} />;
+  }
+
+  // Show main app
   if (activeTab === 'settings') {
     return <Settings onTabChange={handleTabChange} />;
   }

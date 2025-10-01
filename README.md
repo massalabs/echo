@@ -67,7 +67,7 @@ src/
 │   ├── ErrorBoundary.tsx
 │   ├── MainApp.tsx
 │   ├── OnboardingFlow.tsx
-│   └── UsernameSetup.tsx
+│   └── AccountCreation.tsx
 ├── stores/             # State management
 │   └── accountStore.tsx
 ├── db.ts              # Database schema and operations

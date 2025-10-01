@@ -210,12 +210,6 @@ export async function authenticateWithWebAuthn(
   };
 
   try {
-    console.log(
-      'Attempting WebAuthn authentication with credentialId:',
-      credentialId
-    );
-    console.log('Using RP ID:', window.location.hostname);
-
     const credential = (await navigator.credentials.get(
       getOptions
     )) as PublicKeyCredential;
@@ -223,8 +217,6 @@ export async function authenticateWithWebAuthn(
     if (!credential) {
       throw new Error('Authentication failed - no credential returned');
     }
-
-    console.log('WebAuthn authentication successful');
 
     const response = credential.response as AuthenticatorAssertionResponse;
     const publicKey = response.authenticatorData;

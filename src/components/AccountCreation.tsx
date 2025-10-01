@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { useAccountStore } from '../stores/accountStore';
 
-interface UsernameSetupProps {
+interface AccountCreationProps {
   onComplete: () => void;
 }
 
-const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
+const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isValid, setIsValid] = useState(false);
@@ -106,9 +106,6 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
     setError(null);
 
     try {
-      console.log(
-        'Attempting to re-authenticate with existing WebAuthn profile'
-      );
       await loadAccountWithBiometrics();
       onComplete();
     } catch (err) {
@@ -414,4 +411,4 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
   );
 };
 
-export default UsernameSetup;
+export default AccountCreation;

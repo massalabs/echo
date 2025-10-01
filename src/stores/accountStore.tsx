@@ -46,6 +46,11 @@ interface AccountState {
   getMnemonicBackupInfo: () => { createdAt: Date; backedUp: boolean } | null;
   markMnemonicBackupComplete: () => Promise<void>;
   hasMnemonicBackup: () => boolean;
+
+  // Account detection methods
+  hasExistingAccount: () => Promise<boolean>;
+  getExistingAccountInfo: () => Promise<UserProfile | null>;
+  getAllAccounts: () => Promise<UserProfile[]>;
 }
 
 export const useAccountStore = create<AccountState>((set, get) => ({
@@ -63,7 +68,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   lastBalanceUpdate: null,
   // Actions
   initializeAccount: async (username: string, password: string) => {
-    console.log('initializeAccount');
     try {
       set({ isLoading: true });
 
@@ -200,7 +204,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   // WebAuthn-based account initialization
   initializeAccountWithBiometrics: async (username: string) => {
-    console.log('initializeAccountWithBiometrics');
     try {
       set({ isLoading: true });
 
@@ -488,5 +491,42 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   refreshBalance: async () => {
     const { fetchBalance } = get();
     await fetchBalance();
+  },
+
+  // Account detection methods
+  hasExistingAccount: async () => {
+    try {
+      // Ensure database is ready
+      await db.open();
+      const profile = await db.userProfile.toCollection().first();
+      return profile !== undefined;
+    } catch (error) {
+      console.error('Error checking for existing account:', error);
+      return false;
+    }
+  },
+
+  getExistingAccountInfo: async () => {
+    try {
+      // Ensure database is ready
+      await db.open();
+      const profile = await db.userProfile.toCollection().first();
+      return profile || null;
+    } catch (error) {
+      console.error('Error getting existing account info:', error);
+      return null;
+    }
+  },
+
+  getAllAccounts: async () => {
+    try {
+      // Ensure database is ready
+      await db.open();
+      const profiles = await db.userProfile.toCollection().toArray();
+      return profiles;
+    } catch (error) {
+      console.error('Error getting all accounts:', error);
+      return [];
+    }
   },
 }));

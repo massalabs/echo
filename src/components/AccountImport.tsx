@@ -1,0 +1,366 @@
+import React, { useState } from 'react';
+import { useAccountStore } from '../stores/accountStore';
+import { validateMnemonic } from '../crypto/bip39';
+
+interface AccountImportProps {
+  onBack: () => void;
+  onComplete: () => void;
+}
+
+const AccountImport: React.FC<AccountImportProps> = ({
+  onBack,
+  onComplete,
+}) => {
+  const { initializeAccount, initializeAccountWithBiometrics } =
+    useAccountStore();
+  const [mnemonic, setMnemonic] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [useBiometrics, setUseBiometrics] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [error, setError] = useState('');
+  const [step, setStep] = useState<'mnemonic' | 'details'>('mnemonic');
+
+  const handleMnemonicSubmit = () => {
+    setError('');
+
+    // Validate mnemonic
+    if (!mnemonic.trim()) {
+      setError('Please enter a mnemonic phrase');
+      return;
+    }
+
+    const trimmedMnemonic = mnemonic.trim().toLowerCase();
+    if (!validateMnemonic(trimmedMnemonic)) {
+      setError(
+        'Invalid mnemonic phrase. Please check your words and try again.'
+      );
+      return;
+    }
+
+    setMnemonic(trimmedMnemonic);
+    setStep('details');
+  };
+
+  const handleImport = async () => {
+    try {
+      setIsImporting(true);
+      setError('');
+
+      // Validate inputs
+      if (!username.trim()) {
+        setError('Username is required');
+        return;
+      }
+
+      if (username.length < 3) {
+        setError('Username must be at least 3 characters long');
+        return;
+      }
+
+      if (!useBiometrics) {
+        if (!password.trim()) {
+          setError('Password is required');
+          return;
+        }
+
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters long');
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+      }
+
+      // Import account
+      if (useBiometrics) {
+        await initializeAccountWithBiometrics(username);
+      } else {
+        await initializeAccount(username, password);
+      }
+
+      onComplete();
+    } catch (error) {
+      console.error('Error importing account:', error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to import account. Please try again.'
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const renderMnemonicStep = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-black mb-2">
+          Enter Your Mnemonic Phrase
+        </h3>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Enter your 12 or 24-word mnemonic phrase to import your account. Make
+          sure to enter the words in the correct order.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Mnemonic Phrase
+        </label>
+        <textarea
+          value={mnemonic}
+          onChange={e => setMnemonic(e.target.value)}
+          placeholder="Enter your mnemonic phrase here..."
+          className="w-full h-32 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+          disabled={isImporting}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Separate words with spaces. The phrase is case-insensitive.
+        </p>
+      </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <button
+          onClick={handleMnemonicSubmit}
+          disabled={isImporting || !mnemonic.trim()}
+          className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Continue
+        </button>
+        <button
+          onClick={onBack}
+          className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
+        >
+          Back
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderDetailsStep = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-black mb-2">
+          Account Details
+        </h3>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Choose a username and security method for your imported account.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Username
+        </label>
+        <input
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          placeholder="Enter your username"
+          className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          disabled={isImporting}
+        />
+      </div>
+
+      {/* Security Method Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          Security Method
+        </label>
+        <div className="space-y-3">
+          <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+            <input
+              type="radio"
+              name="security"
+              checked={useBiometrics}
+              onChange={() => setUseBiometrics(true)}
+              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+            />
+            <div className="ml-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <span className="font-medium text-gray-900">
+                  Biometric Authentication
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Use fingerprint, face ID, or Windows Hello
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+            <input
+              type="radio"
+              name="security"
+              checked={!useBiometrics}
+              onChange={() => setUseBiometrics(false)}
+              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+            />
+            <div className="ml-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-4 h-4 text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                    />
+                  </svg>
+                </div>
+                <span className="font-medium text-gray-900">Password</span>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Use a password to secure your account
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Password fields - only show if not using biometrics */}
+      {!useBiometrics && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              disabled={isImporting}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your password"
+              className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              disabled={isImporting}
+            />
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <button
+          onClick={handleImport}
+          disabled={
+            isImporting ||
+            !username.trim() ||
+            (!useBiometrics &&
+              (!password.trim() || password !== confirmPassword))
+          }
+          className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        >
+          {isImporting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Importing Account...
+            </>
+          ) : (
+            'Import Account'
+          )}
+        </button>
+        <button
+          onClick={() => setStep('mnemonic')}
+          disabled={isImporting}
+          className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
+        >
+          Back to Mnemonic
+        </button>
+        <button
+          onClick={onBack}
+          disabled={isImporting}
+          className="w-full h-12 bg-gray-100 rounded-lg text-sm font-medium text-black hover:bg-gray-200 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="max-w-sm mx-auto">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <h1 className="text-xl font-semibold text-black">Import Account</h1>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 py-6">
+          {step === 'mnemonic' && renderMnemonicStep()}
+          {step === 'details' && renderDetailsStep()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AccountImport;
