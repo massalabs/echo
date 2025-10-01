@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
-import { Account } from '@massalabs/massa-web3';
 import { encryptPrivateKey, deriveKey } from '../crypto/keyDerivation';
 import {
   createWebAuthnCredential,
@@ -9,6 +8,15 @@ import {
   isWebAuthnSupported,
   isPlatformAuthenticatorAvailable,
 } from '../crypto/webauthn';
+import {
+  generateMnemonic,
+  validateMnemonic,
+  encryptMnemonic,
+  decryptMnemonic,
+  accountFromMnemonic,
+  Bip39BackupDisplay,
+} from '../crypto/bip39';
+import { JsonRpcProvider, Provider, PublicApiUrl } from '@massalabs/massa-web3';
 
 interface AccountState {
   userProfile: UserProfile | null;
@@ -17,6 +25,11 @@ interface AccountState {
   isLoading: boolean;
   webauthnSupported: boolean;
   platformAuthenticatorAvailable: boolean;
+  provider: Provider | null;
+  // Balance state
+  masBalance: bigint | null;
+  isBalanceLoading: boolean;
+  lastBalanceUpdate: Date | null;
   initializeAccountWithBiometrics: (username: string) => Promise<void>;
   loadAccountWithBiometrics: () => Promise<void>;
   initializeAccount: (username: string, password: string) => Promise<void>;
@@ -24,9 +37,23 @@ interface AccountState {
   resetAccount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   checkPlatformAvailability: () => Promise<void>;
+  // Balance methods
+  fetchBalance: () => Promise<void>;
+  refreshBalance: () => Promise<void>;
+
+  // BIP39 backup methods
+  showBip39Backup: (password?: string) => Promise<Bip39BackupDisplay>;
+  restoreFromBip39: (
+    mnemonic: string,
+    password: string,
+    passphrase?: string
+  ) => Promise<void>;
+  hasBip39Backup: () => boolean;
+  getBip39BackupInfo: () => { createdAt: Date; backedUp: boolean } | null;
+  markBip39BackupComplete: () => Promise<void>;
 }
 
-export const useAccountStore = create<AccountState>(set => ({
+export const useAccountStore = create<AccountState>((set, get) => ({
   // Initial state
   userProfile: null,
   encryptionKey: null,
@@ -34,14 +61,20 @@ export const useAccountStore = create<AccountState>(set => ({
   isLoading: true,
   webauthnSupported: isWebAuthnSupported(),
   platformAuthenticatorAvailable: false,
-
+  provider: null,
+  // Balance state
+  masBalance: null,
+  isBalanceLoading: false,
+  lastBalanceUpdate: null,
   // Actions
   initializeAccount: async (username: string, password: string) => {
     console.log('initializeAccount');
     try {
       set({ isLoading: true });
 
-      const account = await Account.generate();
+      // Generate a BIP39 mnemonic and create account from it
+      const mnemonic = generateMnemonic(256);
+      const account = await accountFromMnemonic(mnemonic);
 
       // Derive encryption key and store it in memory
       const { key: encryptionKey, salt } = await deriveKey(password);
@@ -51,6 +84,9 @@ export const useAccountStore = create<AccountState>(set => ({
         account.privateKey.toBytes() as BufferSource,
         password
       );
+
+      // Encrypt the mnemonic for storage
+      const encryptedMnemonic = await encryptMnemonic(mnemonic, password);
 
       const walletInfos = {
         address: account.address.toString(),
@@ -68,10 +104,23 @@ export const useAccountStore = create<AccountState>(set => ({
             salt,
             kdf,
           },
+          bip39: {
+            mnemonic: encryptedMnemonic.encryptedMnemonic,
+            iv: encryptedMnemonic.iv,
+            salt: encryptedMnemonic.salt,
+            createdAt: new Date(),
+            backedUp: false,
+          },
         },
         status: 'online',
         lastSeen: new Date(),
       };
+
+      // TODO: add RPC management in settings
+      const provider = await JsonRpcProvider.fromRPCUrl(
+        PublicApiUrl.Buildnet,
+        account
+      );
 
       const profileId = await db.userProfile.add(newProfile as UserProfile);
       const createdProfile = await db.userProfile.get(profileId);
@@ -80,6 +129,7 @@ export const useAccountStore = create<AccountState>(set => ({
         set({
           userProfile: createdProfile,
           encryptionKey,
+          provider,
           isInitialized: true,
           isLoading: false,
         });
@@ -169,8 +219,9 @@ export const useAccountStore = create<AccountState>(set => ({
         );
       }
 
-      // Generate Massa account
-      const account = await Account.generate();
+      // Generate a BIP39 mnemonic and create account from it
+      const mnemonic = generateMnemonic(256);
+      const account = await accountFromMnemonic(mnemonic);
 
       // Create WebAuthn credential
       const webauthnKey = await createWebAuthnCredential(username);
@@ -181,6 +232,12 @@ export const useAccountStore = create<AccountState>(set => ({
           account.privateKey.toBytes() as BufferSource,
           webauthnKey
         );
+
+      // Encrypt the mnemonic using WebAuthn-derived key
+      const encryptedMnemonic = await encryptMnemonic(
+        mnemonic,
+        webauthnKey.privateKey.toString()
+      );
 
       const walletInfos = {
         address: account.address.toString(),
@@ -201,6 +258,13 @@ export const useAccountStore = create<AccountState>(set => ({
             deviceType: webauthnKey.deviceType,
             backedUp: webauthnKey.backedUp,
             transports: webauthnKey.transports,
+          },
+          bip39: {
+            mnemonic: encryptedMnemonic.encryptedMnemonic,
+            iv: encryptedMnemonic.iv,
+            salt: encryptedMnemonic.salt,
+            createdAt: new Date(),
+            backedUp: false,
           },
         },
         status: 'online',
@@ -258,5 +322,209 @@ export const useAccountStore = create<AccountState>(set => ({
       set({ isLoading: false });
       throw error;
     }
+  },
+
+  // BIP39 backup methods
+  showBip39Backup: async (password?: string) => {
+    try {
+      set({ isLoading: true });
+
+      const profile = await db.userProfile.toCollection().first();
+      if (!profile) {
+        throw new Error('No user profile found');
+      }
+
+      if (!profile.security?.bip39) {
+        throw new Error(
+          'BIP39 backup is not available for this account. Please create a new account to use the backup feature.'
+        );
+      }
+
+      let decryptedMnemonic: string;
+
+      // Check if this is a biometric account
+      if (profile.security.webauthn?.credentialId) {
+        // For biometric accounts, authenticate with WebAuthn first
+        const webauthnKey = await authenticateWithWebAuthn(
+          profile.security.webauthn.credentialId
+        );
+
+        // Decrypt using WebAuthn-derived key
+        decryptedMnemonic = await decryptMnemonic(
+          {
+            encryptedMnemonic: profile.security.bip39.mnemonic,
+            iv: profile.security.bip39.iv,
+            salt: profile.security.bip39.salt,
+          },
+          webauthnKey.privateKey.toString()
+        );
+      } else if (profile.security.password?.salt && password) {
+        // For password-based accounts, use the provided password
+        decryptedMnemonic = await decryptMnemonic(
+          {
+            encryptedMnemonic: profile.security.bip39.mnemonic,
+            iv: profile.security.bip39.iv,
+            salt: profile.security.bip39.salt,
+          },
+          password
+        );
+      } else {
+        throw new Error('Invalid authentication method or missing password');
+      }
+
+      // Create account from the existing mnemonic to get the backup info
+      const account = await accountFromMnemonic(decryptedMnemonic);
+
+      const backupInfo = {
+        mnemonic: decryptedMnemonic,
+        account,
+        createdAt: profile.security.bip39.createdAt,
+      };
+
+      return backupInfo;
+    } catch (error) {
+      console.error('Error showing BIP39 backup:', error);
+      set({ isLoading: false });
+      throw error;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  restoreFromBip39: async (
+    mnemonic: string,
+    password: string,
+    passphrase?: string
+  ) => {
+    try {
+      set({ isLoading: true });
+
+      // Validate mnemonic
+      if (!validateMnemonic(mnemonic)) {
+        throw new Error('Invalid mnemonic phrase');
+      }
+
+      // Restore account from mnemonic
+      const account = await accountFromMnemonic(mnemonic, passphrase);
+
+      // Derive encryption key from password
+      const { key: encryptionKey, salt } = await deriveKey(password);
+
+      // Encrypt the private key using the crypto module
+      const { encryptedKey, iv, kdf } = await encryptPrivateKey(
+        account.privateKey.toBytes() as BufferSource,
+        password
+      );
+
+      const walletInfos = {
+        address: account.address.toString(),
+        publicKey: account.publicKey.toString(),
+      };
+
+      const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
+        username: `user_${Date.now()}`, // Generate a temporary username
+        displayName: `User ${Date.now()}`,
+        wallet: walletInfos,
+        security: {
+          encryptedKey,
+          iv,
+          password: {
+            salt,
+            kdf,
+          },
+        },
+        status: 'online',
+        lastSeen: new Date(),
+      };
+
+      const profileId = await db.userProfile.add(newProfile as UserProfile);
+      const createdProfile = await db.userProfile.get(profileId);
+
+      if (createdProfile) {
+        set({
+          userProfile: createdProfile,
+          encryptionKey,
+          isInitialized: true,
+          isLoading: false,
+        });
+      }
+    } catch (error) {
+      console.error('Error restoring from BIP39:', error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  hasBip39Backup: () => {
+    const state = get();
+    return !!state.userProfile?.security?.bip39;
+  },
+
+  getBip39BackupInfo: () => {
+    const state = get();
+    const bip39 = state.userProfile?.security?.bip39;
+    if (!bip39) return null;
+
+    return {
+      createdAt: bip39.createdAt,
+      backedUp: bip39.backedUp,
+    };
+  },
+
+  markBip39BackupComplete: async () => {
+    try {
+      const profile = await db.userProfile.toCollection().first();
+      if (!profile || !profile.security?.bip39) {
+        throw new Error('No BIP39 backup found');
+      }
+
+      const updatedProfile = {
+        ...profile,
+        security: {
+          ...profile.security,
+          bip39: {
+            ...profile.security.bip39,
+            backedUp: true,
+          },
+        },
+      };
+
+      await db.userProfile.update(profile.id!, updatedProfile);
+
+      set({ userProfile: updatedProfile });
+    } catch (error) {
+      console.error('Error marking BIP39 backup as complete:', error);
+      throw error;
+    }
+  },
+
+  // Balance methods
+  fetchBalance: async () => {
+    const { provider } = get();
+    if (!provider) {
+      console.warn('No provider available for balance fetch');
+      return;
+    }
+
+    try {
+      set({ isBalanceLoading: true });
+      // The balance() method should return the balance for the account associated with the provider
+      // false = non-final data (faster), true = final data (slower but more reliable)
+      const balance = await provider.balance(false);
+      set({
+        masBalance: balance,
+        lastBalanceUpdate: new Date(),
+        isBalanceLoading: false,
+      });
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      set({ isBalanceLoading: false });
+      throw error;
+    }
+  },
+
+  refreshBalance: async () => {
+    const { fetchBalance } = get();
+    await fetchBalance();
   },
 }));

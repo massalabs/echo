@@ -68,6 +68,15 @@ export interface UserProfile {
       salt: Uint8Array;
       kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
     };
+
+    // BIP39 backup details
+    bip39?: {
+      mnemonic: string;
+      iv: string;
+      salt: string;
+      createdAt: Date;
+      backedUp: boolean;
+    };
   };
   bio?: string;
   status: 'online' | 'away' | 'busy' | 'offline';

@@ -45,8 +45,9 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   }
 
   try {
-    const pkc = (window as unknown as { PublicKeyCredential?: unknown })
-      .PublicKeyCredential;
+    const pkc = window.PublicKeyCredential as unknown as {
+      isUserVerifyingPlatformAuthenticatorAvailable: () => Promise<boolean>;
+    };
     if (
       !pkc ||
       typeof pkc.isUserVerifyingPlatformAuthenticatorAvailable !== 'function'
