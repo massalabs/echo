@@ -1,0 +1,12 @@
+[package]
+name = "echo-session"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+crypto-kem = { path = "../crypto-kem" }
+crypto-kdf = { path = "../crypto-kdf" }
+crypto-cipher = { path = "../crypto-cipher" }
+crypto-rng = { path = "../crypto-rng" }
+
+zeroize = "1.8"
