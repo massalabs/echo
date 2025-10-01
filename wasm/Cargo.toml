@@ -5,7 +5,7 @@ members = [
     "crypto-kdf",
     "crypto-cipher",
     "crypto-rng",
-    "echo-session"
+    "crypto-agraphon"
 ]
 
 [workspace.package]
