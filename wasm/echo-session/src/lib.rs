@@ -343,10 +343,7 @@ pub struct Session {
     role: Role,
 
     // history of our latest messages in the session
-    self_msg_history: VecDeque<u64>,
-
-    // history of our latest messages in the session, indexed by internal unique ID
-    self_msg_items: HashMap<u64, HistoryItemSelf>,
+    self_msg_history: VecDeque<HistoryItemSelf>,
 
     // the latest session message we have seen from the peer
     latest_peer_msg: HistoryItemPeer,
@@ -357,6 +354,10 @@ impl Session {
         incoming_announcement: IncomingAnnouncement,
         pk_self: &kem::PublicKey,
     ) -> Option<Self> {
+        // initialize self message history
+        let mut self_msg_history = VecDeque::new();
+        self_msg_history.push_back(HistoryItemSelf::initial(pk_self));
+
         // initialize latest peer message
         let latest_peer_msg = HistoryItemPeer {
             our_parent_id: 0,
@@ -365,74 +366,51 @@ impl Session {
             seeker_next: incoming_announcement.seeker_next,
         };
 
-        // init session
-        let mut res = Self {
+        Some(Self {
             role: Role::Responder,
-            self_msg_history: VecDeque::new(),
-            self_msg_items: HashMap::new(),
+            self_msg_history,
             latest_peer_msg,
-        };
-
-        // initialize self message history
-        res.push_new_self_message(HistoryItemSelf::initial(pk_self));
-
-        Some(res)
+        })
     }
 
     pub fn from_outgoing_announcement(
         outgoing_announcement: OutgoingAnnouncement,
         pk_peer: kem::PublicKey,
     ) -> Self {
-        // initialize latest peer message
-        let latest_peer_msg = HistoryItemPeer::initial(pk_peer);
-
-        // init session
-        let mut res = Self {
-            role: Role::Initiator,
-            self_msg_history: VecDeque::new(),
-            self_msg_items: HashMap::new(),
-            latest_peer_msg,
-        };
-
         // initialize self message history
-        res.push_new_self_message(HistoryItemSelf {
+        let mut self_msg_history = VecDeque::new();
+        self_msg_history.push_back(HistoryItemSelf {
             local_id: 1,
             sk_next: KeySource::Static,
             mk_next: outgoing_announcement.mk_next,
             seeker_next: outgoing_announcement.seeker_next,
         });
 
-        res
-    }
+        // initialize latest peer message
+        let latest_peer_msg = HistoryItemPeer::initial(pk_peer);
 
-    fn push_new_self_message(&mut self, item: HistoryItemSelf) {
-        self.self_msg_history.push_back(item.local_id);
-        self.self_msg_items.insert(item.local_id, item);
-    }
-
-    fn pop_oldest_self_message(&mut self) -> Option<(u64, HistoryItemSelf)> {
-        let Some(id) = self.self_msg_history.pop_front() else {
-            return None;
-        };
-        let msg = self
-            .self_msg_items
-            .remove(&id)
-            .expect("Message unexpectedly absent");
-        Some((id, msg))
+        Self {
+            role: Role::Initiator,
+            self_msg_history,
+            latest_peer_msg,
+        }
     }
 
     /// get possible seekers where to find incoming messages
-    pub fn possible_incoming_message_seekers(&self) -> HashMap<u64, [u8; 32]> {
-        let mut seekers = HashMap::new();
-        for msg_id in self.self_msg_history.iter().rev() {
-            let item = self
-                .self_msg_items
-                .get(msg_id)
-                .expect("Message unexpectedly absent");
+    /// Returns a vector of (local_id, seeker) pairs
+    pub fn possible_incoming_message_seekers(&self) -> Vec<(u64, [u8; 32])> {
+        let mut seekers = Vec::with_capacity(self.self_msg_history.len());
+        for item in self.self_msg_history.iter().rev() {
             let seeker_kdf = SeekerKdf::new(&self.latest_peer_msg.seeker_next, &item.seeker_next);
-            seekers.insert(*msg_id, seeker_kdf.seeker);
+            seekers.push((item.local_id, seeker_kdf.seeker));
         }
         seekers
+    }
+
+    fn get_self_message_by_id(&self, local_id: u64) -> Option<&HistoryItemSelf> {
+        let first_id = self.self_msg_history.front()?.local_id;
+        let index = local_id.checked_sub(first_id)?;
+        self.self_msg_history.get(index.try_into().ok()?)
     }
 
     ///
@@ -444,7 +422,7 @@ impl Session {
     ) -> Option<Vec<u8>> {
         // parent messages
         let self_msg = &self.latest_peer_msg;
-        let peer_msg = self.self_msg_items.get(&our_parent_id)?;
+        let peer_msg = self.get_self_message_by_id(our_parent_id)?;
 
         // read KEM ct
         let msg_ct: [u8; kem::CIPHERTEXT_SIZE] =
@@ -510,9 +488,9 @@ impl Session {
         while self
             .self_msg_history
             .front()
-            .map_or(false, |id| *id < our_parent_id)
+            .map_or(false, |msg| msg.local_id < our_parent_id)
         {
-            self.pop_oldest_self_message();
+            self.self_msg_history.pop_front();
         }
 
         Some(payload)
@@ -522,13 +500,9 @@ impl Session {
     /// Warning: leaks plaintext length so make sure the payload is padded
     pub fn send_outgoing_message(&mut self, payload: &[u8]) -> Vec<u8> {
         let self_msg = self
-            .self_msg_items
-            .get(
-                self.self_msg_history
-                    .back()
-                    .expect("Self message history unexpectedly empty"),
-            )
-            .expect("Self message unexpectedly absent");
+            .self_msg_history
+            .back()
+            .expect("Self message history unexpectedly empty");
         let peer_msg = &self.latest_peer_msg;
 
         // KEM encapsulation with fresh randomness
@@ -563,13 +537,8 @@ impl Session {
         );
 
         // push self message
-        let local_id = self
-            .self_msg_history
-            .back()
-            .expect("Self message history unexpectedly empty")
-            + 1;
-        self.push_new_self_message(HistoryItemSelf {
-            local_id,
+        self.self_msg_history.push_back(HistoryItemSelf {
+            local_id: self_msg.local_id + 1,
             sk_next: KeySource::Ephemeral(sk_next),
             mk_next: integrity_kdf.mk_next,
             seeker_next: integrity_kdf.seeker_next,
@@ -587,14 +556,15 @@ impl Session {
         let our_latest_local_id = self
             .self_msg_history
             .back()
-            .expect("Self message history unexpectedly empty");
+            .expect("Self message history unexpectedly empty")
+            .local_id;
 
         // get the last local ID that the peer side referenced
-        let peer_latest_local_id = self.latest_peer_msg.our_parent_id;
+        let peer_latest_parent_local_id = self.latest_peer_msg.our_parent_id;
 
         // compute the lag
         let delta = our_latest_local_id
-            .checked_sub(peer_latest_local_id)
+            .checked_sub(peer_latest_parent_local_id)
             .expect("Self lag is negative");
 
         delta
