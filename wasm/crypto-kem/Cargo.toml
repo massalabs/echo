@@ -1,0 +1,11 @@
+[package]
+name = "crypto-kem"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+libcrux-ml-kem = "0.0.3"
+

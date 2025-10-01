@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = [
+    "crypto-kem",
+    "crypto-kdf",
+    "crypto-cipher",
+    "crypto-rng",
+    "echo-session"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
