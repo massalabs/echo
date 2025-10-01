@@ -76,7 +76,7 @@ pub const ENCAPSULATION_RANDOMNESS_SIZE: usize = 32;
 /// let public_key = PublicKey::from(key_bytes);
 ///
 /// // Convert back to bytes
-/// let recovered_bytes: [u8; PUBLIC_KEY_SIZE] = (&public_key).into();
+/// let recovered_bytes: [u8; PUBLIC_KEY_SIZE] = *public_key.as_bytes();
 /// assert_eq!(key_bytes, recovered_bytes);
 /// ```
 pub struct PublicKey(MlKemPublicKey<PUBLIC_KEY_SIZE>);
@@ -146,7 +146,7 @@ impl<'de> Deserialize<'de> for PublicKey {
 /// let secret_key = SecretKey::from(key_bytes);
 ///
 /// // Convert back to bytes
-/// let recovered_bytes: [u8; PRIVATE_KEY_SIZE] = (&secret_key).into();
+/// let recovered_bytes: [u8; PRIVATE_KEY_SIZE] = *secret_key.as_bytes();
 /// assert_eq!(key_bytes, recovered_bytes);
 /// ```
 pub struct SecretKey(MlKemPrivateKey<PRIVATE_KEY_SIZE>);
@@ -213,7 +213,7 @@ impl<'de> Deserialize<'de> for SecretKey {
 ///
 /// let ct_bytes = [0u8; CIPHERTEXT_SIZE];
 /// let ciphertext = Ciphertext::from(ct_bytes);
-/// let recovered_bytes: [u8; CIPHERTEXT_SIZE] = (&ciphertext).into();
+/// let recovered_bytes: [u8; CIPHERTEXT_SIZE] = *ciphertext.as_bytes();
 /// assert_eq!(ct_bytes, recovered_bytes);
 /// ```
 pub struct Ciphertext(MlKemCiphertext<CIPHERTEXT_SIZE>);
@@ -281,7 +281,7 @@ impl<'de> Deserialize<'de> for Ciphertext {
 ///
 /// let secret_bytes = [42u8; SHARED_SECRET_SIZE];
 /// let shared_secret = SharedSecret::from(secret_bytes);
-/// let recovered_bytes: [u8; SHARED_SECRET_SIZE] = (&shared_secret).into();
+/// let recovered_bytes: [u8; SHARED_SECRET_SIZE] = *shared_secret.as_bytes();
 /// assert_eq!(secret_bytes, recovered_bytes);
 /// ```
 pub struct SharedSecret(MlKemSharedSecret);
