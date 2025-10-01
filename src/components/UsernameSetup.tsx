@@ -30,7 +30,6 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
 
   useEffect(() => {
     setWebauthnSupported(storeWebauthnSupported);
-    console.log('webauthnSupported', storeWebauthnSupported);
 
     // Check platform availability if WebAuthn is supported
     if (storeWebauthnSupported) {
@@ -61,11 +60,6 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
 
   useEffect(() => {
     setPlatformAvailable(platformAuthenticatorAvailable);
-    console.log(
-      'platformAuthenticatorAvailable',
-      platformAuthenticatorAvailable
-    );
-    console.log('webauthnSupported', webauthnSupported);
 
     // If biometrics are not available, force password mode
     if (!webauthnSupported || !platformAuthenticatorAvailable) {
@@ -134,10 +128,8 @@ const UsernameSetup: React.FC<UsernameSetupProps> = ({ onComplete }) => {
 
       try {
         if (usePassword) {
-          console.log('Calling initializeAccount');
           await initializeAccount(username, password);
         } else {
-          console.log('Calling initializeAccountWithBiometrics');
           await initializeAccountWithBiometrics(username);
         }
         onComplete();

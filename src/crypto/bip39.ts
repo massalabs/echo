@@ -17,9 +17,7 @@ export interface Bip39BackupDisplay {
  * @param strength - Entropy strength in bits (128, 160, 192, 224, 256)
  * @returns Generated mnemonic phrase
  */
-export function generateMnemonic(
-  strength: 128 | 160 | 192 | 224 | 256 = 256
-): string {
+export function generateMnemonic(strength = 256): string {
   return bip39.generateMnemonic(strength);
 }
 
@@ -43,8 +41,7 @@ export function mnemonicToSeed(
   passphrase?: string
 ): Uint8Array {
   const actualPassphrase = passphrase || '';
-  const seed: Uint8Array = bip39.mnemonicToSeedSync(mnemonic, actualPassphrase);
-  return seed;
+  return bip39.mnemonicToSeedSync(mnemonic, actualPassphrase);
 }
 
 export async function accountFromMnemonic(
@@ -63,99 +60,7 @@ export async function accountFromMnemonic(
 
   const pkey = PrivateKey.fromBytes(privateKey);
   const account = await Account.fromPrivateKey(pkey);
-
   return account;
-}
-
-/**
- * Generate a secure passphrase suggestion
- * @returns A randomly generated passphrase suggestion
- */
-export function generatePassphraseSuggestion(): string {
-  const words = [
-    'apple',
-    'banana',
-    'cherry',
-    'dragon',
-    'eagle',
-    'forest',
-    'garden',
-    'harbor',
-    'island',
-    'jungle',
-    'knight',
-    'lighthouse',
-    'mountain',
-    'ocean',
-    'palace',
-    'queen',
-    'river',
-    'sunset',
-    'tower',
-    'umbrella',
-    'village',
-    'waterfall',
-    'xylophone',
-    'yellow',
-    'zebra',
-  ];
-
-  const randomWords = [];
-  for (let i = 0; i < 3; i++) {
-    randomWords.push(words[Math.floor(Math.random() * words.length)]);
-  }
-
-  return randomWords.join('-');
-}
-
-/**
- * Validate passphrase strength
- * @param passphrase - The passphrase to validate
- * @returns Object with validation results
- */
-export function validatePassphrase(passphrase: string): {
-  isValid: boolean;
-  score: number;
-  suggestions: string[];
-} {
-  const suggestions: string[] = [];
-  let score = 0;
-
-  if (passphrase.length < 8) {
-    suggestions.push('Use at least 8 characters');
-  } else {
-    score += 1;
-  }
-
-  if (!/[a-z]/.test(passphrase)) {
-    suggestions.push('Include lowercase letters');
-  } else {
-    score += 1;
-  }
-
-  if (!/[A-Z]/.test(passphrase)) {
-    suggestions.push('Include uppercase letters');
-  } else {
-    score += 1;
-  }
-
-  if (!/[0-9]/.test(passphrase)) {
-    suggestions.push('Include numbers');
-  } else {
-    score += 1;
-  }
-
-  if (!/[^a-zA-Z0-9]/.test(passphrase)) {
-    suggestions.push('Include special characters');
-  } else {
-    score += 1;
-  }
-
-  return {
-    isValid: score >= 3,
-    score,
-    suggestions,
-  };
 }
 
 /**

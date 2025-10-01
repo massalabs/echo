@@ -69,8 +69,8 @@ export interface UserProfile {
       kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
     };
 
-    // BIP39 backup details
-    bip39?: {
+    // Mnemonic backup details
+    mnemonicBackup?: {
       mnemonic: string;
       iv: string;
       salt: string;

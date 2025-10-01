@@ -10,7 +10,6 @@ import {
 } from '../crypto/webauthn';
 import {
   generateMnemonic,
-  validateMnemonic,
   encryptMnemonic,
   decryptMnemonic,
   accountFromMnemonic,
@@ -41,16 +40,12 @@ interface AccountState {
   fetchBalance: () => Promise<void>;
   refreshBalance: () => Promise<void>;
 
-  // BIP39 backup methods
-  showBip39Backup: (password?: string) => Promise<Bip39BackupDisplay>;
-  restoreFromBip39: (
-    mnemonic: string,
-    password: string,
-    passphrase?: string
-  ) => Promise<void>;
-  hasBip39Backup: () => boolean;
-  getBip39BackupInfo: () => { createdAt: Date; backedUp: boolean } | null;
-  markBip39BackupComplete: () => Promise<void>;
+  // Mnemonic backup methods
+  showMnemonicBackup: (password?: string) => Promise<Bip39BackupDisplay>;
+  createMnemonicBackup: (mnemonic: string) => Promise<void>;
+  getMnemonicBackupInfo: () => { createdAt: Date; backedUp: boolean } | null;
+  markMnemonicBackupComplete: () => Promise<void>;
+  hasMnemonicBackup: () => boolean;
 }
 
 export const useAccountStore = create<AccountState>((set, get) => ({
@@ -104,7 +99,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
             salt,
             kdf,
           },
-          bip39: {
+          mnemonicBackup: {
+            // for now, we store the encrypted mnemonic in order to provide backup feature later
+            // we could not store it, and only provide private key backup
             mnemonic: encryptedMnemonic.encryptedMnemonic,
             iv: encryptedMnemonic.iv,
             salt: encryptedMnemonic.salt,
@@ -259,7 +256,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
             backedUp: webauthnKey.backedUp,
             transports: webauthnKey.transports,
           },
-          bip39: {
+          mnemonicBackup: {
             mnemonic: encryptedMnemonic.encryptedMnemonic,
             iv: encryptedMnemonic.iv,
             salt: encryptedMnemonic.salt,
@@ -324,19 +321,17 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     }
   },
 
-  // BIP39 backup methods
-  showBip39Backup: async (password?: string) => {
+  // Mnemonic backup methods
+  showMnemonicBackup: async (password?: string) => {
     try {
-      set({ isLoading: true });
-
       const profile = await db.userProfile.toCollection().first();
       if (!profile) {
         throw new Error('No user profile found');
       }
 
-      if (!profile.security?.bip39) {
+      if (!profile.security?.mnemonicBackup) {
         throw new Error(
-          'BIP39 backup is not available for this account. Please create a new account to use the backup feature.'
+          'Mnemonic backup is not available for this account. Please create a new account to use the backup feature.'
         );
       }
 
@@ -352,9 +347,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         // Decrypt using WebAuthn-derived key
         decryptedMnemonic = await decryptMnemonic(
           {
-            encryptedMnemonic: profile.security.bip39.mnemonic,
-            iv: profile.security.bip39.iv,
-            salt: profile.security.bip39.salt,
+            encryptedMnemonic: profile.security.mnemonicBackup.mnemonic,
+            iv: profile.security.mnemonicBackup.iv,
+            salt: profile.security.mnemonicBackup.salt,
           },
           webauthnKey.privateKey.toString()
         );
@@ -362,9 +357,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         // For password-based accounts, use the provided password
         decryptedMnemonic = await decryptMnemonic(
           {
-            encryptedMnemonic: profile.security.bip39.mnemonic,
-            iv: profile.security.bip39.iv,
-            salt: profile.security.bip39.salt,
+            encryptedMnemonic: profile.security.mnemonicBackup.mnemonic,
+            iv: profile.security.mnemonicBackup.iv,
+            salt: profile.security.mnemonicBackup.salt,
           },
           password
         );
@@ -378,124 +373,91 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       const backupInfo = {
         mnemonic: decryptedMnemonic,
         account,
-        createdAt: profile.security.bip39.createdAt,
+        createdAt: profile.security.mnemonicBackup.createdAt,
       };
 
       return backupInfo;
     } catch (error) {
-      console.error('Error showing BIP39 backup:', error);
-      set({ isLoading: false });
+      console.error('Error showing mnemonic backup:', error);
       throw error;
-    } finally {
-      set({ isLoading: false });
     }
   },
 
-  restoreFromBip39: async (
-    mnemonic: string,
-    password: string,
-    passphrase?: string
-  ) => {
+  createMnemonicBackup: async (mnemonic: string) => {
     try {
-      set({ isLoading: true });
-
-      // Validate mnemonic
-      if (!validateMnemonic(mnemonic)) {
-        throw new Error('Invalid mnemonic phrase');
+      const profile = await db.userProfile.toCollection().first();
+      if (!profile) {
+        throw new Error('No user profile found');
       }
 
-      // Restore account from mnemonic
-      const account = await accountFromMnemonic(mnemonic, passphrase);
-
-      // Derive encryption key from password
-      const { key: encryptionKey, salt } = await deriveKey(password);
-
-      // Encrypt the private key using the crypto module
-      const { encryptedKey, iv, kdf } = await encryptPrivateKey(
-        account.privateKey.toBytes() as BufferSource,
-        password
+      // Encrypt the mnemonic for storage
+      const encryptedMnemonic = await encryptMnemonic(
+        mnemonic,
+        'mnemonic-backup-key'
       );
 
-      const walletInfos = {
-        address: account.address.toString(),
-        publicKey: account.publicKey.toString(),
-      };
-
-      const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
-        username: `user_${Date.now()}`, // Generate a temporary username
-        displayName: `User ${Date.now()}`,
-        wallet: walletInfos,
+      const updatedProfile = {
+        ...profile,
         security: {
-          encryptedKey,
-          iv,
-          password: {
-            salt,
-            kdf,
+          ...profile.security,
+          mnemonicBackup: {
+            mnemonic: encryptedMnemonic.encryptedMnemonic,
+            iv: encryptedMnemonic.iv,
+            salt: encryptedMnemonic.salt,
+            createdAt: new Date(),
+            backedUp: false,
           },
         },
-        status: 'online',
-        lastSeen: new Date(),
       };
 
-      const profileId = await db.userProfile.add(newProfile as UserProfile);
-      const createdProfile = await db.userProfile.get(profileId);
-
-      if (createdProfile) {
-        set({
-          userProfile: createdProfile,
-          encryptionKey,
-          isInitialized: true,
-          isLoading: false,
-        });
-      }
+      await db.userProfile.update(profile.id!, updatedProfile);
+      set({ userProfile: updatedProfile });
     } catch (error) {
-      console.error('Error restoring from BIP39:', error);
-      set({ isLoading: false });
+      console.error('Error creating mnemonic backup:', error);
       throw error;
     }
   },
 
-  hasBip39Backup: () => {
+  getMnemonicBackupInfo: () => {
     const state = get();
-    return !!state.userProfile?.security?.bip39;
-  },
-
-  getBip39BackupInfo: () => {
-    const state = get();
-    const bip39 = state.userProfile?.security?.bip39;
-    if (!bip39) return null;
+    const mnemonicBackup = state.userProfile?.security?.mnemonicBackup;
+    if (!mnemonicBackup) return null;
 
     return {
-      createdAt: bip39.createdAt,
-      backedUp: bip39.backedUp,
+      createdAt: mnemonicBackup.createdAt,
+      backedUp: mnemonicBackup.backedUp,
     };
   },
 
-  markBip39BackupComplete: async () => {
+  markMnemonicBackupComplete: async () => {
     try {
       const profile = await db.userProfile.toCollection().first();
-      if (!profile || !profile.security?.bip39) {
-        throw new Error('No BIP39 backup found');
+      if (!profile || !profile.security?.mnemonicBackup) {
+        throw new Error('No mnemonic backup found');
       }
 
       const updatedProfile = {
         ...profile,
         security: {
           ...profile.security,
-          bip39: {
-            ...profile.security.bip39,
+          mnemonicBackup: {
+            ...profile.security.mnemonicBackup,
             backedUp: true,
           },
         },
       };
 
       await db.userProfile.update(profile.id!, updatedProfile);
-
       set({ userProfile: updatedProfile });
     } catch (error) {
-      console.error('Error marking BIP39 backup as complete:', error);
+      console.error('Error marking mnemonic backup as complete:', error);
       throw error;
     }
+  },
+
+  hasMnemonicBackup: () => {
+    const state = get();
+    return !!state.userProfile?.security?.mnemonicBackup;
   },
 
   // Balance methods
