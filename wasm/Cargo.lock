@@ -115,6 +115,7 @@ version = "0.1.0"
 dependencies = [
  "libcrux-ml-kem",
  "serde",
+ "zeroize",
 ]
 
 [[package]]
