@@ -103,6 +103,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-dsa"
+version = "0.1.0"
+dependencies = [
+ "libcrux-ml-dsa",
+ "serde",
+ "zeroize",
+]
+
+[[package]]
 name = "crypto-kdf"
 version = "0.1.0"
 dependencies = [
@@ -275,6 +284,30 @@ checksum = "5d3b41dcbc21a5fb7efbbb5af7405b2e79c4bfe443924e90b13afc0080318d31"
 dependencies = [
  "core-models",
  "hax-lib",
+]
+
+[[package]]
+name = "libcrux-macros"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffd6aa2dcd5be681662001b81d493f1569c6d49a32361f470b0c955465cd0338"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "libcrux-ml-dsa"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fae7161f70875e1d9468e2181187b814d4905ecb20f12db69de2adda5697436"
+dependencies = [
+ "core-models",
+ "hax-lib",
+ "libcrux-intrinsics",
+ "libcrux-macros",
+ "libcrux-platform",
+ "libcrux-sha3",
 ]
 
 [[package]]
