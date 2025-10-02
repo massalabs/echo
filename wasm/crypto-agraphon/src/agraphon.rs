@@ -11,6 +11,7 @@ use crypto_kem as kem;
 use crypto_rng as rng;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// The main session state machine for secure asynchronous messaging.
@@ -367,7 +368,8 @@ impl Agraphon {
         let integrity_kdf =
             MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, &payload);
 
-        if integrity_key != integrity_kdf.integrity_key {
+        // Use constant-time comparison to prevent timing attacks
+        if bool::from(integrity_key.ct_eq(&integrity_kdf.integrity_key)) == false {
             return None;
         }
 

@@ -10,6 +10,7 @@ use crypto_cipher as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
 use zeroize::{Zeroize, ZeroizeOnDrop};
+use subtle::ConstantTimeEq;
 
 /// Intermediate state when receiving an announcement.
 ///
@@ -229,7 +230,9 @@ impl IncomingAnnouncementPrecursor {
         let integrity_kdf =
             MessageIntegrityKdf::new(&self.integrity_seed, &pk_peer, &self.auth_payload);
 
-        if self.integrity_key != integrity_kdf.integrity_key {
+        // Use constant-time comparison to prevent timing attacks
+        // Use constant-time comparison to prevent timing attacks
+        if bool::from(self.integrity_key.ct_eq(&integrity_kdf.integrity_key)) == false {
             return None;
         }
 

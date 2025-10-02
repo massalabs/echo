@@ -79,6 +79,7 @@ dependencies = [
  "crypto-kem",
  "crypto-rng",
  "serde",
+ "subtle",
  "zeroize",
 ]
 
