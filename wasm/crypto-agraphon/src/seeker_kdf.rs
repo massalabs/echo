@@ -5,6 +5,7 @@
 //! asynchronous communication where messages may arrive out of order.
 
 use crypto_kdf as kdf;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Key derivation function for message seekers.
 ///
@@ -24,6 +25,7 @@ use crypto_kdf as kdf;
 /// - Salt: `"session.seeker_kdf.salt---------"`
 /// - Inputs: Both parties' seeker_next values
 /// - Info string: `"session.seeker_kem.mk_next"`
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct SeekerKdf {
     /// The derived seeker value used for message identification
     pub(crate) seeker: [u8; 32],

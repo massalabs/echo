@@ -6,6 +6,7 @@
 
 use crypto_kdf as kdf;
 use crypto_kem as kem;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Key derivation function for message integrity and next state.
 ///
@@ -31,6 +32,7 @@ use crypto_kem as kem;
 /// - Inputs: integrity_seed, pk_next, payload
 /// - Info strings: `"session.integrity_kdf.mk_next"`, `"session.integrity_kdf.integrity_key"`,
 ///   and `"session.integrity_kdf.seeker_next"`
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct MessageIntegrityKdf {
     /// Next master key for the ratchet
     pub(crate) mk_next: [u8; 32],

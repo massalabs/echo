@@ -7,6 +7,7 @@ use crate::static_kdf::StaticKdf;
 use crate::types::KeySource;
 use crypto_kem as kem;
 use serde::{Deserialize, Serialize};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 const MASTER_KEY_SIZE: usize = 32;
 
@@ -28,7 +29,7 @@ const MASTER_KEY_SIZE: usize = 32;
 /// We maintain a queue of recent sent messages. When receiving a message from
 /// the peer, we compute seekers for each item in this queue to determine which
 /// of our messages they're responding to.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub(crate) struct HistoryItemSelf {
     /// Sequential local identifier for this message
     pub(crate) local_id: u64,
@@ -84,7 +85,7 @@ impl HistoryItemSelf {
 /// 2. They include their next public key (`pk_next`)
 /// 3. We update this structure with their new state
 /// 4. We can delete our history items older than `our_parent_id` (they've been acknowledged)
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub(crate) struct HistoryItemPeer {
     /// Which of our messages they were responding to
     pub(crate) our_parent_id: u64,

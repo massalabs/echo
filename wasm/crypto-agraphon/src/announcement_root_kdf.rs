@@ -8,6 +8,7 @@ use crate::types::Role;
 use crypto_cipher as cipher;
 use crypto_kdf as kdf;
 use crypto_kem as kem;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Root key derivation function for announcement messages.
 ///
@@ -40,6 +41,7 @@ use crypto_kem as kem;
 ///   `"session.announcement_root_kdf.cipher_nonce"`,
 ///   `"session.announcement_root_kdf.auth_key"`, and
 ///   `"session.announcement_root_kdf.integrity_seed"`
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub(crate) struct AnnouncementRootKdf {
     /// Cipher key for encrypting the announcement payload
     pub(crate) cipher_key: cipher::Key,
@@ -101,7 +103,7 @@ impl AnnouncementRootKdf {
         root_kdf.input_item(ss.as_bytes());
         root_kdf.input_item(ct.as_bytes());
         root_kdf.input_item(pk.as_bytes());
-        root_kdf.input_item(&Role::Initiator.to_bytes());
+        root_kdf.input_item(Role::Initiator.as_bytes());
         let root_kdf = root_kdf.finalize();
         root_kdf.expand(
             "session.announcement_root_kdf.cipher_key".as_bytes(),

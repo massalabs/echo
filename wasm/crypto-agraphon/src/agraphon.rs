@@ -11,6 +11,7 @@ use crypto_kem as kem;
 use crypto_rng as rng;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// The main session state machine for secure asynchronous messaging.
 ///
@@ -81,12 +82,25 @@ use std::collections::VecDeque;
 ///     &received_ciphertext,
 /// ).expect("Failed to decrypt message");
 /// ```
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Zeroize)]
 pub struct Agraphon {
     role: Role,
+    #[zeroize(skip)]
     self_msg_history: VecDeque<HistoryItemSelf>,
     latest_peer_msg: HistoryItemPeer,
 }
+
+impl Drop for Agraphon {
+    fn drop(&mut self) {
+        // Each  dropped item will zeroize itself.
+        self.self_msg_history.clear();
+
+        // Wipe the rest via the derived impl (deque is skipped).
+        Zeroize::zeroize(self);
+    }
+}
+
+impl ZeroizeOnDrop for Agraphon {}
 
 impl Agraphon {
     /// Creates a session from an incoming announcement (as Responder).
@@ -145,7 +159,7 @@ impl Agraphon {
 
         let latest_peer_msg = HistoryItemPeer {
             our_parent_id: 0,
-            pk_next: incoming_announcement.pk_peer,
+            pk_next: incoming_announcement.pk_peer.clone(),
             mk_next: incoming_announcement.mk_next,
             seeker_next: incoming_announcement.seeker_next,
         };
@@ -451,7 +465,7 @@ impl Agraphon {
             &peer_msg.mk_next,
             &msg_ss,
             &msg_ct,
-            self.role,
+            self.role.clone(),
         );
 
         let mut pk_next_randomness = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];

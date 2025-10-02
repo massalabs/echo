@@ -48,7 +48,7 @@ use ctr::{
     Ctr128BE,
     cipher::{KeyIvInit, StreamCipher},
 };
-use zeroize::ZeroizeOnDrop;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// AES-256 key size in bytes (256 bits)
 pub const KEY_SIZE: usize = 32;
@@ -79,7 +79,7 @@ type Aes256Ctr = Ctr128BE<Aes256>;
 /// // Get bytes back
 /// assert_eq!(nonce.as_bytes(), &nonce_bytes);
 /// ```
-#[derive(ZeroizeOnDrop)]
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct Nonce([u8; NONCE_SIZE]);
 
 impl From<[u8; NONCE_SIZE]> for Nonce {
@@ -122,7 +122,7 @@ impl Nonce {
 /// // Get bytes back
 /// assert_eq!(key.as_bytes(), &key_bytes);
 /// ```
-#[derive(ZeroizeOnDrop)]
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct Key([u8; KEY_SIZE]);
 
 impl From<[u8; KEY_SIZE]> for Key {

@@ -5,6 +5,7 @@
 
 use crypto_kdf as kdf;
 use crypto_kem as kem;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Key derivation function for static public keys.
 ///
@@ -18,6 +19,7 @@ use crypto_kem as kem;
 /// - Salt: `"session.static_kem.salt---------"`
 /// - Input: The static public key bytes
 /// - Info strings: `"session.static_kem.mk_next"` and `"session.static_kem.seeker_next"`
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct StaticKdf {
     /// Initial master key derived from the static public key
     pub(crate) mk_next: [u8; 32],
