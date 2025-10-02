@@ -9,8 +9,8 @@ use crate::message_integrity_kdf::MessageIntegrityKdf;
 use crypto_cipher as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
-use zeroize::{Zeroize, ZeroizeOnDrop};
 use subtle::ConstantTimeEq;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Intermediate state when receiving an announcement.
 ///
