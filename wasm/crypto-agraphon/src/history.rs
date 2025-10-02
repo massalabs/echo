@@ -9,8 +9,6 @@ use crypto_kem as kem;
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-const MASTER_KEY_SIZE: usize = 32;
-
 /// History item representing one of our sent messages.
 ///
 /// When we send a message, we store this information so we can later decrypt
@@ -36,7 +34,7 @@ pub(crate) struct HistoryItemSelf {
     /// Secret key for decrypting responses (Static or Ephemeral)
     pub(crate) sk_next: KeySource<kem::SecretKey>,
     /// Master key derived after sending this message
-    pub(crate) mk_next: [u8; MASTER_KEY_SIZE],
+    pub(crate) mk_next: [u8; 32],
     /// Seeker seed for message identification
     pub(crate) seeker_next: [u8; 32],
 }
@@ -92,7 +90,7 @@ pub(crate) struct HistoryItemPeer {
     /// Their next public key for us to encapsulate to
     pub(crate) pk_next: kem::PublicKey,
     /// Their master key after this message
-    pub(crate) mk_next: [u8; MASTER_KEY_SIZE],
+    pub(crate) mk_next: [u8; 32],
     /// Their seeker seed for message identification
     pub(crate) seeker_next: [u8; 32],
 }
