@@ -29,6 +29,81 @@
 //!
 //! This information could potentially be used for traffic analysis attacks.
 //!
+//! ### Memory Zeroization
+//!
+//! **Best-effort zeroization requires a secure environment.**
+//!
+//! This crate makes best efforts to securely zeroize sensitive cryptographic material from
+//! memory when it's no longer needed. All sensitive types implement `Zeroize` and `ZeroizeOnDrop`,
+//! and intermediate buffers containing sensitive data are wrapped in `Zeroizing<T>`.
+//!
+//! However, zeroization at the application level cannot guarantee complete protection against
+//! all memory disclosure attacks. Additional system-level protections are strongly recommended:
+//!
+//! - **Use a zeroizing allocator** that clears memory on deallocation
+//! - **Disable swap/paging** for processes handling sensitive data
+//! - **Use memory protection** features (e.g., `mlock`/`madvise` on Unix, `VirtualLock` on Windows)
+//! - **Protect against core dumps** that could expose memory contents
+//! - **Be aware of compiler optimizations** that may eliminate "dead" zeroization code
+//!
+//! Note: Rust's standard allocator does not zero memory on deallocation. Memory reallocations
+//! (e.g., Vec growth) may leave copies of sensitive data in old memory regions, though this
+//! crate uses boxing and careful buffer management to minimize such risks.
+//!
+//! ### Constant-Time Operations
+//!
+//! **Timing side-channels are hardware and platform dependent.**
+//!
+//! This crate makes best efforts to use constant-time operations where timing side-channels
+//! could leak sensitive information. Notably:
+//!
+//! - Cryptographic comparisons use `subtle::ConstantTimeEq`
+//! - The underlying cryptographic primitives (ML-KEM, AES-CTR, HKDF) are designed for
+//!   constant-time operation
+//!
+//! However, true constant-time execution depends heavily on:
+//!
+//! - **CPU microarchitecture**: Cache timing, speculative execution, and other CPU features
+//!   can leak timing information even from "constant-time" code
+//! - **Compiler optimizations**: The compiler may transform code in ways that introduce
+//!   timing variations
+//! - **Operating system behavior**: Context switches, interrupts, and scheduler decisions
+//!   affect timing measurements
+//!
+//! For high-security applications facing sophisticated attackers with physical access or
+//! the ability to perform high-precision timing measurements:
+//!
+//! - Run in a controlled environment with minimal interference
+//! - Consider hardware-based protections against side-channel attacks
+//! - Validate on your specific platform that timing variations are acceptable
+//!
+//! ### Operating System Randomness
+//!
+//! **This crate depends critically on secure OS-provided randomness.**
+//!
+//! All cryptographic key generation, nonces, and random values use the operating system's
+//! cryptographically secure random number generator (CSPRNG) via the `crypto_rng` crate.
+//! The security of this protocol is **fundamentally dependent** on the quality of this randomness.
+//!
+//! Requirements:
+//!
+//! - **Sufficient entropy at startup**: Ensure the OS CSPRNG is properly seeded before using
+//!   this crate. On Linux, this means `/dev/urandom` has been initialized with sufficient entropy.
+//! - **Secure RNG implementation**: The OS must provide a cryptographically secure RNG. This
+//!   crate uses platform-specific sources:
+//!   - Linux: `getrandom()` syscall or `/dev/urandom`
+//!   - Windows: `BCryptGenRandom`
+//!   - macOS/iOS: `SecRandomCopyBytes`
+//!   - WebAssembly: `crypto.getRandomValues()` (browser) or Node.js `crypto`
+//!
+//! Failure conditions:
+//!
+//! - If the OS RNG is compromised or predictable, **all security guarantees are void**
+//! - In virtualized or embedded environments, ensure proper entropy sources are available
+//! - In early boot scenarios, wait for sufficient entropy before generating keys
+//!
+//! This crate will panic if randomness cannot be obtained from the OS.
+//!
 //! ## Protocol Overview
 //!
 //! The protocol consists of two main phases:
