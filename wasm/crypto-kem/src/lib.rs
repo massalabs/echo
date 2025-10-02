@@ -42,7 +42,7 @@
 
 use libcrux_ml_kem::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 // ML-KEM 768 size constants
 /// ML-KEM 768 private key size in bytes
@@ -125,7 +125,7 @@ impl<'de> Deserialize<'de> for PublicKey {
     where
         D: Deserializer<'de>,
     {
-        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        let bytes: Zeroizing<Vec<u8>> = Zeroizing::new(Deserialize::deserialize(deserializer)?);
         if bytes.len() != PUBLIC_KEY_SIZE {
             return Err(serde::de::Error::custom(format!(
                 "expected {} bytes, got {}",
@@ -218,7 +218,7 @@ impl<'de> Deserialize<'de> for SecretKey {
     where
         D: Deserializer<'de>,
     {
-        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        let bytes: Zeroizing<Vec<u8>> = Zeroizing::new(Deserialize::deserialize(deserializer)?);
         if bytes.len() != PRIVATE_KEY_SIZE {
             return Err(serde::de::Error::custom(format!(
                 "expected {} bytes, got {}",
@@ -302,7 +302,7 @@ impl<'de> Deserialize<'de> for Ciphertext {
     where
         D: Deserializer<'de>,
     {
-        let bytes: Vec<u8> = Deserialize::deserialize(deserializer)?;
+        let bytes: Zeroizing<Vec<u8>> = Zeroizing::new(Deserialize::deserialize(deserializer)?);
         if bytes.len() != CIPHERTEXT_SIZE {
             return Err(serde::de::Error::custom(format!(
                 "expected {} bytes, got {}",
