@@ -376,7 +376,7 @@ pub fn generate_key_pair(
 /// # Arguments
 ///
 /// * `signing_key` - The signing key to use
-/// * `message` - The message to sign
+/// * `message` - The raw message to sign (any length, no pre-hashing required)
 /// * `context` - Domain separation context (max 255 bytes, or empty)
 /// * `randomness` - 32 bytes of cryptographically secure random data
 ///
@@ -394,7 +394,7 @@ pub fn generate_key_pair(
 /// let randomness = [0u8; 32];
 /// let (signing_key, verification_key) = generate_key_pair(randomness);
 ///
-/// // Sign a message with empty context
+/// // Sign a raw message with empty context (no pre-hashing needed)
 /// let message = b"Hello, world!";
 /// let signing_randomness = [0u8; 32];
 /// let signature = sign(&signing_key, message, b"", signing_randomness).unwrap();
@@ -402,11 +402,17 @@ pub fn generate_key_pair(
 /// assert_eq!(signature.as_bytes().len(), SIGNATURE_SIZE);
 /// ```
 ///
-/// # Security Note
+/// # Security Notes
 ///
-/// The `randomness` parameter must be generated using a cryptographically secure
-/// random number generator. Reusing randomness or using predictable values
-/// will compromise security.
+/// - **No pre-hashing required**: Unlike traditional DSA schemes (e.g., ECDSA), ML-DSA
+///   is designed to sign raw messages directly. The algorithm performs its own internal
+///   hashing (SHAKE256) as part of the signing process. You should pass your raw message
+///   without pre-hashing it.
+/// - **Randomness**: The `randomness` parameter must be generated using a cryptographically
+///   secure random number generator. Reusing randomness or using predictable values will
+///   compromise security.
+/// - **Context**: The optional `context` parameter provides domain separation. Use it to
+///   distinguish signatures from different applications or protocols.
 pub fn sign(
     signing_key: &SigningKey,
     message: &[u8],
@@ -575,7 +581,7 @@ mod tests {
         // Verify they work the same
         let message = b"Test message";
         let signing_randomness = [4u8; 32];
-        
+
         let sig1 = sign(&signing_key, message, b"", signing_randomness).unwrap();
         let sig2 = sign(&recovered_signing_key, message, b"", signing_randomness).unwrap();
 
@@ -592,7 +598,7 @@ mod tests {
     fn test_cross_key_verification_fails() {
         let randomness1 = [5u8; 32];
         let randomness2 = [6u8; 32];
-        
+
         let (signing_key1, verification_key1) = generate_key_pair(randomness1);
         let (_, verification_key2) = generate_key_pair(randomness2);
 
@@ -607,4 +613,3 @@ mod tests {
         assert!(!verify(&verification_key2, message, b"", &signature));
     }
 }
-
