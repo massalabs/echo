@@ -1,6 +1,7 @@
 //! Internal types used throughout the crypto-agraphon crate.
 
 use serde::{Deserialize, Serialize};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Represents the role of a party in the protocol.
 ///
@@ -15,7 +16,7 @@ use serde::{Deserialize, Serialize};
 /// assert_eq!(role.to_bytes(), [0]);
 /// assert_eq!(role.opposite(), Role::Responder);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub(crate) enum Role {
     /// The party who initiates the session by sending the first announcement
     Initiator,
@@ -30,10 +31,10 @@ impl Role {
     ///
     /// - `[0]` for `Initiator`
     /// - `[1]` for `Responder`
-    pub(crate) fn to_bytes(&self) -> [u8; 1] {
+    pub(crate) fn as_bytes(&self) -> &[u8; 1] {
         match self {
-            Role::Initiator => [0],
-            Role::Responder => [1],
+            Role::Initiator => &[0],
+            Role::Responder => &[1],
         }
     }
 
@@ -65,8 +66,8 @@ impl Role {
 /// # Type Parameters
 ///
 /// - `T`: The type of the ephemeral key (typically `kem::SecretKey`)
-#[derive(Serialize, Deserialize)]
-pub(crate) enum KeySource<T> {
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+pub(crate) enum KeySource<T: ZeroizeOnDrop> {
     /// An ephemeral key generated for a specific message
     Ephemeral(T),
     /// The static long-term secret key should be used
@@ -79,8 +80,8 @@ mod tests {
 
     #[test]
     fn test_role_to_bytes() {
-        assert_eq!(Role::Initiator.to_bytes(), [0]);
-        assert_eq!(Role::Responder.to_bytes(), [1]);
+        assert_eq!(Role::Initiator.as_bytes(), &[0]);
+        assert_eq!(Role::Responder.as_bytes(), &[1]);
     }
 
     #[test]

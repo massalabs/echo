@@ -88,6 +88,12 @@ impl From<[u8; PUBLIC_KEY_SIZE]> for PublicKey {
     }
 }
 
+impl Clone for PublicKey {
+    fn clone(&self) -> Self {
+        Self(MlKemPublicKey::from(self.0.as_slice()))
+    }
+}
+
 impl PublicKey {
     /// Get the raw bytes of the public key
     ///

@@ -9,6 +9,7 @@ use crate::message_integrity_kdf::MessageIntegrityKdf;
 use crypto_cipher as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Intermediate state when receiving an announcement.
 ///
@@ -26,6 +27,7 @@ use crypto_rng as rng;
 ///
 /// The auth_key should be compared with the initiator over an authenticated
 /// channel (e.g., QR code scan, voice call) to prevent man-in-the-middle attacks.
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct IncomingAnnouncementPrecursor {
     auth_payload: Vec<u8>,
     auth_key: [u8; 32],
@@ -246,6 +248,7 @@ impl IncomingAnnouncementPrecursor {
 /// `IncomingAnnouncementPrecursor::finalize()`.
 ///
 /// Pass this to `Agraphon::try_from_incoming_announcement()` to create the session.
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct IncomingAnnouncement {
     pub(crate) pk_peer: kem::PublicKey,
     pub(crate) mk_next: [u8; 32],
@@ -264,6 +267,7 @@ pub struct IncomingAnnouncement {
 /// 2. Initiator displays `auth_key()` to user for verification
 /// 3. Initiator calls `finalize()` with auth_payload and own public key
 /// 4. Initiator sends the resulting bytes to the responder
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingAnnouncementPrecursor {
     randomness: [u8; 32],
     kem_ct: kem::Ciphertext,
@@ -418,6 +422,7 @@ impl OutgoingAnnouncementPrecursor {
 /// the responder acknowledges receipt.
 ///
 /// Pass this to `Agraphon::from_outgoing_announcement()` to create the session.
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingAnnouncement {
     pub(crate) announcement_bytes: Vec<u8>,
     pub(crate) mk_next: [u8; 32],

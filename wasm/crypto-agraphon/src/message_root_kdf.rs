@@ -8,6 +8,7 @@ use crate::types::Role;
 use crypto_cipher as cipher;
 use crypto_kdf as kdf;
 use crypto_kem as kem;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Root key derivation function for regular messages.
 ///
@@ -37,6 +38,7 @@ use crypto_kem as kem;
 /// - Info strings: `"session.message_root_kdf.cipher_key"`,
 ///   `"session.message_root_kdf.cipher_nonce"`, and
 ///   `"session.message_root_kdf.integrity_seed"`
+#[derive(Zeroize, ZeroizeOnDrop)]
 pub(crate) struct MessageRootKdf {
     /// Cipher key for encrypting the message payload
     pub(crate) cipher_key: cipher::Key,
@@ -95,7 +97,7 @@ impl MessageRootKdf {
         root_kdf.input_item(p_peer_mk_next);
         root_kdf.input_item(ss.as_bytes());
         root_kdf.input_item(ct.as_bytes());
-        root_kdf.input_item(&role.to_bytes());
+        root_kdf.input_item(role.as_bytes());
         let root_kdf = root_kdf.finalize();
         root_kdf.expand(
             "session.message_root_kdf.cipher_key".as_bytes(),

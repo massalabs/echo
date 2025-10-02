@@ -14,19 +14,6 @@
 //!
 //! ## ⚠️ Security Warnings
 //!
-//! ### Memory Zeroization
-//!
-//! **This crate does NOT perform memory zeroization of sensitive cryptographic material.**
-//!
-//! For production use, you MUST run this crate with a zeroizing allocator to ensure that
-//! sensitive data (keys, shared secrets, plaintexts) is securely erased from memory when
-//! no longer needed. Without proper memory zeroization, sensitive data may remain in memory
-//! and could potentially be recovered by an attacker with access to memory dumps or through
-//! memory side-channel attacks.
-//!
-//! Consider using allocators like `zeroize` or similar solutions that guarantee secure
-//! memory erasure.
-//!
 //! ### Length Leakage
 //!
 //! **This protocol does NOT hide payload lengths.**
