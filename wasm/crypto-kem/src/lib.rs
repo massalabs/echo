@@ -42,6 +42,7 @@
 
 use libcrux_ml_kem::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 // ML-KEM 768 size constants
 /// ML-KEM 768 private key size in bytes
@@ -132,9 +133,26 @@ impl<'de> Deserialize<'de> for PublicKey {
     }
 }
 
+impl Zeroize for PublicKey {
+    fn zeroize(&mut self) {
+        // Zeroize the underlying bytes through IndexMut
+        // MlKemPublicKey doesn't implement Zeroize, so we access the bytes directly
+        self.0[0..PUBLIC_KEY_SIZE].zeroize();
+    }
+}
+
+impl Drop for PublicKey {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for PublicKey {}
+
 /// A secret key for the ML-KEM key encapsulation mechanism.
 ///
 /// This wraps the libcrux `MlKemPrivateKey` and provides safe byte array conversions.
+/// **The secret key bytes are automatically and securely zeroed when dropped.**
 ///
 /// # Examples
 ///
@@ -149,6 +167,12 @@ impl<'de> Deserialize<'de> for PublicKey {
 /// let recovered_bytes: [u8; PRIVATE_KEY_SIZE] = *secret_key.as_bytes();
 /// assert_eq!(key_bytes, recovered_bytes);
 /// ```
+///
+/// # Security
+///
+/// This type implements `Zeroize` and `ZeroizeOnDrop`, ensuring that the private key
+/// material is securely cleared from memory when the key is dropped. This works even
+/// though the underlying `MlKemPrivateKey` type does not implement zeroization.
 pub struct SecretKey(MlKemPrivateKey<PRIVATE_KEY_SIZE>);
 
 impl From<[u8; PRIVATE_KEY_SIZE]> for SecretKey {
@@ -201,6 +225,23 @@ impl<'de> Deserialize<'de> for SecretKey {
         Ok(SecretKey::from(array))
     }
 }
+
+impl Zeroize for SecretKey {
+    fn zeroize(&mut self) {
+        // CRITICAL: Zeroize the underlying bytes through IndexMut
+        // This is essential because MlKemPrivateKey doesn't implement Zeroize
+        // We access the bytes directly before they're dropped
+        self.0[0..PRIVATE_KEY_SIZE].zeroize();
+    }
+}
+
+impl Drop for SecretKey {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for SecretKey {}
 
 /// A ciphertext produced by the encapsulation operation.
 ///
@@ -269,10 +310,26 @@ impl<'de> Deserialize<'de> for Ciphertext {
     }
 }
 
+impl Zeroize for Ciphertext {
+    fn zeroize(&mut self) {
+        // Zeroize the underlying bytes through IndexMut
+        // MlKemCiphertext doesn't implement Zeroize, so we access the bytes directly
+        self.0[0..CIPHERTEXT_SIZE].zeroize();
+    }
+}
+
+impl Drop for Ciphertext {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for Ciphertext {}
+
 /// A shared secret produced by encapsulation and recovered by decapsulation.
 ///
 /// This wraps the libcrux `MlKemSharedSecret` (which is a 32-byte array) and provides
-/// safe byte array conversions. The shared secret is automatically zeroed when dropped.
+/// safe byte array conversions. **The shared secret is automatically and securely zeroed when dropped.**
 ///
 /// # Examples
 ///
@@ -284,6 +341,11 @@ impl<'de> Deserialize<'de> for Ciphertext {
 /// let recovered_bytes: [u8; SHARED_SECRET_SIZE] = *shared_secret.as_bytes();
 /// assert_eq!(secret_bytes, recovered_bytes);
 /// ```
+///
+/// # Security
+///
+/// This type implements `Zeroize` and `ZeroizeOnDrop`, ensuring that the shared secret
+/// is securely cleared from memory when dropped.
 pub struct SharedSecret(MlKemSharedSecret);
 
 impl From<[u8; SHARED_SECRET_SIZE]> for SharedSecret {
@@ -308,6 +370,22 @@ impl SharedSecret {
         &self.0
     }
 }
+
+impl Zeroize for SharedSecret {
+    fn zeroize(&mut self) {
+        // CRITICAL: Zeroize the underlying byte array
+        // MlKemSharedSecret is just a [u8; 32] type alias, which implements Zeroize
+        self.0.zeroize();
+    }
+}
+
+impl Drop for SharedSecret {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for SharedSecret {}
 
 /// Generate an ML-KEM 768 key pair from the given randomness.
 ///
