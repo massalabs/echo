@@ -5,6 +5,7 @@ members = [
     "crypto-kdf",
     "crypto-cipher",
     "crypto-rng",
+    "crypto-dsa",
     "crypto-agraphon"
 ]
 
