@@ -10,7 +10,7 @@ use crypto_cipher as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
 use subtle::ConstantTimeEq;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 /// Intermediate state when receiving an announcement.
 ///
@@ -95,7 +95,7 @@ impl IncomingAnnouncementPrecursor {
         our_pk: &kem::PublicKey,
         our_sk: &kem::SecretKey,
     ) -> Option<Self> {
-        let randomnes: [u8; 32] = announcement_bytes.get(..32)?.try_into().ok()?;
+        let randomness: [u8; 32] = announcement_bytes.get(..32)?.try_into().ok()?;
 
         let ct_end_index = 32 + kem::CIPHERTEXT_SIZE;
         let ct_bytes: [u8; kem::CIPHERTEXT_SIZE] =
@@ -106,9 +106,9 @@ impl IncomingAnnouncementPrecursor {
 
         let ss = kem::decapsulate(&our_sk, &ct);
 
-        let root_kdf = AnnouncementRootKdf::new(&randomnes, &ss, &ct, our_pk);
+        let root_kdf = AnnouncementRootKdf::new(&randomness, &ss, &ct, our_pk);
 
-        let mut plaintext = encrypted_message.to_vec();
+        let mut plaintext = Zeroizing::new(encrypted_message.to_vec());
         cipher::decrypt(&root_kdf.cipher_key, &root_kdf.cipher_nonce, &mut plaintext);
 
         let payload_end_index = plaintext.len().checked_sub(32)?;
@@ -231,7 +231,6 @@ impl IncomingAnnouncementPrecursor {
             MessageIntegrityKdf::new(&self.integrity_seed, &pk_peer, &self.auth_payload);
 
         // Use constant-time comparison to prevent timing attacks
-        // Use constant-time comparison to prevent timing attacks
         if bool::from(self.integrity_key.ct_eq(&integrity_kdf.integrity_key)) == false {
             return None;
         }
@@ -315,7 +314,6 @@ impl OutgoingAnnouncementPrecursor {
 
         let mut root_kdf_randomness = [0u8; 32];
         rng::fill_buffer(&mut root_kdf_randomness);
-
         let root_kdf = AnnouncementRootKdf::new(&root_kdf_randomness, &kem_ss, &kem_ct, pk_peer);
 
         Self {
@@ -396,7 +394,7 @@ impl OutgoingAnnouncementPrecursor {
         let integrity_kdf =
             MessageIntegrityKdf::new(&self.root_kdf.integrity_seed, pk_self, auth_payload);
 
-        let mut ciphertext = [auth_payload, &integrity_kdf.integrity_key].concat();
+        let mut ciphertext = Zeroizing::new([auth_payload, &integrity_kdf.integrity_key].concat());
         cipher::encrypt(
             &self.root_kdf.cipher_key,
             &self.root_kdf.cipher_nonce,

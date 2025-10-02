@@ -12,7 +12,7 @@ use crypto_rng as rng;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use subtle::ConstantTimeEq;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 /// The main session state machine for secure asynchronous messaging.
 ///
@@ -347,7 +347,7 @@ impl Agraphon {
             self.role.opposite(),
         );
 
-        let mut content = message.get(kem::CIPHERTEXT_SIZE..)?.to_vec();
+        let mut content = Zeroizing::new(message.get(kem::CIPHERTEXT_SIZE..)?.to_vec());
         cipher::decrypt(
             &msg_root_kdf.cipher_key,
             &msg_root_kdf.cipher_nonce,
@@ -363,7 +363,8 @@ impl Agraphon {
             .get(kem::PUBLIC_KEY_SIZE..payload_end_index)?
             .to_vec();
 
-        let integrity_key: [u8; 32] = content.get(payload_end_index..)?.try_into().ok()?;
+        let integrity_key: Zeroizing<[u8; 32]> =
+            Zeroizing::new(content.get(payload_end_index..)?.try_into().ok()?);
 
         let integrity_kdf =
             MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, &payload);
