@@ -86,8 +86,9 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 #[derive(Serialize, Deserialize, Zeroize)]
 pub struct Agraphon {
     role: Role,
+    // Boxed to avoid vecdeque realloc non-zeroed memory
     #[zeroize(skip)]
-    self_msg_history: VecDeque<HistoryItemSelf>,
+    self_msg_history: VecDeque<Box<HistoryItemSelf>>,
     latest_peer_msg: HistoryItemPeer,
 }
 
@@ -156,7 +157,7 @@ impl Agraphon {
         pk_self: &kem::PublicKey,
     ) -> Option<Self> {
         let mut self_msg_history = VecDeque::new();
-        self_msg_history.push_back(HistoryItemSelf::initial(pk_self));
+        self_msg_history.push_back(Box::new(HistoryItemSelf::initial(pk_self)));
 
         let latest_peer_msg = HistoryItemPeer {
             our_parent_id: 0,
@@ -216,12 +217,12 @@ impl Agraphon {
         pk_peer: kem::PublicKey,
     ) -> Self {
         let mut self_msg_history = VecDeque::new();
-        self_msg_history.push_back(HistoryItemSelf {
+        self_msg_history.push_back(Box::new(HistoryItemSelf {
             local_id: 1,
             sk_next: KeySource::Static,
             mk_next: outgoing_announcement.mk_next,
             seeker_next: outgoing_announcement.seeker_next,
-        });
+        }));
 
         let latest_peer_msg = HistoryItemPeer::initial(pk_peer);
 
@@ -274,7 +275,9 @@ impl Agraphon {
     fn get_self_message_by_id(&self, local_id: u64) -> Option<&HistoryItemSelf> {
         let first_id = self.self_msg_history.front()?.local_id;
         let index = local_id.checked_sub(first_id)?;
-        self.self_msg_history.get(index.try_into().ok()?)
+        self.self_msg_history
+            .get(index.try_into().ok()?)
+            .map(|b| &**b)
     }
 
     /// Attempts to decrypt and process an incoming message.
@@ -478,7 +481,8 @@ impl Agraphon {
         let integrity_kdf: MessageIntegrityKdf =
             MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, &payload);
 
-        let mut ciphertext = [pk_next.as_bytes(), payload, &integrity_kdf.integrity_key].concat();
+        let mut ciphertext =
+            Zeroizing::new([pk_next.as_bytes(), payload, &integrity_kdf.integrity_key].concat());
         cipher::encrypt(
             &msg_root_kdf.cipher_key,
             &msg_root_kdf.cipher_nonce,
@@ -488,12 +492,12 @@ impl Agraphon {
         // Compute seeker before mutating self_msg_history
         let seeker_kdf = SeekerKdf::new(&self_msg.seeker_next, &peer_msg.seeker_next);
 
-        self.self_msg_history.push_back(HistoryItemSelf {
+        self.self_msg_history.push_back(Box::new(HistoryItemSelf {
             local_id: self_msg.local_id + 1,
             sk_next: KeySource::Ephemeral(sk_next),
             mk_next: integrity_kdf.mk_next,
             seeker_next: integrity_kdf.seeker_next,
-        });
+        }));
 
         let message_bytes = [msg_ct.as_bytes().as_slice(), &ciphertext].concat();
 
