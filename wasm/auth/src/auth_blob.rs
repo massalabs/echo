@@ -20,7 +20,7 @@
 //! # Structure
 //!
 //! An `AuthBlob` contains:
-//! - **Public payload**: Information visible to all (e.g., KEM public key, timestamp)
+//! - **Public payload**: Information visible to all (e.g., timestamp)
 //! - **Secret payload**: Shared secret known only to legitimate parties (e.g., `auth_key` from Agraphon)
 //! - **User public keys**: All public keys to identify the sender
 //! - **Dual signatures**: Both DSA and Massa blockchain signatures for multi-layer verification

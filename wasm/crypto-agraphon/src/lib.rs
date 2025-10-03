@@ -137,11 +137,11 @@
 //! // Alice initiates the session
 //! let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
 //! let auth_payload = b"Alice's authentication data";
-//! let announcement = announcement_pre.finalize(auth_payload, &alice_pk);
+//! let (announcement_bytes, announcement) = announcement_pre.finalize(auth_payload, &alice_pk);
 //!
 //! // Bob receives the announcement
 //! let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-//!     announcement.announcement_bytes(),
+//!     &announcement_bytes,
 //!     &bob_pk,
 //!     &bob_sk,
 //! ).expect("Failed to parse announcement");
