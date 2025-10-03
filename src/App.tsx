@@ -52,7 +52,14 @@ const AppContent: React.FC = () => {
   }
 
   if (!isInitialized) {
-    return <OnboardingFlow onComplete={() => {}} />;
+    return (
+      <OnboardingFlow
+        onComplete={() => {
+          // When onboarding is complete, set isInitialized to true to trigger MainApp
+          useAccountStore.setState({ isInitialized: true });
+        }}
+      />
+    );
   }
 
   return <MainApp />;

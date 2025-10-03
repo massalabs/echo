@@ -79,7 +79,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             {/* Send Button */}
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                <img src={sendIcon} alt="Send" className="w-6 h-6" />
+                <img src={sendIcon} alt="Send" />
               </div>
               <span className="text-xs font-medium text-black">send</span>
             </div>
@@ -87,7 +87,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             {/* Receive Button */}
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                <img src={receiveIcon} alt="Receive" className="w-6 h-6" />
+                <img src={receiveIcon} alt="Receive" />
               </div>
               <span className="text-xs font-medium text-black">receive</span>
             </div>
@@ -95,7 +95,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             {/* Swap Button */}
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                <img src={swapIcon} alt="Swap" className="w-6 h-6" />
+                <img src={swapIcon} alt="Swap" />
               </div>
               <span className="text-xs font-medium text-black">swap</span>
             </div>
