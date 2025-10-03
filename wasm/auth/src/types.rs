@@ -23,7 +23,7 @@ pub const SECONDARY_SECRET_KEY_SIZE: usize = 32;
 ///
 /// The user ID is deterministically computed from all public keys using a KDF,
 /// ensuring that the same key material always produces the same ID.
-#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, Zeroize, ZeroizeOnDrop, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UserId([u8; USER_ID_SIZE]);
 
 impl UserId {

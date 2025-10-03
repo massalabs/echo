@@ -79,11 +79,11 @@ impl IncomingAnnouncementPrecursor {
     /// let mut alice_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
     /// rng::fill_buffer(&mut alice_rand);
     /// let (_, alice_pk) = kem::generate_key_pair(alice_rand);
-    /// let announcement = announcement_pre.finalize(auth_payload, &alice_pk);
+    /// let (announcement_bytes, announcement) = announcement_pre.finalize(auth_payload, &alice_pk);
     ///
     /// // Bob receives and decrypts it
     /// let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-    ///     announcement.announcement_bytes(),
+    ///     &announcement_bytes,
     ///     &bob_pk,
     ///     &bob_sk,
     /// ).expect("Failed to decrypt announcement");
@@ -144,9 +144,9 @@ impl IncomingAnnouncementPrecursor {
     /// # let mut alice_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
     /// # rng::fill_buffer(&mut alice_rand);
     /// # let (_, alice_pk) = kem::generate_key_pair(alice_rand);
-    /// # let announcement = announcement_pre.finalize(b"Hello from Alice", &alice_pk);
+    /// # let (announcement_bytes, announcement) = announcement_pre.finalize(b"Hello from Alice", &alice_pk);
     /// # let incoming = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-    /// #     announcement.announcement_bytes(), &bob_pk, &bob_sk
+    /// #     &announcement_bytes, &bob_pk, &bob_sk
     /// # ).unwrap();
     /// let payload = incoming.auth_payload();
     /// println!("Received: {}", String::from_utf8_lossy(payload));
@@ -181,9 +181,9 @@ impl IncomingAnnouncementPrecursor {
     /// # rng::fill_buffer(&mut alice_rand);
     /// # let (_, alice_pk) = kem::generate_key_pair(alice_rand);
     /// # let outgoing_auth_key = announcement_pre.auth_key();
-    /// # let announcement = announcement_pre.finalize(b"Hello", &alice_pk);
+    /// # let (announcement_bytes, announcement) = announcement_pre.finalize(b"Hello", &alice_pk);
     /// # let incoming = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-    /// #     announcement.announcement_bytes(), &bob_pk, &bob_sk
+    /// #     &announcement_bytes, &bob_pk, &bob_sk
     /// # ).unwrap();
     /// let auth_key = incoming.auth_key();
     /// // Display for user verification (e.g., as hex, QR code, etc.)
@@ -222,9 +222,9 @@ impl IncomingAnnouncementPrecursor {
     /// # rng::fill_buffer(&mut alice_rand);
     /// # let (_, alice_pk) = kem::generate_key_pair(alice_rand);
     /// # let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-    /// # let announcement = announcement_pre.finalize(b"Hello", &alice_pk);
+    /// # let (announcement_bytes, announcement) = announcement_pre.finalize(b"Hello", &alice_pk);
     /// # let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-    /// #     announcement.announcement_bytes(), &bob_pk, &bob_sk
+    /// #     &announcement_bytes, &bob_pk, &bob_sk
     /// # ).unwrap();
     /// // After verifying the auth_payload and auth_key...
     /// let incoming = incoming_pre.finalize(alice_pk)
@@ -393,12 +393,16 @@ impl OutgoingAnnouncementPrecursor {
     ///
     /// // Alice creates and finalizes announcement
     /// let precursor = OutgoingAnnouncementPrecursor::new(&bob_pk);
-    /// let announcement = precursor.finalize(b"Hello from Alice!", &alice_pk);
+    /// let (announcement_bytes, announcement) = precursor.finalize(b"Hello from Alice!", &alice_pk);
     ///
-    /// // Send announcement.announcement_bytes() to Bob
+    /// // Send announcement_bytes to Bob
     /// ```
     #[must_use]
-    pub fn finalize(self, auth_payload: &[u8], pk_self: &kem::PublicKey) -> OutgoingAnnouncement {
+    pub fn finalize(
+        self,
+        auth_payload: &[u8],
+        pk_self: &kem::PublicKey,
+    ) -> (Vec<u8>, OutgoingAnnouncement) {
         let integrity_kdf =
             MessageIntegrityKdf::new(&self.root_kdf.integrity_seed, pk_self, auth_payload);
 
@@ -416,11 +420,12 @@ impl OutgoingAnnouncementPrecursor {
         ]
         .concat();
 
-        OutgoingAnnouncement {
-            announcement_bytes,
+        let announcement = OutgoingAnnouncement {
             mk_next: integrity_kdf.mk_next,
             seeker_next: integrity_kdf.seeker_next,
-        }
+        };
+
+        (announcement_bytes, announcement)
     }
 }
 
@@ -433,39 +438,8 @@ impl OutgoingAnnouncementPrecursor {
 /// Pass this to `Agraphon::from_outgoing_announcement()` to create the session.
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingAnnouncement {
-    pub(crate) announcement_bytes: Vec<u8>,
     pub(crate) mk_next: [u8; 32],
     pub(crate) seeker_next: [u8; 32],
-}
-
-impl OutgoingAnnouncement {
-    /// Returns the announcement bytes to send to the responder.
-    ///
-    /// These bytes should be transmitted to the peer through your
-    /// communication channel (e.g., network, QR code).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use crypto_agraphon::OutgoingAnnouncementPrecursor;
-    /// # use crypto_kem as kem;
-    /// # use crypto_rng as rng;
-    /// # let mut alice_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
-    /// # rng::fill_buffer(&mut alice_rand);
-    /// # let (_, alice_pk) = kem::generate_key_pair(alice_rand);
-    /// # let mut bob_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
-    /// # rng::fill_buffer(&mut bob_rand);
-    /// # let (_, bob_pk) = kem::generate_key_pair(bob_rand);
-    /// # let precursor = OutgoingAnnouncementPrecursor::new(&bob_pk);
-    /// # let announcement = precursor.finalize(b"Hello", &alice_pk);
-    /// let bytes = announcement.announcement_bytes();
-    /// // Send bytes to the peer
-    /// println!("Send {} bytes to peer", bytes.len());
-    /// ```
-    #[must_use]
-    pub fn announcement_bytes(&self) -> &[u8] {
-        &self.announcement_bytes
-    }
 }
 
 #[cfg(test)]
@@ -489,11 +463,11 @@ mod tests {
         let outgoing_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
         let auth_key_alice = *outgoing_pre.auth_key();
         let auth_payload = b"Hello from Alice!";
-        let outgoing = outgoing_pre.finalize(auth_payload, &alice_pk);
+        let (announcement_bytes, _outgoing) = outgoing_pre.finalize(auth_payload, &alice_pk);
 
         // Bob receives the announcement
         let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-            outgoing.announcement_bytes(),
+            &announcement_bytes,
             &bob_pk,
             &bob_sk,
         )
@@ -530,11 +504,11 @@ mod tests {
 
         // Alice creates announcement
         let outgoing_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-        let outgoing = outgoing_pre.finalize(b"Hello", &alice_pk);
+        let (announcement_bytes, _outgoing) = outgoing_pre.finalize(b"Hello", &alice_pk);
 
         // Bob receives it
         let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-            outgoing.announcement_bytes(),
+            &announcement_bytes,
             &bob_pk,
             &bob_sk,
         )

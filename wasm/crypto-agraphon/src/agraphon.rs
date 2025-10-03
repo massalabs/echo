@@ -207,9 +207,9 @@ impl Agraphon {
     ///
     /// // Create and finalize announcement
     /// let precursor = OutgoingAnnouncementPrecursor::new(&bob_pk);
-    /// let announcement = precursor.finalize(b"Hello from Alice", &alice_pk);
+    /// let (announcement_bytes, announcement) = precursor.finalize(b"Hello from Alice", &alice_pk);
     ///
-    /// // Send announcement.announcement_bytes() to Bob...
+    /// // Send announcement_bytes to Bob...
     ///
     /// // Create session
     /// let mut session = Agraphon::from_outgoing_announcement(announcement, bob_pk);
@@ -583,11 +583,12 @@ mod tests {
 
         // Alice initiates session with Bob
         let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-        let announcement = announcement_pre.finalize(b"Alice's auth data", &alice_pk);
+        let (announcement_bytes, announcement) =
+            announcement_pre.finalize(b"Alice's auth data", &alice_pk);
 
         // Bob receives announcement
         let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-            announcement.announcement_bytes(),
+            &announcement_bytes,
             &bob_pk,
             &bob_sk,
         )
@@ -627,10 +628,10 @@ mod tests {
         let (bob_sk, bob_pk) = kem::generate_key_pair(bob_rand);
 
         let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-        let announcement = announcement_pre.finalize(b"auth", &alice_pk);
+        let (announcement_bytes, announcement) = announcement_pre.finalize(b"auth", &alice_pk);
 
         let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-            announcement.announcement_bytes(),
+            &announcement_bytes,
             &bob_pk,
             &bob_sk,
         )
@@ -676,7 +677,7 @@ mod tests {
         let (_, bob_pk) = kem::generate_key_pair(bob_rand);
 
         let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-        let announcement = announcement_pre.finalize(b"auth", &alice_pk);
+        let (_announcement_bytes, announcement) = announcement_pre.finalize(b"auth", &alice_pk);
         let mut alice_session = Agraphon::from_outgoing_announcement(announcement, bob_pk);
 
         // Initial lag should be 1 (we have sent the announcement)
@@ -701,7 +702,7 @@ mod tests {
         let (_, bob_pk) = kem::generate_key_pair(bob_rand);
 
         let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-        let announcement = announcement_pre.finalize(b"auth", &alice_pk);
+        let (_announcement_bytes, announcement) = announcement_pre.finalize(b"auth", &alice_pk);
         let mut alice_session = Agraphon::from_outgoing_announcement(announcement, bob_pk);
 
         // Initial seekers should include message ID 1
