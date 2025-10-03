@@ -17,7 +17,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// assert_eq!(role.opposite(), Role::Responder);
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
-pub(crate) enum Role {
+pub enum Role {
     /// The party who initiates the session by sending the first announcement
     Initiator,
     /// The party who responds to the announcement
@@ -31,10 +31,10 @@ impl Role {
     ///
     /// - `[0]` for `Initiator`
     /// - `[1]` for `Responder`
-    pub(crate) fn as_bytes(&self) -> &[u8; 1] {
+    pub(crate) const fn as_bytes(&self) -> &[u8; 1] {
         match self {
-            Role::Initiator => &[0],
-            Role::Responder => &[1],
+            Self::Initiator => &[0],
+            Self::Responder => &[1],
         }
     }
 
@@ -49,10 +49,10 @@ impl Role {
     /// assert_eq!(Role::Initiator.opposite(), Role::Responder);
     /// assert_eq!(Role::Responder.opposite(), Role::Initiator);
     /// ```
-    pub(crate) fn opposite(&self) -> Self {
+    pub(crate) const fn opposite(&self) -> Self {
         match self {
-            Role::Initiator => Role::Responder,
-            Role::Responder => Role::Initiator,
+            Self::Initiator => Self::Responder,
+            Self::Responder => Self::Initiator,
         }
     }
 }
@@ -67,7 +67,7 @@ impl Role {
 ///
 /// - `T`: The type of the ephemeral key (typically `kem::SecretKey`)
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
-pub(crate) enum KeySource<T: ZeroizeOnDrop> {
+pub enum KeySource<T: ZeroizeOnDrop> {
     /// An ephemeral key generated for a specific message
     Ephemeral(T),
     /// The static long-term secret key should be used

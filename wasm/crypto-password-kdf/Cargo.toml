@@ -1,0 +1,11 @@
+[package]
+name = "crypto-password-kdf"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+argon2 = { version = "0.5", features = ["std"] }
+

@@ -29,7 +29,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// Uses HKDF with:
 /// - Salt: `"session.integrity_kdf.salt------"`
-/// - Inputs: integrity_seed, pk_next, payload
+/// - Inputs: `integrity_seed`, `pk_next`, payload
 /// - Info strings: `"session.integrity_kdf.mk_next"`, `"session.integrity_kdf.integrity_key"`,
 ///   and `"session.integrity_kdf.seeker_next"`
 #[derive(Zeroize, ZeroizeOnDrop)]
@@ -72,12 +72,12 @@ impl MessageIntegrityKdf {
         let mut mk_next = [0u8; 32];
         let mut integrity_key = [0u8; 32];
         let mut seeker_next = [0u8; 32];
-        let mut integrity_kdf = kdf::Extract::new("session.integrity_kdf.salt------".as_bytes());
+        let mut integrity_kdf = kdf::Extract::new(b"session.integrity_kdf.salt------");
         integrity_kdf.input_item(integrity_seed.as_slice());
         integrity_kdf.input_item(pk_next.as_bytes());
         integrity_kdf.input_item(payload);
         let integrity_kdf = integrity_kdf.finalize();
-        integrity_kdf.expand("session.integrity_kdf.mk_next".as_bytes(), &mut mk_next);
+        integrity_kdf.expand(b"session.integrity_kdf.mk_next", &mut mk_next);
         integrity_kdf.expand(
             "session.integrity_kdf.integrity_key".as_bytes(),
             &mut integrity_key,

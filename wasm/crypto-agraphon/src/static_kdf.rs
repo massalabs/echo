@@ -51,14 +51,11 @@ impl StaticKdf {
     pub fn new(static_pk: &kem::PublicKey) -> Self {
         let mut mk_next = [0u8; 32];
         let mut seeker_next = [0u8; 32];
-        let mut static_kdf = kdf::Extract::new("session.static_kem.salt---------".as_bytes());
+        let mut static_kdf = kdf::Extract::new(b"session.static_kem.salt---------");
         static_kdf.input_item(static_pk.as_bytes());
         let static_kdf = static_kdf.finalize();
-        static_kdf.expand("session.static_kem.mk_next".as_bytes(), &mut mk_next);
-        static_kdf.expand(
-            "session.static_kem.seeker_next".as_bytes(),
-            &mut seeker_next,
-        );
+        static_kdf.expand(b"session.static_kem.mk_next", &mut mk_next);
+        static_kdf.expand(b"session.static_kem.seeker_next", &mut seeker_next);
         Self {
             mk_next,
             seeker_next,

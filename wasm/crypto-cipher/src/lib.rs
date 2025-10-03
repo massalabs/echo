@@ -100,7 +100,8 @@ impl Nonce {
     /// let nonce = Nonce::from(nonce_bytes);
     /// assert_eq!(nonce.as_bytes(), &nonce_bytes);
     /// ```
-    pub fn as_bytes(&self) -> &[u8; NONCE_SIZE] {
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; NONCE_SIZE] {
         &self.0
     }
 }
@@ -143,14 +144,15 @@ impl Key {
     /// let key = Key::from(key_bytes);
     /// assert_eq!(key.as_bytes(), &key_bytes);
     /// ```
-    pub fn as_bytes(&self) -> &[u8; KEY_SIZE] {
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; KEY_SIZE] {
         &self.0
     }
 }
 
 /// Encrypts data in-place using AES-256-CTR.
 ///
-/// CTR mode encrypts data by XORing it with a keystream generated from the key
+/// CTR mode encrypts data by `XORing` it with a keystream generated from the key
 /// and nonce. This function modifies the buffer in-place.
 ///
 /// # Arguments

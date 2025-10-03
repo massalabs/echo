@@ -40,7 +40,9 @@
 //! - Always use cryptographically secure random number generation for key generation and encapsulation
 //! - This library is suitable for production use as it wraps the formally verified libcrux implementation
 
-use libcrux_ml_kem::*;
+use libcrux_ml_kem::{
+    MlKemCiphertext, MlKemPrivateKey, MlKemPublicKey, MlKemSharedSecret, mlkem768,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -57,7 +59,7 @@ pub const CIPHERTEXT_SIZE: usize = 1088;
 /// ML-KEM 768 shared secret size in bytes
 pub const SHARED_SECRET_SIZE: usize = 32;
 
-/// ML-KEM 768 key generation randomness size in bytes (alias for KEY_GENERATION_SEED_SIZE)
+/// ML-KEM 768 key generation randomness size in bytes (alias for `KEY_GENERATION_SEED_SIZE`)
 pub const KEY_GENERATION_RANDOMNESS_SIZE: usize = 64;
 
 /// ML-KEM 768 encapsulation randomness size in bytes
@@ -106,6 +108,7 @@ impl PublicKey {
     /// let public_key = PublicKey::from(key_bytes);
     /// assert_eq!(public_key.as_bytes(), &key_bytes);
     /// ```
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; PUBLIC_KEY_SIZE] {
         self.0.as_slice()
     }
@@ -135,7 +138,7 @@ impl<'de> Deserialize<'de> for PublicKey {
         }
         let mut array = [0u8; PUBLIC_KEY_SIZE];
         array.copy_from_slice(&bytes);
-        Ok(PublicKey::from(array))
+        Ok(Self::from(array))
     }
 }
 
@@ -199,6 +202,7 @@ impl SecretKey {
     /// let secret_key = SecretKey::from(key_bytes);
     /// assert_eq!(secret_key.as_bytes(), &key_bytes);
     /// ```
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; PRIVATE_KEY_SIZE] {
         self.0.as_slice()
     }
@@ -228,7 +232,7 @@ impl<'de> Deserialize<'de> for SecretKey {
         }
         let mut array = [0u8; PRIVATE_KEY_SIZE];
         array.copy_from_slice(&bytes);
-        Ok(SecretKey::from(array))
+        Ok(Self::from(array))
     }
 }
 
@@ -283,6 +287,7 @@ impl Ciphertext {
     /// let ciphertext = Ciphertext::from(ct_bytes);
     /// assert_eq!(ciphertext.as_bytes(), &ct_bytes);
     /// ```
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; CIPHERTEXT_SIZE] {
         self.0.as_slice()
     }
@@ -312,7 +317,7 @@ impl<'de> Deserialize<'de> for Ciphertext {
         }
         let mut array = [0u8; CIPHERTEXT_SIZE];
         array.copy_from_slice(&bytes);
-        Ok(Ciphertext::from(array))
+        Ok(Self::from(array))
     }
 }
 
@@ -372,7 +377,8 @@ impl SharedSecret {
     /// let shared_secret = SharedSecret::from(secret_bytes);
     /// assert_eq!(shared_secret.as_bytes(), &secret_bytes);
     /// ```
-    pub fn as_bytes(&self) -> &[u8; SHARED_SECRET_SIZE] {
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; SHARED_SECRET_SIZE] {
         &self.0
     }
 }
@@ -423,6 +429,7 @@ impl ZeroizeOnDrop for SharedSecret {}
 /// The `randomness` parameter must be generated using a cryptographically secure
 /// random number generator. Using predictable or weak randomness will compromise
 /// the security of the generated keys.
+#[must_use]
 pub fn generate_key_pair(
     randomness: [u8; KEY_GENERATION_RANDOMNESS_SIZE],
 ) -> (SecretKey, PublicKey) {
@@ -467,6 +474,7 @@ pub fn generate_key_pair(
 ///
 /// The `randomness` parameter must be generated using a cryptographically secure
 /// random number generator. Reusing randomness will compromise security.
+#[must_use]
 pub fn encapsulate(
     public_key: &PublicKey,
     randomness: [u8; ENCAPSULATION_RANDOMNESS_SIZE],
@@ -508,6 +516,7 @@ pub fn encapsulate(
 /// // Both secrets should be identical
 /// assert_eq!(shared_secret1.as_bytes(), shared_secret2.as_bytes());
 /// ```
+#[must_use]
 pub fn decapsulate(secret_key: &SecretKey, ciphertext: &Ciphertext) -> SharedSecret {
     let ss = mlkem768::decapsulate(&secret_key.0, &ciphertext.0);
     SharedSecret(ss)
@@ -521,7 +530,7 @@ mod tests {
     fn test_public_key_conversion() {
         let key_bytes = [42u8; PUBLIC_KEY_SIZE];
         let public_key = PublicKey::from(key_bytes);
-        let recovered_bytes: [u8; PUBLIC_KEY_SIZE] = public_key.as_bytes().clone();
+        let recovered_bytes: [u8; PUBLIC_KEY_SIZE] = *public_key.as_bytes();
         assert_eq!(key_bytes, recovered_bytes);
         assert_eq!(public_key.as_bytes(), &key_bytes);
     }
@@ -530,7 +539,7 @@ mod tests {
     fn test_secret_key_conversion() {
         let key_bytes = [123u8; PRIVATE_KEY_SIZE];
         let secret_key = SecretKey::from(key_bytes);
-        let recovered_bytes: [u8; PRIVATE_KEY_SIZE] = secret_key.as_bytes().clone();
+        let recovered_bytes: [u8; PRIVATE_KEY_SIZE] = *secret_key.as_bytes();
         assert_eq!(key_bytes, recovered_bytes);
         assert_eq!(secret_key.as_bytes(), &key_bytes);
     }
@@ -539,7 +548,7 @@ mod tests {
     fn test_ciphertext_conversion() {
         let ct_bytes = [123u8; CIPHERTEXT_SIZE];
         let ciphertext = Ciphertext::from(ct_bytes);
-        let recovered_bytes: [u8; CIPHERTEXT_SIZE] = ciphertext.as_bytes().clone();
+        let recovered_bytes: [u8; CIPHERTEXT_SIZE] = *ciphertext.as_bytes();
         assert_eq!(ct_bytes, recovered_bytes);
         assert_eq!(ciphertext.as_bytes(), &ct_bytes);
     }
@@ -548,7 +557,7 @@ mod tests {
     fn test_shared_secret_conversion() {
         let secret_bytes = [255u8; SHARED_SECRET_SIZE];
         let shared_secret = SharedSecret::from(secret_bytes);
-        let recovered_bytes: [u8; SHARED_SECRET_SIZE] = shared_secret.as_bytes().clone();
+        let recovered_bytes: [u8; SHARED_SECRET_SIZE] = *shared_secret.as_bytes();
         assert_eq!(secret_bytes, recovered_bytes);
         assert_eq!(shared_secret.as_bytes(), &secret_bytes);
     }
