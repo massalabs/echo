@@ -16,7 +16,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 ///
 /// After receiving and decrypting an announcement, this precursor allows the
 /// application to inspect the authentication payload and verify it (e.g., by
-/// comparing the auth_key with the initiator) before finalizing the session.
+/// comparing the `auth_key` with the initiator) before finalizing the session.
 ///
 /// # Protocol Flow
 ///
@@ -26,7 +26,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 ///
 /// # Security Note
 ///
-/// The auth_key should be compared with the initiator over an authenticated
+/// The `auth_key` should be compared with the initiator over an authenticated
 /// channel (e.g., QR code scan, voice call) to prevent man-in-the-middle attacks.
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct IncomingAnnouncementPrecursor {
@@ -59,7 +59,7 @@ impl IncomingAnnouncementPrecursor {
     /// Announcement bytes contain:
     /// - 32 bytes: randomness
     /// - `kem::CIPHERTEXT_SIZE` bytes: KEM ciphertext
-    /// - Remaining bytes: encrypted (auth_payload || integrity_key)
+    /// - Remaining bytes: encrypted (`auth_payload` || `integrity_key`)
     ///
     /// # Examples
     ///
@@ -90,6 +90,8 @@ impl IncomingAnnouncementPrecursor {
     ///
     /// assert_eq!(incoming_pre.auth_payload(), auth_payload);
     /// ```
+    #[must_use]
+    #[allow(clippy::similar_names)] // pk/sk naming is standard in cryptography
     pub fn try_from_incoming_announcement_bytes(
         announcement_bytes: &[u8],
         our_pk: &kem::PublicKey,
@@ -104,7 +106,7 @@ impl IncomingAnnouncementPrecursor {
 
         let encrypted_message = announcement_bytes.get(ct_end_index..)?;
 
-        let ss = kem::decapsulate(&our_sk, &ct);
+        let ss = kem::decapsulate(our_sk, &ct);
 
         let root_kdf = AnnouncementRootKdf::new(&randomness, &ss, &ct, our_pk);
 
@@ -149,19 +151,20 @@ impl IncomingAnnouncementPrecursor {
     /// let payload = incoming.auth_payload();
     /// println!("Received: {}", String::from_utf8_lossy(payload));
     /// ```
+    #[must_use]
     pub fn auth_payload(&self) -> &[u8] {
         &self.auth_payload
     }
 
     /// Returns the authentication key for out-of-band verification.
     ///
-    /// Both parties derive the same auth_key from the announcement. This can be
+    /// Both parties derive the same `auth_key` from the announcement. This can be
     /// displayed (e.g., as a QR code or hex string) and compared over an
     /// authenticated channel to verify the session is not being intercepted.
     ///
     /// # Security Note
     ///
-    /// The auth_key verification is optional but highly recommended for high-security
+    /// The `auth_key` verification is optional but highly recommended for high-security
     /// applications to prevent man-in-the-middle attacks.
     ///
     /// # Examples
@@ -186,13 +189,14 @@ impl IncomingAnnouncementPrecursor {
     /// // Display for user verification (e.g., as hex, QR code, etc.)
     /// println!("Verify this key matches the initiator's: {:?}", &auth_key[..8]);
     /// ```
-    pub fn auth_key(&self) -> &[u8; 32] {
+    #[must_use]
+    pub const fn auth_key(&self) -> &[u8; 32] {
         &self.auth_key
     }
 
     /// Finalizes the announcement after authentication.
     ///
-    /// After verifying the auth_payload and optionally comparing auth_keys with
+    /// After verifying the `auth_payload` and optionally comparing `auth_keys` with
     /// the initiator, call this method with the initiator's public key to
     /// complete the handshake.
     ///
@@ -226,12 +230,13 @@ impl IncomingAnnouncementPrecursor {
     /// let incoming = incoming_pre.finalize(alice_pk)
     ///     .expect("Integrity check failed");
     /// ```
+    #[must_use]
     pub fn finalize(self, pk_peer: kem::PublicKey) -> Option<IncomingAnnouncement> {
         let integrity_kdf =
             MessageIntegrityKdf::new(&self.integrity_seed, &pk_peer, &self.auth_payload);
 
         // Use constant-time comparison to prevent timing attacks
-        if bool::from(self.integrity_key.ct_eq(&integrity_kdf.integrity_key)) == false {
+        if !bool::from(self.integrity_key.ct_eq(&integrity_kdf.integrity_key)) {
             return None;
         }
 
@@ -259,15 +264,15 @@ pub struct IncomingAnnouncement {
 
 /// Intermediate state when creating an announcement.
 ///
-/// This precursor allows the application to access the auth_key before
-/// finalizing the announcement. The auth_key can be displayed to the user
+/// This precursor allows the application to access the `auth_key` before
+/// finalizing the announcement. The `auth_key` can be displayed to the user
 /// for out-of-band verification with the responder.
 ///
 /// # Protocol Flow
 ///
 /// 1. Initiator creates an `OutgoingAnnouncementPrecursor` with responder's public key
 /// 2. Initiator displays `auth_key()` to user for verification
-/// 3. Initiator calls `finalize()` with auth_payload and own public key
+/// 3. Initiator calls `finalize()` with `auth_payload` and own public key
 /// 4. Initiator sends the resulting bytes to the responder
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingAnnouncementPrecursor {
@@ -280,7 +285,7 @@ impl OutgoingAnnouncementPrecursor {
     /// Creates a new announcement precursor to a peer.
     ///
     /// Generates fresh randomness and performs KEM encapsulation to the peer's
-    /// static public key. The resulting auth_key can be inspected before
+    /// static public key. The resulting `auth_key` can be inspected before
     /// finalizing the announcement.
     ///
     /// # Arguments
@@ -307,6 +312,7 @@ impl OutgoingAnnouncementPrecursor {
     /// let precursor = OutgoingAnnouncementPrecursor::new(&bob_pk);
     /// // precursor.auth_key() can now be displayed for verification
     /// ```
+    #[must_use]
     pub fn new(pk_peer: &kem::PublicKey) -> Self {
         let mut kem_randomness = [0u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut kem_randomness);
@@ -342,14 +348,15 @@ impl OutgoingAnnouncementPrecursor {
     /// // Display for user verification (e.g., as hex, QR code, etc.)
     /// println!("Verify this key with responder: {:?}", &auth_key[..8]);
     /// ```
-    pub fn auth_key(&self) -> &[u8; 32] {
+    #[must_use]
+    pub const fn auth_key(&self) -> &[u8; 32] {
         &self.root_kdf.auth_key
     }
 
     /// Finalizes the announcement with an auth payload.
     ///
-    /// After optionally verifying the auth_key with the responder, call this
-    /// method with your auth_payload (e.g., identity information) and your
+    /// After optionally verifying the `auth_key` with the responder, call this
+    /// method with your `auth_payload` (e.g., identity information) and your
     /// static public key to create the final announcement bytes.
     ///
     /// # Arguments
@@ -363,9 +370,9 @@ impl OutgoingAnnouncementPrecursor {
     ///
     /// # Security Warning
     ///
-    /// **Length Leakage**: This method does not pad the auth_payload, so the
+    /// **Length Leakage**: This method does not pad the `auth_payload`, so the
     /// announcement size reveals information about the payload length. If the
-    /// auth_payload contains sensitive information whose length should be hidden,
+    /// `auth_payload` contains sensitive information whose length should be hidden,
     /// ensure proper padding is applied upstream before calling this method.
     ///
     /// # Examples
@@ -390,6 +397,7 @@ impl OutgoingAnnouncementPrecursor {
     ///
     /// // Send announcement.announcement_bytes() to Bob
     /// ```
+    #[must_use]
     pub fn finalize(self, auth_payload: &[u8], pk_self: &kem::PublicKey) -> OutgoingAnnouncement {
         let integrity_kdf =
             MessageIntegrityKdf::new(&self.root_kdf.integrity_seed, pk_self, auth_payload);
@@ -454,12 +462,14 @@ impl OutgoingAnnouncement {
     /// // Send bytes to the peer
     /// println!("Send {} bytes to peer", bytes.len());
     /// ```
+    #[must_use]
     pub fn announcement_bytes(&self) -> &[u8] {
         &self.announcement_bytes
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::similar_names)] // pk/sk naming is standard in cryptography
 mod tests {
     use super::*;
     use crypto_rng as rng;
@@ -494,7 +504,7 @@ mod tests {
         assert_eq!(*incoming_pre.auth_key(), auth_key_alice);
 
         // Bob finalizes with Alice's public key
-        let alice_pk_bytes = alice_pk.as_bytes().clone();
+        let alice_pk_bytes = *alice_pk.as_bytes();
         let incoming = incoming_pre
             .finalize(alice_pk)
             .expect("Integrity check failed");

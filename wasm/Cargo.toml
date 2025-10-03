@@ -3,10 +3,12 @@ resolver = "3"
 members = [
     "crypto-kem",
     "crypto-kdf",
+    "crypto-password-kdf",
     "crypto-cipher",
     "crypto-rng",
     "crypto-dsa",
-    "crypto-agraphon"
+    "crypto-agraphon",
+    "auth"
 ]
 
 [workspace.package]

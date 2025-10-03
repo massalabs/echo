@@ -83,6 +83,7 @@ impl Extract {
     ///
     /// let kdf = Extract::new(b"unique-salt");
     /// ```
+    #[must_use]
     pub fn new(salt: &[u8]) -> Self {
         Self(HkdfExtract::new(Some(salt)))
     }
@@ -144,6 +145,7 @@ impl Extract {
     /// let mut key = [0u8; 32];
     /// expander.expand(b"key-id", &mut key);
     /// ```
+    #[must_use]
     pub fn finalize(mut self) -> Expand {
         // Input END_MARKER to indicate that there are no more entries to feed.
         // This prevents length extension attacks when we don't know the length of the input in advance.
@@ -153,7 +155,7 @@ impl Extract {
         let (_, kdf) = self.0.finalize();
 
         // Return the HKDF-Expand operation
-        return Expand(kdf);
+        Expand(kdf)
     }
 }
 
@@ -186,9 +188,9 @@ impl Expand {
     /// # Arguments
     ///
     /// * `info` - Application-specific context information to derive a unique key.
-    ///            Different info values produce different keys.
+    ///   Different info values produce different keys.
     /// * `output_buffer` - The buffer to fill with the derived key material.
-    ///                     The length determines how much key material is derived.
+    ///   The length determines how much key material is derived.
     ///
     /// # Panics
     ///

@@ -34,12 +34,12 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// Uses HKDF with:
 /// - Salt: `"session.message_root_kdf.salt---"`
-/// - Inputs: p_self_mk_next, p_peer_mk_next, shared_secret, ciphertext, role
+/// - Inputs: `p_self_mk_next`, `p_peer_mk_next`, `shared_secret`, ciphertext, role
 /// - Info strings: `"session.message_root_kdf.cipher_key"`,
 ///   `"session.message_root_kdf.cipher_nonce"`, and
 ///   `"session.message_root_kdf.integrity_seed"`
 #[derive(Zeroize, ZeroizeOnDrop)]
-pub(crate) struct MessageRootKdf {
+pub struct MessageRootKdf {
     /// Cipher key for encrypting the message payload
     pub(crate) cipher_key: cipher::Key,
     /// Nonce for the cipher (derived, not random)
@@ -78,7 +78,7 @@ impl MessageRootKdf {
     /// rng::fill_buffer(&mut enc_rand);
     /// let (ct, ss) = kem::encapsulate(&pk, enc_rand);
     ///
-    /// let kdf = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, Role::Initiator);
+    /// let kdf = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, &Role::Initiator);
     /// // kdf.cipher_key and kdf.cipher_nonce can now be used to encrypt the message
     /// ```
     pub(crate) fn new(
@@ -86,13 +86,13 @@ impl MessageRootKdf {
         p_peer_mk_next: &[u8],
         ss: &kem::SharedSecret,
         ct: &kem::Ciphertext,
-        role: Role,
+        role: &Role,
     ) -> Self {
         let mut cipher_key = [0u8; cipher::KEY_SIZE];
         let mut cipher_nonce = [0u8; cipher::NONCE_SIZE];
         let mut integrity_seed = [0u8; 32];
 
-        let mut root_kdf = kdf::Extract::new("session.message_root_kdf.salt---".as_bytes());
+        let mut root_kdf = kdf::Extract::new(b"session.message_root_kdf.salt---");
         root_kdf.input_item(p_self_mk_next);
         root_kdf.input_item(p_peer_mk_next);
         root_kdf.input_item(ss.as_bytes());
@@ -138,8 +138,8 @@ mod tests {
         rng::fill_buffer(&mut enc_rand);
         let (ct, ss) = kem::encapsulate(&pk, enc_rand);
 
-        let kdf1 = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, Role::Initiator);
-        let kdf2 = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, Role::Initiator);
+        let kdf1 = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, &Role::Initiator);
+        let kdf2 = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, &Role::Initiator);
 
         assert_eq!(kdf1.cipher_key.as_bytes(), kdf2.cipher_key.as_bytes());
         assert_eq!(kdf1.cipher_nonce.as_bytes(), kdf2.cipher_nonce.as_bytes());
@@ -159,8 +159,8 @@ mod tests {
         rng::fill_buffer(&mut enc_rand);
         let (ct, ss) = kem::encapsulate(&pk, enc_rand);
 
-        let kdf_initiator = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, Role::Initiator);
-        let kdf_responder = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, Role::Responder);
+        let kdf_initiator = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, &Role::Initiator);
+        let kdf_responder = MessageRootKdf::new(&self_mk, &peer_mk, &ss, &ct, &Role::Responder);
 
         // Different roles should produce different keys
         assert_ne!(

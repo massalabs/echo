@@ -28,7 +28,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// the peer, we compute seekers for each item in this queue to determine which
 /// of our messages they're responding to.
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
-pub(crate) struct HistoryItemSelf {
+pub struct HistoryItemSelf {
     /// Sequential local identifier for this message
     pub(crate) local_id: u64,
     /// Secret key for decrypting responses (Static or Ephemeral)
@@ -84,7 +84,7 @@ impl HistoryItemSelf {
 /// 3. We update this structure with their new state
 /// 4. We can delete our history items older than `our_parent_id` (they've been acknowledged)
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
-pub(crate) struct HistoryItemPeer {
+pub struct HistoryItemPeer {
     /// Which of our messages they were responding to
     pub(crate) our_parent_id: u64,
     /// Their next public key for us to encapsulate to
@@ -142,7 +142,7 @@ mod tests {
         rng::fill_buffer(&mut rand);
         let (_, pk) = kem::generate_key_pair(rand);
 
-        let pk_bytes = pk.as_bytes().clone();
+        let pk_bytes = *pk.as_bytes();
         let item = HistoryItemPeer::initial(pk);
 
         assert_eq!(item.our_parent_id, 0);

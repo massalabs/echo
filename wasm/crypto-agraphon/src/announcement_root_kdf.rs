@@ -21,13 +21,13 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// The announcement phase works as follows:
 /// 1. Alice (initiator) generates fresh randomness and creates an announcement to Bob
 /// 2. The announcement contains a KEM ciphertext encrypted to Bob's static public key
-/// 3. Bob decrypts the announcement and extracts the auth_payload
+/// 3. Bob decrypts the announcement and extracts the `auth_payload`
 /// 4. Both parties can use `auth_key` for out-of-band authentication
 /// 5. After verification, both parties establish an `Agraphon` session
 ///
 /// # Security Properties
 ///
-/// The auth_key provides authentication binding:
+/// The `auth_key` provides authentication binding:
 /// - It's derived from both the randomness and the KEM shared secret
 /// - It can be compared over an authenticated channel (e.g., QR code scan)
 /// - This prevents man-in-the-middle attacks during session establishment
@@ -36,13 +36,13 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// Uses HKDF with:
 /// - Salt: `"session.announcement_root_kdf.salt"`
-/// - Inputs: randomness, shared_secret, ciphertext, peer_public_key, Role::Initiator
+/// - Inputs: randomness, `shared_secret`, ciphertext, `peer_public_key`, `Role::Initiator`
 /// - Info strings: `"session.announcement_root_kdf.cipher_key"`,
 ///   `"session.announcement_root_kdf.cipher_nonce"`,
 ///   `"session.announcement_root_kdf.auth_key"`, and
 ///   `"session.announcement_root_kdf.integrity_seed"`
 #[derive(Zeroize, ZeroizeOnDrop)]
-pub(crate) struct AnnouncementRootKdf {
+pub struct AnnouncementRootKdf {
     /// Cipher key for encrypting the announcement payload
     pub(crate) cipher_key: cipher::Key,
     /// Nonce for the cipher (derived, not random)

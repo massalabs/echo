@@ -27,7 +27,7 @@
 //! // Sign a message with empty context
 //! let message = b"Hello, world!";
 //! let signing_randomness = [0u8; 32]; // In practice, use secure randomness  
-//! let signature = sign(&signing_key, message, b"", signing_randomness).unwrap();
+//! let signature = sign(&signing_key, message, b"", signing_randomness);
 //!
 //! // Verify the signature with the same empty context
 //! let is_valid = verify(&verification_key, message, b"", &signature);
@@ -39,7 +39,7 @@
 //! - Always use cryptographically secure random number generation for key generation and signing
 //! - This library is suitable for production use as it wraps the formally verified libcrux implementation
 
-use libcrux_ml_dsa::*;
+use libcrux_ml_dsa::{MLDSASignature, MLDSASigningKey, MLDSAVerificationKey, ml_dsa_65};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -102,6 +102,7 @@ impl VerificationKey {
     /// let verification_key = VerificationKey::from(key_bytes);
     /// assert_eq!(verification_key.as_bytes(), &key_bytes);
     /// ```
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; VERIFICATION_KEY_SIZE] {
         self.0.as_ref()
     }
@@ -131,7 +132,7 @@ impl<'de> Deserialize<'de> for VerificationKey {
         }
         let mut array = [0u8; VERIFICATION_KEY_SIZE];
         array.copy_from_slice(&bytes);
-        Ok(VerificationKey::from(array))
+        Ok(Self::from(array))
     }
 }
 
@@ -195,6 +196,7 @@ impl SigningKey {
     /// let signing_key = SigningKey::from(key_bytes);
     /// assert_eq!(signing_key.as_bytes(), &key_bytes);
     /// ```
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; SIGNING_KEY_SIZE] {
         self.0.as_ref()
     }
@@ -224,7 +226,7 @@ impl<'de> Deserialize<'de> for SigningKey {
         }
         let mut array = [0u8; SIGNING_KEY_SIZE];
         array.copy_from_slice(&bytes);
-        Ok(SigningKey::from(array))
+        Ok(Self::from(array))
     }
 }
 
@@ -279,6 +281,7 @@ impl Signature {
     /// let signature = Signature::from(sig_bytes);
     /// assert_eq!(signature.as_bytes(), &sig_bytes);
     /// ```
+    #[must_use]
     pub fn as_bytes(&self) -> &[u8; SIGNATURE_SIZE] {
         self.0.as_ref()
     }
@@ -308,7 +311,7 @@ impl<'de> Deserialize<'de> for Signature {
         }
         let mut array = [0u8; SIGNATURE_SIZE];
         array.copy_from_slice(&bytes);
-        Ok(Signature::from(array))
+        Ok(Self::from(array))
     }
 }
 
@@ -358,6 +361,7 @@ impl ZeroizeOnDrop for Signature {}
 /// The `randomness` parameter must be generated using a cryptographically secure
 /// random number generator. Using predictable or weak randomness will compromise
 /// the security of the generated keys.
+#[must_use]
 pub fn generate_key_pair(
     randomness: [u8; KEY_GENERATION_RANDOMNESS_SIZE],
 ) -> (SigningKey, VerificationKey) {
@@ -397,7 +401,7 @@ pub fn generate_key_pair(
 /// // Sign a raw message with empty context (no pre-hashing needed)
 /// let message = b"Hello, world!";
 /// let signing_randomness = [0u8; 32];
-/// let signature = sign(&signing_key, message, b"", signing_randomness).unwrap();
+/// let signature = sign(&signing_key, message, b"", signing_randomness);
 ///
 /// assert_eq!(signature.as_bytes().len(), SIGNATURE_SIZE);
 /// ```
@@ -413,14 +417,21 @@ pub fn generate_key_pair(
 ///   compromise security.
 /// - **Context**: The optional `context` parameter provides domain separation. Use it to
 ///   distinguish signatures from different applications or protocols.
+///
+/// # Panics
+///
+/// Panics if the ML-DSA signing operation fails. In practice, this should never happen
+/// with valid inputs.
+#[must_use]
 pub fn sign(
     signing_key: &SigningKey,
     message: &[u8],
     context: &[u8],
     randomness: [u8; SIGNING_RANDOMNESS_SIZE],
-) -> Result<Signature, SigningError> {
-    let sig = ml_dsa_65::sign(&signing_key.0, message, context, randomness)?;
-    Ok(Signature(sig))
+) -> Signature {
+    let sig =
+        ml_dsa_65::sign(&signing_key.0, message, context, randomness).expect("Signing failed");
+    Signature(sig)
 }
 
 /// Verify a signature on a message using the given verification key.
@@ -452,7 +463,7 @@ pub fn sign(
 /// // Sign a message with empty context
 /// let message = b"Hello, world!";
 /// let signing_randomness = [0u8; 32];
-/// let signature = sign(&signing_key, message, b"", signing_randomness).unwrap();
+/// let signature = sign(&signing_key, message, b"", signing_randomness);
 ///
 /// // Verify the signature with same empty context
 /// let is_valid = verify(&verification_key, message, b"", &signature);
@@ -463,6 +474,7 @@ pub fn sign(
 /// let is_invalid = verify(&verification_key, other_message, b"", &signature);
 /// assert!(!is_invalid);
 /// ```
+#[must_use]
 pub fn verify(
     verification_key: &VerificationKey,
     message: &[u8],
@@ -480,7 +492,7 @@ mod tests {
     fn test_verification_key_conversion() {
         let key_bytes = [42u8; VERIFICATION_KEY_SIZE];
         let verification_key = VerificationKey::from(key_bytes);
-        let recovered_bytes: [u8; VERIFICATION_KEY_SIZE] = verification_key.as_bytes().clone();
+        let recovered_bytes: [u8; VERIFICATION_KEY_SIZE] = *verification_key.as_bytes();
         assert_eq!(key_bytes, recovered_bytes);
         assert_eq!(verification_key.as_bytes(), &key_bytes);
     }
@@ -489,7 +501,7 @@ mod tests {
     fn test_signing_key_conversion() {
         let key_bytes = [123u8; SIGNING_KEY_SIZE];
         let signing_key = SigningKey::from(key_bytes);
-        let recovered_bytes: [u8; SIGNING_KEY_SIZE] = signing_key.as_bytes().clone();
+        let recovered_bytes: [u8; SIGNING_KEY_SIZE] = *signing_key.as_bytes();
         assert_eq!(key_bytes, recovered_bytes);
         assert_eq!(signing_key.as_bytes(), &key_bytes);
     }
@@ -498,7 +510,7 @@ mod tests {
     fn test_signature_conversion() {
         let sig_bytes = [123u8; SIGNATURE_SIZE];
         let signature = Signature::from(sig_bytes);
-        let recovered_bytes: [u8; SIGNATURE_SIZE] = signature.as_bytes().clone();
+        let recovered_bytes: [u8; SIGNATURE_SIZE] = *signature.as_bytes();
         assert_eq!(sig_bytes, recovered_bytes);
         assert_eq!(signature.as_bytes(), &sig_bytes);
     }
@@ -521,7 +533,7 @@ mod tests {
         // Sign a message with empty context
         let message = b"Hello, world!";
         let signing_randomness = [2u8; 32];
-        let signature = sign(&signing_key, message, b"", signing_randomness).unwrap();
+        let signature = sign(&signing_key, message, b"", signing_randomness);
 
         // Verify size
         assert_eq!(signature.as_bytes().len(), SIGNATURE_SIZE);
@@ -558,8 +570,8 @@ mod tests {
         let signing_randomness1 = [1u8; 32];
         let signing_randomness2 = [2u8; 32];
 
-        let signature1 = sign(&signing_key, message, b"", signing_randomness1).unwrap();
-        let signature2 = sign(&signing_key, message, b"", signing_randomness2).unwrap();
+        let signature1 = sign(&signing_key, message, b"", signing_randomness1);
+        let signature2 = sign(&signing_key, message, b"", signing_randomness2);
 
         // Signatures should be different
         assert_ne!(signature1.as_bytes(), signature2.as_bytes());
@@ -582,8 +594,8 @@ mod tests {
         let message = b"Test message";
         let signing_randomness = [4u8; 32];
 
-        let sig1 = sign(&signing_key, message, b"", signing_randomness).unwrap();
-        let sig2 = sign(&recovered_signing_key, message, b"", signing_randomness).unwrap();
+        let sig1 = sign(&signing_key, message, b"", signing_randomness);
+        let sig2 = sign(&recovered_signing_key, message, b"", signing_randomness);
 
         assert_eq!(sig1.as_bytes(), sig2.as_bytes());
 
@@ -604,7 +616,7 @@ mod tests {
 
         let message = b"Test message";
         let signing_randomness = [7u8; 32];
-        let signature = sign(&signing_key1, message, b"", signing_randomness).unwrap();
+        let signature = sign(&signing_key1, message, b"", signing_randomness);
 
         // Should verify with correct key
         assert!(verify(&verification_key1, message, b"", &signature));

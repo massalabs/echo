@@ -23,7 +23,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// Uses HKDF with:
 /// - Salt: `"session.seeker_kdf.salt---------"`
-/// - Inputs: Both parties' seeker_next values
+/// - Inputs: Both parties' `seeker_next` values
 /// - Info string: `"session.seeker_kem.mk_next"`
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct SeekerKdf {
@@ -54,12 +54,12 @@ impl SeekerKdf {
     /// ```
     pub fn new(p_self_seeker_next: &[u8], p_peer_seeker_next: &[u8]) -> Self {
         let mut seeker = [0u8; 32];
-        let initial_salt = "session.seeker_kdf.salt---------".as_bytes();
+        let initial_salt = b"session.seeker_kdf.salt---------";
         let mut seeker_kdf = kdf::Extract::new(initial_salt);
         seeker_kdf.input_item(p_self_seeker_next);
         seeker_kdf.input_item(p_peer_seeker_next);
         let seeker_kdf = seeker_kdf.finalize();
-        seeker_kdf.expand("session.seeker_kem.mk_next".as_bytes(), &mut seeker);
+        seeker_kdf.expand(b"session.seeker_kem.mk_next", &mut seeker);
         Self { seeker }
     }
 }

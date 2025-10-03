@@ -152,6 +152,8 @@ impl Agraphon {
     ///     .expect("Failed to create session");
     /// # */
     /// ```
+    #[must_use]
+    #[allow(clippy::needless_pass_by_value)] // Announcement is consumed to create session
     pub fn try_from_incoming_announcement(
         incoming_announcement: IncomingAnnouncement,
         pk_self: &kem::PublicKey,
@@ -212,6 +214,8 @@ impl Agraphon {
     /// // Create session
     /// let mut session = Agraphon::from_outgoing_announcement(announcement, bob_pk);
     /// ```
+    #[must_use]
+    #[allow(clippy::needless_pass_by_value)] // Announcement is consumed to create session
     pub fn from_outgoing_announcement(
         outgoing_announcement: OutgoingAnnouncement,
         pk_peer: kem::PublicKey,
@@ -262,6 +266,7 @@ impl Agraphon {
     ///     // }
     /// }
     /// ```
+    #[must_use]
     pub fn possible_incoming_message_seekers(&self) -> Vec<(u64, [u8; 32])> {
         let mut seekers = Vec::with_capacity(self.self_msg_history.len());
         for item in self.self_msg_history.iter().rev() {
@@ -323,6 +328,7 @@ impl Agraphon {
     ///
     /// println!("Received: {}", String::from_utf8_lossy(&plaintext));
     /// ```
+    #[allow(clippy::similar_names)] // msg_sk and msg_ss are standard naming
     pub fn try_feed_incoming_message(
         &mut self,
         our_parent_id: u64,
@@ -347,7 +353,7 @@ impl Agraphon {
             &peer_msg.mk_next,
             &msg_ss,
             &msg_ct,
-            self.role.opposite(),
+            &self.role.opposite(),
         );
 
         let mut content = Zeroizing::new(message.get(kem::CIPHERTEXT_SIZE..)?.to_vec());
@@ -373,7 +379,7 @@ impl Agraphon {
             MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, &payload);
 
         // Use constant-time comparison to prevent timing attacks
-        if bool::from(integrity_key.ct_eq(&integrity_kdf.integrity_key)) == false {
+        if !bool::from(integrity_key.ct_eq(&integrity_kdf.integrity_key)) {
             return None;
         }
 
@@ -387,7 +393,7 @@ impl Agraphon {
         while self
             .self_msg_history
             .front()
-            .map_or(false, |msg| msg.local_id < our_parent_id)
+            .is_some_and(|msg| msg.local_id < our_parent_id)
         {
             self.self_msg_history.pop_front();
         }
@@ -455,6 +461,11 @@ impl Agraphon {
     ///
     /// let (seeker, ciphertext) = session.send_outgoing_message(&padded);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal message history is empty. This should never happen in normal
+    /// operation as the history is initialized during session creation.
     pub fn send_outgoing_message(&mut self, payload: &[u8]) -> ([u8; 32], Vec<u8>) {
         let self_msg = self
             .self_msg_history
@@ -471,7 +482,7 @@ impl Agraphon {
             &peer_msg.mk_next,
             &msg_ss,
             &msg_ct,
-            self.role.clone(),
+            &self.role,
         );
 
         let mut pk_next_randomness = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
@@ -479,7 +490,7 @@ impl Agraphon {
         let (sk_next, pk_next) = kem::generate_key_pair(pk_next_randomness);
 
         let integrity_kdf: MessageIntegrityKdf =
-            MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, &payload);
+            MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, payload);
 
         let mut ciphertext =
             Zeroizing::new([pk_next.as_bytes(), payload, &integrity_kdf.integrity_key].concat());
@@ -531,6 +542,12 @@ impl Agraphon {
     ///     // Maybe pause sending or retry
     /// }
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal message history is empty. This should never happen in normal
+    /// operation as the history is initialized during session creation.
+    #[must_use]
     pub fn lag_length(&self) -> u64 {
         let our_latest_local_id = self
             .self_msg_history
@@ -540,15 +557,14 @@ impl Agraphon {
 
         let peer_latest_parent_local_id = self.latest_peer_msg.our_parent_id;
 
-        let delta = our_latest_local_id
+        our_latest_local_id
             .checked_sub(peer_latest_parent_local_id)
-            .expect("Self lag is negative");
-
-        delta
+            .expect("Self lag is negative")
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::similar_names)] // pk/sk naming is standard in cryptography
 mod tests {
     use super::*;
     use crate::announcement::{IncomingAnnouncementPrecursor, OutgoingAnnouncementPrecursor};
