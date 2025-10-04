@@ -17,6 +17,12 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 )]
 pub struct SessionId([u8; 32]);
 
+impl Default for SessionId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SessionId {
     /// Creates a new random SessionId
     pub fn new() -> Self {

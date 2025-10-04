@@ -23,37 +23,6 @@ pub struct Session {
     latest_received_message_timestamp: Option<u128>,
 }
 
-/// Padding size for messages
-const MESAGE_PADDING_SIZE: usize = 512;
-
-fn padded_serialize<T: Serialize>(msg: &T) -> Vec<u8> {
-    let serialized_message =
-        Zeroizing::new(bincode::serialize(msg).expect("Failed to serialize message"));
-    let serialized_length: u64 = serialized_message
-        .len()
-        .try_into()
-        .expect("Serialized message length too long");
-
-    // pad and serialize the message
-    let padded_size = ((serialized_message.len() + 8 + MESAGE_PADDING_SIZE - 1)
-        / MESAGE_PADDING_SIZE)
-        * MESAGE_PADDING_SIZE;
-    let mut padded_message = vec![0u8; padded_size];
-    crypto_rng::fill_buffer(&mut padded_message);
-    padded_message[..8].copy_from_slice(&serialized_length.to_be_bytes());
-    padded_message[8..(8 + serialized_message.len())].copy_from_slice(&serialized_message);
-    padded_message
-}
-
-fn padded_deserialize<T: for<'a> Deserialize<'a>>(msg: &[u8]) -> Option<T> {
-    let serialized_length: usize = u64::from_be_bytes(msg.get(..8)?.try_into().ok()?)
-        .try_into()
-        .ok()?;
-    let end_index = 8usize.checked_add(serialized_length)?;
-    let serialized_message = msg.get(8..end_index)?;
-    bincode::deserialize(&serialized_message).ok()
-}
-
 impl Session {
     /// Creates a new outgoing session.
     #[allow(dead_code)]
@@ -78,7 +47,7 @@ impl Session {
         };
 
         // serialize session init payload
-        let public_payload = padded_serialize(&init_info);
+        let public_payload = bincode::serialize(&init_info).expect("Failed to serialize message");
 
         // create auth_blob
         let auth_blob = auth::AuthBlob::new(
@@ -131,7 +100,7 @@ impl Session {
         let auth_key = incoming_announcement_precursor.auth_key();
 
         // Deserialize the auth_blob from auth_payload
-        let auth_blob: auth::AuthBlob = padded_deserialize(auth_payload)?;
+        let auth_blob: auth::AuthBlob = bincode::deserialize(auth_payload).ok()?;
 
         // Verify the auth_blob
         if !auth_blob.verify(auth_key) {
@@ -165,14 +134,14 @@ impl Session {
         ))
     }
 
-    /// Prepares the message, pads it and sends it on the session.
+    /// Prepares the message and sends it on the session.
     /// Returns the seeker value and the encrypted message bytes.
     #[allow(dead_code)]
     pub fn send_outgoing_message(&mut self, message: &Message) -> ([u8; 32], Vec<u8>) {
-        let padded_message = Zeroizing::new(padded_serialize(message));
+        let msg_bytes =
+            Zeroizing::new(bincode::serialize(message).expect("Failed to serialize message"));
 
-        self.agraphon_instance
-            .send_outgoing_message(&padded_message)
+        self.agraphon_instance.send_outgoing_message(&msg_bytes)
     }
 
     /// Gets the list of possible incoming message seekers.
@@ -195,7 +164,7 @@ impl Session {
         )?;
 
         // deserialize the message
-        let message: Message = padded_deserialize(&raw_msg)?;
+        let message: Message = bincode::deserialize(&raw_msg).ok()?;
 
         // the timestamp must be after the timestamp of the latest received session message
         if let Some(latest_received_message_timestamp) = &self.latest_received_message_timestamp {

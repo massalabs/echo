@@ -6,7 +6,7 @@ use crate::message_integrity_kdf::MessageIntegrityKdf;
 use crate::message_root_kdf::MessageRootKdf;
 use crate::seeker_kdf::SeekerKdf;
 use crate::types::{KeySource, Role};
-use crypto_cipher as cipher;
+use crypto_aead as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
 use serde::{Deserialize, Serialize};
@@ -338,8 +338,11 @@ impl Agraphon {
         let self_msg = &self.latest_peer_msg;
         let peer_msg = self.get_self_message_by_id(our_parent_id)?;
 
-        let msg_ct: [u8; kem::CIPHERTEXT_SIZE] =
-            message.get(..kem::CIPHERTEXT_SIZE)?.try_into().ok()?;
+        let msg_randomness: [u8; 32] = message.get(..32)?.try_into().ok()?;
+        let msg_ct: [u8; kem::CIPHERTEXT_SIZE] = message
+            .get(32..32 + kem::CIPHERTEXT_SIZE)?
+            .try_into()
+            .ok()?;
         let msg_ct: kem::Ciphertext = msg_ct.into();
 
         let msg_sk = match &peer_msg.sk_next {
@@ -349,6 +352,7 @@ impl Agraphon {
         let msg_ss = kem::decapsulate(msg_sk, &msg_ct);
 
         let msg_root_kdf = MessageRootKdf::new(
+            &msg_randomness,
             &self_msg.mk_next,
             &peer_msg.mk_next,
             &msg_ss,
@@ -356,12 +360,13 @@ impl Agraphon {
             &self.role.opposite(),
         );
 
-        let mut content = Zeroizing::new(message.get(kem::CIPHERTEXT_SIZE..)?.to_vec());
-        cipher::decrypt(
+        let ciphertext = message.get(32 + kem::CIPHERTEXT_SIZE..)?;
+        let content = Zeroizing::new(cipher::decrypt(
             &msg_root_kdf.cipher_key,
             &msg_root_kdf.cipher_nonce,
-            &mut content,
-        );
+            ciphertext,
+            b"",
+        )?);
 
         let pk_next: [u8; kem::PUBLIC_KEY_SIZE] =
             content.get(..kem::PUBLIC_KEY_SIZE)?.try_into().ok()?;
@@ -421,13 +426,6 @@ impl Agraphon {
     /// retrieve this specific message from a public board without scanning all messages.
     /// Store the message on a public board indexed by the seeker value.
     ///
-    /// # Security Warning
-    ///
-    /// **Message Length Leakage**: This method does not pad the payload, so the
-    /// ciphertext length reveals information about the plaintext length. For
-    /// applications requiring traffic analysis resistance, pad the payload before
-    /// calling this method.
-    ///
     /// # Side Effects
     ///
     /// - Generates a new ephemeral key pair
@@ -448,20 +446,6 @@ impl Agraphon {
     /// println!("Message size: {} bytes", ciphertext.len());
     /// ```
     ///
-    /// # With Padding
-    ///
-    /// ```no_run
-    /// # use crypto_agraphon::Agraphon;
-    /// # let mut session: Agraphon = todo!();
-    /// // Pad to nearest 1KB to hide length
-    /// let plaintext = b"Hello, peer!";
-    /// let target_len = ((plaintext.len() + 1023) / 1024) * 1024;
-    /// let mut padded = plaintext.to_vec();
-    /// padded.resize(target_len, 0);
-    ///
-    /// let (seeker, ciphertext) = session.send_outgoing_message(&padded);
-    /// ```
-    ///
     /// # Panics
     ///
     /// Panics if the internal message history is empty. This should never happen in normal
@@ -473,11 +457,15 @@ impl Agraphon {
             .expect("Self message history unexpectedly empty");
         let peer_msg = &self.latest_peer_msg;
 
+        let mut msg_randomness = Zeroizing::new([0u8; 32]);
+        rng::fill_buffer(msg_randomness.as_mut_slice());
+
         let mut kem_randomness = [0u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut kem_randomness);
         let (msg_ct, msg_ss) = kem::encapsulate(&peer_msg.pk_next, kem_randomness);
 
         let msg_root_kdf = MessageRootKdf::new(
+            &msg_randomness,
             &self_msg.mk_next,
             &peer_msg.mk_next,
             &msg_ss,
@@ -492,13 +480,14 @@ impl Agraphon {
         let integrity_kdf: MessageIntegrityKdf =
             MessageIntegrityKdf::new(&msg_root_kdf.integrity_seed, &pk_next, payload);
 
-        let mut ciphertext =
+        let plaintext =
             Zeroizing::new([pk_next.as_bytes(), payload, &integrity_kdf.integrity_key].concat());
-        cipher::encrypt(
+        let ciphertext = Zeroizing::new(cipher::encrypt(
             &msg_root_kdf.cipher_key,
             &msg_root_kdf.cipher_nonce,
-            &mut ciphertext,
-        );
+            &plaintext,
+            b"",
+        ));
 
         // Compute seeker before mutating self_msg_history
         let seeker_kdf = SeekerKdf::new(&self_msg.seeker_next, &peer_msg.seeker_next);
@@ -510,7 +499,12 @@ impl Agraphon {
             seeker_next: integrity_kdf.seeker_next,
         }));
 
-        let message_bytes = [msg_ct.as_bytes().as_slice(), &ciphertext].concat();
+        let message_bytes = [
+            msg_randomness.as_slice(),
+            msg_ct.as_bytes().as_slice(),
+            &ciphertext,
+        ]
+        .concat();
 
         (seeker_kdf.seeker, message_bytes)
     }

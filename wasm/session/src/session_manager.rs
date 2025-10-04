@@ -128,8 +128,8 @@ impl SessionManager {
             );
         }
         peer_info.session_from = Some(SessionInfo {
-            session_id: session_id,
-            session: session,
+            session_id,
+            session,
         });
         //TODO: there might still be available messages to read from the previous session,
         // for now they will be dropped.
@@ -166,7 +166,7 @@ impl SessionManager {
 
         peer_info.session_to = Some(SessionInfo {
             session_id: session.init_info.session_id.clone(),
-            session: session,
+            session,
         });
 
         // TODO: the peer might still be sending messages to the previous session, which might get lost.
@@ -207,7 +207,6 @@ impl SessionManager {
         _peer_id: &UserId,
         _message: &[u8],
     ) -> Option<([u8; 32], Vec<u8>)> {
-
         /*
         TODO:
             first, get the best session to use with that peer. If none is available, return None

@@ -4,7 +4,7 @@ members = [
     "crypto-kem",
     "crypto-kdf",
     "crypto-password-kdf",
-    "crypto-cipher",
+    "crypto-aead",
     "crypto-rng",
     "crypto-dsa",
     "crypto-agraphon",

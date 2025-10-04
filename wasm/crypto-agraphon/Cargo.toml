@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 crypto-kem = { path = "../crypto-kem" }
 crypto-kdf = { path = "../crypto-kdf" }
-crypto-cipher = { path = "../crypto-cipher" }
+crypto-aead = { path = "../crypto-aead" }
 crypto-rng = { path = "../crypto-rng" }
 
 serde = { version = "1.0", features = ["derive"] }

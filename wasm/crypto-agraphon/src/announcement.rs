@@ -6,7 +6,7 @@
 
 use crate::announcement_root_kdf::AnnouncementRootKdf;
 use crate::message_integrity_kdf::MessageIntegrityKdf;
-use crypto_cipher as cipher;
+use crypto_aead as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
 use subtle::ConstantTimeEq;
@@ -110,8 +110,12 @@ impl IncomingAnnouncementPrecursor {
 
         let root_kdf = AnnouncementRootKdf::new(&randomness, &ss, &ct, our_pk);
 
-        let mut plaintext = Zeroizing::new(encrypted_message.to_vec());
-        cipher::decrypt(&root_kdf.cipher_key, &root_kdf.cipher_nonce, &mut plaintext);
+        let plaintext = Zeroizing::new(cipher::decrypt(
+            &root_kdf.cipher_key,
+            &root_kdf.cipher_nonce,
+            encrypted_message,
+            b"",
+        )?);
 
         let payload_end_index = plaintext.len().checked_sub(32)?;
         let auth_payload = plaintext.get(..payload_end_index)?.to_vec();
@@ -368,13 +372,6 @@ impl OutgoingAnnouncementPrecursor {
     ///
     /// An `OutgoingAnnouncement` with bytes ready to send to the responder.
     ///
-    /// # Security Warning
-    ///
-    /// **Length Leakage**: This method does not pad the `auth_payload`, so the
-    /// announcement size reveals information about the payload length. If the
-    /// `auth_payload` contains sensitive information whose length should be hidden,
-    /// ensure proper padding is applied upstream before calling this method.
-    ///
     /// # Examples
     ///
     /// ```
@@ -406,12 +403,13 @@ impl OutgoingAnnouncementPrecursor {
         let integrity_kdf =
             MessageIntegrityKdf::new(&self.root_kdf.integrity_seed, pk_self, auth_payload);
 
-        let mut ciphertext = Zeroizing::new([auth_payload, &integrity_kdf.integrity_key].concat());
-        cipher::encrypt(
+        let plaintext = Zeroizing::new([auth_payload, &integrity_kdf.integrity_key].concat());
+        let ciphertext = Zeroizing::new(cipher::encrypt(
             &self.root_kdf.cipher_key,
             &self.root_kdf.cipher_nonce,
-            &mut ciphertext,
-        );
+            &plaintext,
+            b"",
+        ));
 
         let announcement_bytes = [
             self.randomness.as_slice(),

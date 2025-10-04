@@ -1,5 +1,5 @@
 [package]
-name = "crypto-cipher"
+name = "crypto-aead"
 version.workspace = true
 edition.workspace = true
 
@@ -7,6 +7,5 @@ edition.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-aes = "0.8"
-ctr = "0.9"
+aes-siv = "0.7"
 zeroize = { version = "1", features = ["derive"] }

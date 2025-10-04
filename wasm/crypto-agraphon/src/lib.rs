@@ -14,21 +14,6 @@
 //!
 //! ## ⚠️ Security Warnings
 //!
-//! ### Length Leakage
-//!
-//! **This protocol does NOT hide payload lengths.**
-//!
-//! The lengths of both the authentication payload in announcements and the message payloads
-//! are leaked to potential observers. If length information could reveal sensitive details
-//! about your application's communication patterns or message contents, you MUST pad your
-//! payloads to a constant size (or use a padding scheme) before passing them to this crate.
-//!
-//! Without padding, an attacker can observe:
-//! - The exact length of authentication data in the announcement phase
-//! - The exact length of each message payload
-//!
-//! This information could potentially be used for traffic analysis attacks.
-//!
 //! ### Memory Zeroization
 //!
 //! **Best-effort zeroization requires a secure environment.**
