@@ -5,7 +5,7 @@
 //! can be used for out-of-band authentication (e.g., comparing QR codes).
 
 use crate::types::Role;
-use crypto_cipher as cipher;
+use crypto_aead as cipher;
 use crypto_kdf as kdf;
 use crypto_kem as kem;
 use zeroize::{Zeroize, ZeroizeOnDrop};
