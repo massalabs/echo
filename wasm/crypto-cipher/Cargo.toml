@@ -1,0 +1,12 @@
+[package]
+name = "crypto-cipher"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aes = "0.8"
+ctr = "0.9"
+zeroize = { version = "1", features = ["derive"] }

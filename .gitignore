@@ -1,3 +1,6 @@
+# rust stuff
+wasm/target
+
 # Logs
 logs
 *.log
