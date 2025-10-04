@@ -207,11 +207,10 @@ impl SessionManager {
         _peer_id: &UserId,
         _message: &[u8],
     ) -> Option<([u8; 32], Vec<u8>)> {
+
         /*
         TODO:
             first, get the best session to use with that peer. If none is available, return None
-            prefix the message by the current timestamp and message length in uint64
-            pad the message to a multiple of 512 bytes
             then, send the message on that session. Return the seeker value and the encrypted announcement data to post on the public board
         */
         None

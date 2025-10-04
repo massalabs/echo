@@ -11,9 +11,47 @@ pub(crate) struct SessionInitInfos {
 }
 
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+pub(crate) struct Message {
+    pub(crate) timestamp: u128,
+    pub(crate) contents: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct Session {
     pub(crate) init_info: SessionInitInfos,
     agraphon_instance: crypto_agraphon::Agraphon,
+    latest_received_message_timestamp: Option<u128>,
+}
+
+/// Padding size for messages
+const MESAGE_PADDING_SIZE: usize = 512;
+
+fn padded_serialize<T: Serialize>(msg: &T) -> Vec<u8> {
+    let serialized_message =
+        Zeroizing::new(bincode::serialize(msg).expect("Failed to serialize message"));
+    let serialized_length: u64 = serialized_message
+        .len()
+        .try_into()
+        .expect("Serialized message length too long");
+
+    // pad and serialize the message
+    let padded_size = ((serialized_message.len() + 8 + MESAGE_PADDING_SIZE - 1)
+        / MESAGE_PADDING_SIZE)
+        * MESAGE_PADDING_SIZE;
+    let mut padded_message = vec![0u8; padded_size];
+    crypto_rng::fill_buffer(&mut padded_message);
+    padded_message[..8].copy_from_slice(&serialized_length.to_be_bytes());
+    padded_message[8..(8 + serialized_message.len())].copy_from_slice(&serialized_message);
+    padded_message
+}
+
+fn padded_deserialize<T: for<'a> Deserialize<'a>>(msg: &[u8]) -> Option<T> {
+    let serialized_length: usize = u64::from_be_bytes(msg.get(..8)?.try_into().ok()?)
+        .try_into()
+        .ok()?;
+    let end_index = 8usize.checked_add(serialized_length)?;
+    let serialized_message = msg.get(8..end_index)?;
+    bincode::deserialize(&serialized_message).ok()
 }
 
 impl Session {
@@ -40,8 +78,7 @@ impl Session {
         };
 
         // serialize session init payload
-        let public_payload =
-            bincode::serialize(&init_info).expect("Failed to serialize session init payload");
+        let public_payload = padded_serialize(&init_info);
 
         // create auth_blob
         let auth_blob = auth::AuthBlob::new(
@@ -54,7 +91,6 @@ impl Session {
         // serialize auth_blob
         let auth_blob_serialized =
             Zeroizing::new(bincode::serialize(&auth_blob).expect("Failed to serialize auth_blob"));
-        // Note: the auth blob is constant sized => announcement length leakage in agraphon is not an issue
 
         // finalize announcement
         let (announcement_bytes, announcement) =
@@ -71,6 +107,7 @@ impl Session {
             Self {
                 init_info,
                 agraphon_instance,
+                latest_received_message_timestamp: None,
             },
             announcement_bytes,
         )
@@ -94,7 +131,7 @@ impl Session {
         let auth_key = incoming_announcement_precursor.auth_key();
 
         // Deserialize the auth_blob from auth_payload
-        let auth_blob: auth::AuthBlob = bincode::deserialize(auth_payload).ok()?;
+        let auth_blob: auth::AuthBlob = padded_deserialize(auth_payload)?;
 
         // Verify the auth_blob
         if !auth_blob.verify(auth_key) {
@@ -120,6 +157,7 @@ impl Session {
         // Create session
         Some((
             Self {
+                latest_received_message_timestamp: Some(init_info.unix_timestamp_millis),
                 init_info,
                 agraphon_instance,
             },
@@ -127,10 +165,14 @@ impl Session {
         ))
     }
 
-    /// Encrypts and sends an outgoing message.
+    /// Prepares the message, pads it and sends it on the session.
+    /// Returns the seeker value and the encrypted message bytes.
     #[allow(dead_code)]
-    pub fn send_outgoing_message(&mut self, message: &[u8]) -> ([u8; 32], Vec<u8>) {
-        self.agraphon_instance.send_outgoing_message(message)
+    pub fn send_outgoing_message(&mut self, message: &Message) -> ([u8; 32], Vec<u8>) {
+        let padded_message = Zeroizing::new(padded_serialize(message));
+
+        self.agraphon_instance
+            .send_outgoing_message(&padded_message)
     }
 
     /// Gets the list of possible incoming message seekers.
@@ -145,12 +187,25 @@ impl Session {
         parent_id: u64,
         self_static_sk: &auth::UserSecretKeys,
         message: &[u8],
-    ) -> Option<Vec<u8>> {
-        self.agraphon_instance.try_feed_incoming_message(
+    ) -> Option<Message> {
+        let raw_msg = self.agraphon_instance.try_feed_incoming_message(
             parent_id,
             &self_static_sk.kem_secret_key,
             message,
-        )
+        )?;
+
+        // deserialize the message
+        let message: Message = padded_deserialize(&raw_msg)?;
+
+        // the timestamp must be after the timestamp of the latest received session message
+        if let Some(latest_received_message_timestamp) = &self.latest_received_message_timestamp {
+            if &message.timestamp < latest_received_message_timestamp {
+                return None;
+            }
+        }
+        self.latest_received_message_timestamp = Some(message.timestamp);
+
+        Some(message)
     }
 
     /// Gets the lag length.
