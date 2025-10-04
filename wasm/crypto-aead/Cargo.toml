@@ -1,0 +1,11 @@
+[package]
+name = "crypto-aead"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aes-siv = "0.7"
+zeroize = { version = "1", features = ["derive"] }
