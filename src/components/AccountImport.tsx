@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { validateMnemonic } from '../crypto/bip39';
+import { validatePassword as _validatePassword } from '../utils/validation';
 
 interface AccountImportProps {
   onBack: () => void;
@@ -15,7 +16,6 @@ const AccountImport: React.FC<AccountImportProps> = ({
   const [mnemonic, setMnemonic] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [useBiometrics, setUseBiometrics] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState('');
@@ -64,13 +64,9 @@ const AccountImport: React.FC<AccountImportProps> = ({
           return;
         }
 
-        if (password.length < 8) {
-          setError('Password must be at least 8 characters long');
-          return;
-        }
-
-        if (password !== confirmPassword) {
-          setError('Passwords do not match');
+        const pwdValidation = _validatePassword(password);
+        if (!pwdValidation.valid) {
+          setError(pwdValidation.error || 'Invalid password');
           return;
         }
       }
@@ -253,7 +249,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
         </div>
       </div>
 
-      {/* Password fields - only show if not using biometrics */}
+      {/* Password field - only show if not using biometrics */}
       {!useBiometrics && (
         <div className="space-y-4">
           <div>
@@ -268,19 +264,11 @@ const AccountImport: React.FC<AccountImportProps> = ({
               className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               disabled={isImporting}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
-              className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              disabled={isImporting}
-            />
+            {password && !_validatePassword(password).valid && (
+              <p className="text-red-500 text-xs mt-1">
+                {_validatePassword(password).error}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -297,8 +285,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
           disabled={
             isImporting ||
             !username.trim() ||
-            (!useBiometrics &&
-              (!password.trim() || password !== confirmPassword))
+            (!useBiometrics && !_validatePassword(password).valid)
           }
           className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >

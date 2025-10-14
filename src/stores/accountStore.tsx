@@ -350,11 +350,25 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   resetAccount: async () => {
     try {
       set({ isLoading: true });
-      await db.userProfile.clear();
+      // Delete only the current account, not all accounts
+      const currentProfile = await getActiveOrFirstProfile(get);
+      if (currentProfile?.id != null) {
+        await db.userProfile.delete(currentProfile.id);
+      }
+
+      // Determine if any accounts remain after deletion
+      let hasAnyAccount = false;
+      try {
+        const remaining = await db.userProfile.count();
+        hasAnyAccount = remaining > 0;
+      } catch (_countErr) {
+        hasAnyAccount = false;
+      }
+
       set({
         userProfile: null,
         encryptionKey: null,
-        isInitialized: false,
+        isInitialized: hasAnyAccount,
         isLoading: false,
       });
     } catch (error) {

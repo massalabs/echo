@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { useAccountStore } from '../stores/accountStore';
 import { addDebugLog } from './debugLogs';
+import { validatePassword as _validatePassword } from '../utils/validation';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -87,9 +88,9 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
   };
 
   const validatePassword = (value: string) => {
-    const valid = value.length >= 8;
-    setIsPasswordValid(valid);
-    return valid;
+    const result = _validatePassword(value);
+    setIsPasswordValid(result.valid);
+    return result.valid;
   };
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -327,7 +328,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
                 />
                 {password && !isPasswordValid && (
                   <p className="text-red-500 text-xs mt-1">
-                    Password must be at least 8 characters long
+                    {_validatePassword(password).error}
                   </p>
                 )}
               </div>
