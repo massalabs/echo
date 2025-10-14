@@ -50,7 +50,7 @@ export interface UserProfile {
   // Security-related fields (encryption and authentication)
   security: {
     // Encrypted private key (AES-GCM)
-    encryptedKey: ArrayBuffer;
+    encryptedPrivateKey: ArrayBuffer;
     iv: Uint8Array;
 
     // WebAuthn/FIDO2 (biometric) details when used
@@ -71,9 +71,8 @@ export interface UserProfile {
 
     // Mnemonic backup details
     mnemonicBackup?: {
-      mnemonic: string;
-      iv: string;
-      salt: string;
+      encryptedMnemonic: ArrayBuffer;
+      iv: Uint8Array;
       createdAt: Date;
       backedUp: boolean;
     };

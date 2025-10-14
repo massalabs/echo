@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
-import { encryptPrivateKey, deriveKey } from '../crypto/keyDerivation';
+import {
+  encryptPrivateKey,
+  deriveKey,
+  decryptPrivateKey,
+} from '../crypto/encryption';
+// import { addDebugLog } from '../components/DebugOverlay';
 import {
   createWebAuthnCredential,
   authenticateWithWebAuthn,
@@ -10,12 +15,161 @@ import {
 } from '../crypto/webauthn';
 import {
   generateMnemonic,
-  encryptMnemonic,
-  decryptMnemonic,
   accountFromMnemonic,
   Bip39BackupDisplay,
+  validateMnemonic,
 } from '../crypto/bip39';
-import { JsonRpcProvider, Provider, PublicApiUrl } from '@massalabs/massa-web3';
+import { encryptMnemonic, decryptMnemonic } from '../crypto/encryption';
+import {
+  JsonRpcProvider,
+  Provider,
+  PublicApiUrl,
+  Account,
+} from '@massalabs/massa-web3';
+async function createProfileFromAccount(
+  username: string,
+  account: Account,
+  security: UserProfile['security']
+): Promise<UserProfile> {
+  const walletInfos = {
+    address: account.address.toString(),
+    publicKey: account.publicKey.toString(),
+  };
+
+  const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
+    username,
+    displayName: username,
+    wallet: walletInfos,
+    security,
+    status: 'online',
+    lastSeen: new Date(),
+  };
+
+  const profileId = await db.userProfile.add(newProfile as UserProfile);
+  const createdProfile = await db.userProfile.get(profileId);
+  if (!createdProfile) {
+    throw new Error('Failed to create user profile');
+  }
+  return createdProfile;
+}
+
+async function provisionAccount(
+  username: string,
+  account: Account,
+  mnemonic: string,
+  opts: { useBiometrics: boolean; password?: string }
+): Promise<{ profile: UserProfile; encryptionKey: CryptoKey }> {
+  let built:
+    | { security: UserProfile['security']; encryptionKey: CryptoKey }
+    | undefined;
+
+  if (opts.useBiometrics) {
+    built = await buildSecurityFromWebAuthn(account, mnemonic, username);
+  } else {
+    const password = opts.password?.trim();
+    if (!password) {
+      throw new Error('Password is required');
+    }
+    built = await buildSecurityFromPassword(account, mnemonic, password);
+  }
+
+  const profile = await createProfileFromAccount(
+    username,
+    account,
+    built.security
+  );
+  return { profile, encryptionKey: built.encryptionKey };
+}
+
+// Prefer the active profile in state; otherwise read the first from DB
+async function getActiveOrFirstProfile(
+  getState: () => AccountState
+): Promise<UserProfile | null> {
+  const state = getState();
+  if (state.userProfile) return state.userProfile;
+  return (await db.userProfile.toCollection().first()) || null;
+}
+
+// Helpers to build security blobs and in-memory keys
+async function buildSecurityFromPassword(
+  account: Account,
+  mnemonic: string,
+  password: string
+): Promise<{
+  security: UserProfile['security'];
+  encryptionKey: CryptoKey;
+}> {
+  const { encryptedPrivateKey, iv, salt } = await encryptPrivateKey(
+    account.privateKey.toBytes() as BufferSource,
+    password
+  );
+  const { key: encryptionKey } = await deriveKey(password, salt);
+
+  // Encrypt mnemonic with WebCrypto AES-GCM using the same encryptionKey
+  const { encryptedMnemonic, iv: ivMnemonic } = await encryptMnemonic(
+    mnemonic,
+    encryptionKey
+  );
+
+  const security: UserProfile['security'] = {
+    encryptedPrivateKey,
+    iv,
+    password: {
+      salt,
+      kdf: { name: 'PBKDF2', iterations: 150000, hash: 'SHA-256' },
+    },
+    mnemonicBackup: {
+      encryptedMnemonic,
+      iv: ivMnemonic,
+      createdAt: new Date(),
+      backedUp: false,
+    },
+  };
+
+  return { security, encryptionKey };
+}
+
+async function buildSecurityFromWebAuthn(
+  account: Account,
+  mnemonic: string,
+  username: string
+): Promise<{
+  security: UserProfile['security'];
+  encryptionKey: CryptoKey;
+}> {
+  const webauthnKey = await createWebAuthnCredential(username);
+  const { encryptedPrivateKey, iv, credentialId } =
+    await encryptPrivateKeyWithWebAuthn(
+      account.privateKey.toBytes() as BufferSource,
+      webauthnKey
+    );
+  // Encrypt mnemonic with WebCrypto AES-GCM using WebAuthn-derived key
+  const { encryptedMnemonic, iv: ivMnemonic } = await encryptMnemonic(
+    mnemonic,
+    webauthnKey.privateKey
+  );
+
+  const security: UserProfile['security'] = {
+    encryptedPrivateKey,
+    iv,
+    webauthn: {
+      credentialId,
+      publicKey: webauthnKey.publicKey,
+      counter: webauthnKey.counter,
+      deviceType: webauthnKey.deviceType,
+      backedUp: webauthnKey.backedUp,
+      transports: webauthnKey.transports,
+    },
+    mnemonicBackup: {
+      encryptedMnemonic,
+      iv: ivMnemonic,
+      createdAt: new Date(),
+      backedUp: false,
+    },
+  };
+
+  return { security, encryptionKey: webauthnKey.privateKey };
+}
 
 interface AccountState {
   userProfile: UserProfile | null;
@@ -32,7 +186,12 @@ interface AccountState {
   initializeAccountWithBiometrics: (username: string) => Promise<void>;
   loadAccountWithBiometrics: () => Promise<void>;
   initializeAccount: (username: string, password: string) => Promise<void>;
-  loadAccount: (password: string) => Promise<void>;
+  loadAccount: (password: string, accountId?: number) => Promise<void>;
+  restoreAccountFromMnemonic: (
+    username: string,
+    mnemonic: string,
+    opts: { useBiometrics: boolean; password?: string }
+  ) => Promise<void>;
   resetAccount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   checkPlatformAvailability: () => Promise<void>;
@@ -75,66 +234,26 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       const mnemonic = generateMnemonic(256);
       const account = await accountFromMnemonic(mnemonic);
 
-      // Derive encryption key and store it in memory
-      const { key: encryptionKey, salt } = await deriveKey(password);
-
-      // Encrypt the private key using the crypto module
-      const { encryptedKey, iv, kdf } = await encryptPrivateKey(
-        account.privateKey.toBytes() as BufferSource,
-        password
-      );
-
-      // Encrypt the mnemonic for storage
-      const encryptedMnemonic = await encryptMnemonic(mnemonic, password);
-
-      const walletInfos = {
-        address: account.address.toString(),
-        publicKey: account.publicKey.toString(),
-      };
-
-      const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
+      const { profile, encryptionKey } = await provisionAccount(
         username,
-        displayName: username,
-        wallet: walletInfos,
-        security: {
-          encryptedKey,
-          iv,
-          password: {
-            salt,
-            kdf,
-          },
-          mnemonicBackup: {
-            // for now, we store the encrypted mnemonic in order to provide backup feature later
-            // we could not store it, and only provide private key backup
-            mnemonic: encryptedMnemonic.encryptedMnemonic,
-            iv: encryptedMnemonic.iv,
-            salt: encryptedMnemonic.salt,
-            createdAt: new Date(),
-            backedUp: false,
-          },
-        },
-        status: 'online',
-        lastSeen: new Date(),
-      };
-
-      // TODO: add RPC management in settings
+        account,
+        mnemonic,
+        {
+          useBiometrics: false,
+          password,
+        }
+      );
       const provider = await JsonRpcProvider.fromRPCUrl(
         PublicApiUrl.Buildnet,
         account
       );
-
-      const profileId = await db.userProfile.add(newProfile as UserProfile);
-      const createdProfile = await db.userProfile.get(profileId);
-
-      if (createdProfile) {
-        set({
-          userProfile: createdProfile,
-          encryptionKey,
-          provider,
-          isInitialized: true,
-          isLoading: false,
-        });
-      }
+      set({
+        userProfile: profile,
+        encryptionKey,
+        provider,
+        isInitialized: true,
+        isLoading: false,
+      });
     } catch (error) {
       console.error('Error creating user profile:', error);
       set({ isLoading: false });
@@ -142,11 +261,53 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     }
   },
 
-  loadAccount: async (password: string) => {
+  restoreAccountFromMnemonic: async (
+    username: string,
+    mnemonic: string,
+    opts: { useBiometrics: boolean; password?: string }
+  ) => {
     try {
       set({ isLoading: true });
 
-      const profile = await db.userProfile.toCollection().first();
+      // Validate mnemonic
+      if (!validateMnemonic(mnemonic)) {
+        throw new Error('Invalid mnemonic phrase');
+      }
+
+      // Create account instance from mnemonic
+      const account = await accountFromMnemonic(mnemonic);
+
+      const { profile, encryptionKey } = await provisionAccount(
+        username,
+        account,
+        mnemonic,
+        opts
+      );
+      set({
+        userProfile: profile,
+        encryptionKey,
+        isInitialized: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Error restoring account from mnemonic:', error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  loadAccount: async (password: string, accountId?: number) => {
+    try {
+      set({ isLoading: true });
+
+      // If accountId is provided, load that specific account, otherwise use active or first
+      let profile: UserProfile | null;
+      if (accountId) {
+        profile = (await db.userProfile.get(accountId)) || null;
+      } else {
+        profile = await getActiveOrFirstProfile(get);
+      }
+
       if (!profile) {
         throw new Error('No user profile found');
       }
@@ -157,6 +318,21 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         throw new Error('Password parameters not found');
       }
       const { key: encryptionKey } = await deriveKey(password, salt);
+
+      // Verify the password is correct by attempting to decrypt the private key
+      const encryptedKey = profile.security?.encryptedPrivateKey;
+      const iv = profile.security?.iv;
+      if (!encryptedKey || !iv) {
+        throw new Error('Encrypted key not found');
+      }
+
+      try {
+        // Attempt to decrypt the private key - this will fail if password is wrong
+        await decryptPrivateKey(encryptedKey, iv, encryptionKey);
+      } catch (_decryptError) {
+        // If decryption fails, the password is incorrect
+        throw new Error('Invalid password. Please try again.');
+      }
 
       set({
         userProfile: profile,
@@ -227,16 +403,16 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       const webauthnKey = await createWebAuthnCredential(username);
 
       // Encrypt the private key using WebAuthn-derived key
-      const { encryptedKey, iv, credentialId } =
+      const { encryptedPrivateKey, iv, credentialId } =
         await encryptPrivateKeyWithWebAuthn(
           account.privateKey.toBytes() as BufferSource,
           webauthnKey
         );
 
-      // Encrypt the mnemonic using WebAuthn-derived key
-      const encryptedMnemonic = await encryptMnemonic(
+      // Encrypt mnemonic with WebCrypto AES-GCM using WebAuthn-derived key
+      const { encryptedMnemonic, iv: ivMnemonic } = await encryptMnemonic(
         mnemonic,
-        webauthnKey.privateKey.toString()
+        webauthnKey.privateKey
       );
 
       const walletInfos = {
@@ -249,7 +425,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         displayName: username,
         wallet: walletInfos,
         security: {
-          encryptedKey,
+          encryptedPrivateKey,
           iv,
           webauthn: {
             credentialId,
@@ -260,9 +436,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
             transports: webauthnKey.transports,
           },
           mnemonicBackup: {
-            mnemonic: encryptedMnemonic.encryptedMnemonic,
-            iv: encryptedMnemonic.iv,
-            salt: encryptedMnemonic.salt,
+            encryptedMnemonic,
+            iv: ivMnemonic,
             createdAt: new Date(),
             backedUp: false,
           },
@@ -291,11 +466,17 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   },
 
   // WebAuthn-based account loading
-  loadAccountWithBiometrics: async () => {
+  loadAccountWithBiometrics: async (accountId?: number) => {
     try {
       set({ isLoading: true });
 
-      const profile = await db.userProfile.toCollection().first();
+      let profile: UserProfile | null;
+      if (accountId) {
+        profile = (await db.userProfile.get(accountId)) || null;
+      } else {
+        // Prefer currently authenticated user if present
+        profile = await getActiveOrFirstProfile(get);
+      }
       if (!profile) {
         throw new Error('No user profile found');
       }
@@ -310,6 +491,23 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       const webauthnKey = await authenticateWithWebAuthn(
         profile.security.webauthn.credentialId
       );
+
+      // Verify the derived key is correct by attempting to decrypt the private key
+      const encryptedKey = profile.security?.encryptedPrivateKey;
+      const iv = profile.security?.iv;
+      if (!encryptedKey || !iv) {
+        throw new Error('Encrypted key not found');
+      }
+
+      try {
+        // Attempt to decrypt the private key - this will fail if the key is wrong
+        await decryptPrivateKey(encryptedKey, iv, webauthnKey.privateKey);
+      } catch (_decryptError) {
+        // If decryption fails, something is wrong with the credential or stored data
+        throw new Error(
+          'Failed to decrypt account data. The credential may be corrupted.'
+        );
+      }
 
       set({
         userProfile: profile,
@@ -327,9 +525,10 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   // Mnemonic backup methods
   showMnemonicBackup: async (password?: string) => {
     try {
-      const profile = await db.userProfile.toCollection().first();
+      const state = get();
+      const profile = state.userProfile;
       if (!profile) {
-        throw new Error('No user profile found');
+        throw new Error('No authenticated user');
       }
 
       if (!profile.security?.mnemonicBackup) {
@@ -349,25 +548,32 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
         // Decrypt using WebAuthn-derived key
         decryptedMnemonic = await decryptMnemonic(
-          {
-            encryptedMnemonic: profile.security.mnemonicBackup.mnemonic,
-            iv: profile.security.mnemonicBackup.iv,
-            salt: profile.security.mnemonicBackup.salt,
-          },
-          webauthnKey.privateKey.toString()
+          profile.security.mnemonicBackup.encryptedMnemonic,
+          profile.security.mnemonicBackup.iv,
+          webauthnKey.privateKey
         );
       } else if (profile.security.password?.salt && password) {
         // For password-based accounts, use the provided password
-        decryptedMnemonic = await decryptMnemonic(
-          {
-            encryptedMnemonic: profile.security.mnemonicBackup.mnemonic,
-            iv: profile.security.mnemonicBackup.iv,
-            salt: profile.security.mnemonicBackup.salt,
-          },
-          password
-        );
+        try {
+          const { key } = await deriveKey(
+            password,
+            profile.security.password.salt
+          );
+          decryptedMnemonic = await decryptMnemonic(
+            profile.security.mnemonicBackup.encryptedMnemonic,
+            profile.security.mnemonicBackup.iv,
+            key
+          );
+        } catch (_e) {
+          // CryptoJS decryption throws on bad password; surface a clear error
+          throw new Error('Invalid password. Please try again.');
+        }
       } else {
         throw new Error('Invalid authentication method or missing password');
+      }
+
+      if (!validateMnemonic(decryptedMnemonic)) {
+        throw new Error('Failed to validate mnemonic');
       }
 
       // Create account from the existing mnemonic to get the backup info
@@ -388,15 +594,20 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   createMnemonicBackup: async (mnemonic: string) => {
     try {
-      const profile = await db.userProfile.toCollection().first();
+      const state = get();
+      const profile = state.userProfile;
       if (!profile) {
-        throw new Error('No user profile found');
+        throw new Error('No authenticated user');
       }
 
-      // Encrypt the mnemonic for storage
-      const encryptedMnemonic = await encryptMnemonic(
+      // Encrypt the mnemonic for storage using the active session key
+      const key = get().encryptionKey;
+      if (!key) {
+        throw new Error('No active encryption key');
+      }
+      const { encryptedMnemonic, iv: ivMnemonic } = await encryptMnemonic(
         mnemonic,
-        'mnemonic-backup-key'
+        key
       );
 
       const updatedProfile = {
@@ -404,9 +615,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         security: {
           ...profile.security,
           mnemonicBackup: {
-            mnemonic: encryptedMnemonic.encryptedMnemonic,
-            iv: encryptedMnemonic.iv,
-            salt: encryptedMnemonic.salt,
+            encryptedMnemonic,
+            iv: ivMnemonic,
             createdAt: new Date(),
             backedUp: false,
           },
@@ -434,7 +644,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   markMnemonicBackupComplete: async () => {
     try {
-      const profile = await db.userProfile.toCollection().first();
+      const state = get();
+      const profile = state.userProfile;
       if (!profile || !profile.security?.mnemonicBackup) {
         throw new Error('No mnemonic backup found');
       }
@@ -498,8 +709,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     try {
       // Ensure database is ready
       await db.open();
-      const profile = await db.userProfile.toCollection().first();
-      return profile !== undefined;
+      const count = await db.userProfile.count();
+      return count > 0;
     } catch (error) {
       console.error('Error checking for existing account:', error);
       return false;
@@ -508,10 +719,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
   getExistingAccountInfo: async () => {
     try {
-      // Ensure database is ready
-      await db.open();
-      const profile = await db.userProfile.toCollection().first();
-      return profile || null;
+      return await getActiveOrFirstProfile(get);
     } catch (error) {
       console.error('Error getting existing account info:', error);
       return null;

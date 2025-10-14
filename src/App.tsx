@@ -1,14 +1,23 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useAccountStore } from './stores/accountStore';
 import { db } from './db';
 import OnboardingFlow from './components/OnboardingFlow';
 import MainApp from './components/MainApp';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWABadge from './PWABadge.tsx';
+import DebugOverlay from './components/DebugOverlay';
+import { addDebugLog } from './components/debugLogs';
+import AccountImport from './components/AccountImport';
 import './App.css';
 
 const AppContent: React.FC = () => {
-  const { isInitialized, isLoading, setLoading } = useAccountStore();
+  const { isInitialized, isLoading, setLoading, userProfile } =
+    useAccountStore();
+  const [showImport, setShowImport] = useState(false);
+
+  addDebugLog(
+    `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
+  );
 
   // Load profile from Dexie on app start
   const loadProfile = useCallback(async () => {
@@ -18,7 +27,9 @@ const AppContent: React.FC = () => {
       // Add a small delay to ensure database is ready
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const profile = await db.userProfile.toCollection().first();
+      const state = useAccountStore.getState();
+      const profile =
+        state.userProfile || (await db.userProfile.toCollection().first());
 
       if (profile) {
         // Profile exists - let MainApp handle the welcome flow
@@ -38,9 +49,11 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     loadProfile();
-  }, [loadProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   if (isLoading) {
+    addDebugLog('Rendering loading screen');
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -51,17 +64,44 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // If we have a user profile, always show MainApp (user is authenticated)
+  if (userProfile) {
+    addDebugLog('Rendering MainApp - user profile exists');
+    return <MainApp />;
+  }
+
+  // If not initialized and no profile, show onboarding
   if (!isInitialized) {
+    addDebugLog('Rendering OnboardingFlow - not initialized');
+    if (showImport) {
+      return (
+        <AccountImport
+          onBack={() => setShowImport(false)}
+          onComplete={() => {
+            addDebugLog(
+              'AccountImport completed - setting isInitialized to true'
+            );
+            useAccountStore.setState({ isInitialized: true });
+          }}
+        />
+      );
+    }
     return (
       <OnboardingFlow
         onComplete={() => {
           // When onboarding is complete, set isInitialized to true to trigger MainApp
+          addDebugLog(
+            'OnboardingFlow completed - setting isInitialized to true'
+          );
           useAccountStore.setState({ isInitialized: true });
         }}
+        onImportMnemonic={() => setShowImport(true)}
       />
     );
   }
 
+  // If initialized but no profile, show MainApp (it will handle showing account creation)
+  addDebugLog('Rendering MainApp - initialized but no profile');
   return <MainApp />;
 };
 
@@ -69,6 +109,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AppContent />
+      <DebugOverlay />
       {/* PWA Badge - hidden for now to match design */}
       <div className="hidden">
         <PWABadge />

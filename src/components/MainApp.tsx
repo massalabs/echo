@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import { UserProfile } from '../db';
@@ -8,6 +8,9 @@ import Wallet from './Wallet';
 import BottomNavigation from './BottomNavigation';
 import WelcomeBack from './WelcomeBack';
 import AccountCreation from './AccountCreation';
+
+// Global error state (survives component remounts)
+let globalLoginError: string | null = null;
 
 const MainApp: React.FC = () => {
   const {
@@ -26,9 +29,17 @@ const MainApp: React.FC = () => {
   >('loading');
   const [existingAccountInfo, setExistingAccountInfo] =
     useState<UserProfile | null>(null);
+  const hasCheckedExistingRef = useRef(false);
+  const [, forceUpdate] = useState({});
 
   useEffect(() => {
     const checkExistingAccount = async () => {
+      if (hasCheckedExistingRef.current) {
+        return; // Prevent multiple checks
+      }
+
+      hasCheckedExistingRef.current = true; // Mark as checking immediately
+
       try {
         const hasAccount = await hasExistingAccount();
 
@@ -45,17 +56,31 @@ const MainApp: React.FC = () => {
       }
     };
 
-    if (!isLoading) {
-      if (!isInitialized) {
-        // No account exists, show setup
+    // If we're loading, stay in loading state
+    if (isLoading) {
+      return;
+    }
+
+    // If not initialized, show setup
+    if (!isInitialized) {
+      if (appState !== 'setup') {
         setAppState('setup');
-      } else if (isInitialized && userProfile) {
-        // Account is loaded and user is authenticated, show main app
-        setAppState('main');
-      } else if (isInitialized && !userProfile) {
-        // Account exists but user not authenticated, show welcome screen
-        checkExistingAccount();
       }
+      return;
+    }
+
+    // If initialized and we have a user profile, show main app
+    if (isInitialized && userProfile) {
+      if (appState !== 'main') {
+        setAppState('main');
+      }
+      return;
+    }
+
+    // If initialized but no user profile, check for existing account
+    // Only check if we're still in loading state (haven't checked yet)
+    if (isInitialized && !userProfile && appState === 'loading') {
+      checkExistingAccount();
     }
   }, [
     isLoading,
@@ -63,32 +88,63 @@ const MainApp: React.FC = () => {
     userProfile,
     hasExistingAccount,
     getExistingAccountInfo,
+    appState,
   ]);
 
-  const handleResetAccount = async () => {
+  const handleResetAccount = useCallback(async () => {
     try {
       await resetAccount();
       setAppState('setup');
     } catch (error) {
       console.error('Failed to reset account:', error);
     }
-  };
+  }, [resetAccount]);
 
-  const handleAccountSelected = () => {
+  const handleResetAllAccounts = useCallback(async () => {
+    try {
+      // Clear all local storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Clear IndexedDB (Dexie database)
+      const { db } = await import('../db');
+      await db.delete();
+
+      // Reset the account store
+      await resetAccount();
+
+      // Force page reload to ensure clean state
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to reset all accounts:', error);
+    }
+  }, [resetAccount]);
+
+  const handleAccountSelected = useCallback(() => {
+    globalLoginError = null; // Clear any login errors
     setAppState('main');
-  };
+  }, []);
 
-  const handleCreateNewAccount = () => {
+  const handleLoginError = useCallback((error: string | null) => {
+    globalLoginError = error; // Update global variable
+    forceUpdate({}); // Force re-render to pick up new error
+  }, []);
+
+  const handleCreateNewAccount = useCallback(() => {
     setAppState('setup');
-  };
+  }, []);
 
-  const handleSetupComplete = () => {
+  const handleSetupComplete = useCallback(() => {
+    // Force transition to main - the useEffect should handle this, but this is a fallback
     setAppState('main');
-  };
+  }, []);
 
-  const handleTabChange = (tab: 'wallet' | 'discussions' | 'settings') => {
-    setActiveTab(tab);
-  };
+  const handleTabChange = useCallback(
+    (tab: 'wallet' | 'discussions' | 'settings') => {
+      setActiveTab(tab);
+    },
+    []
+  );
 
   // Show loading state
   if (appState === 'loading' || isLoading) {
@@ -106,9 +162,12 @@ const MainApp: React.FC = () => {
   if (appState === 'welcome') {
     return (
       <WelcomeBack
+        key="welcomeback-stable"
         onCreateNewAccount={handleCreateNewAccount}
         onAccountSelected={handleAccountSelected}
         accountInfo={existingAccountInfo}
+        persistentError={globalLoginError}
+        onErrorChange={handleLoginError}
       />
     );
   }
@@ -193,6 +252,13 @@ const MainApp: React.FC = () => {
                 className="text-xs text-red-600 hover:text-red-800 underline"
               >
                 Reset Account (for testing)
+              </button>
+              <br />
+              <button
+                onClick={handleResetAllAccounts}
+                className="text-xs text-red-600 hover:text-red-800 underline"
+              >
+                Reset All Accounts (wipe local storage)
               </button>
             </div>
           </div>

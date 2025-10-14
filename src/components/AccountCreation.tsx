@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { useAccountStore } from '../stores/accountStore';
+import { addDebugLog } from './debugLogs';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -18,6 +19,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
   const [hasExistingWebAuthnProfile, setHasExistingWebAuthnProfile] =
     useState(false);
+  const [accountCreationStarted, setAccountCreationStarted] = useState(false);
 
   const {
     webauthnSupported: storeWebauthnSupported,
@@ -39,10 +41,17 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
 
   // Check for existing WebAuthn profile on component mount
   useEffect(() => {
+    // Skip this check if account creation has already started
+    if (accountCreationStarted) {
+      return;
+    }
+
     const checkExistingProfile = async () => {
       try {
         const { db } = await import('../db');
-        const profile = await db.userProfile.toCollection().first();
+        const state = useAccountStore.getState();
+        const profile =
+          state.userProfile || (await db.userProfile.toCollection().first());
         if (profile?.security?.webauthn?.credentialId) {
           setHasExistingWebAuthnProfile(true);
           // If there's an existing WebAuthn profile, default to biometrics
@@ -56,7 +65,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
     };
 
     checkExistingProfile();
-  }, [webauthnSupported, platformAvailable]);
+  }, [webauthnSupported, platformAvailable, accountCreationStarted]);
 
   useEffect(() => {
     setPlatformAvailable(platformAuthenticatorAvailable);
@@ -118,24 +127,37 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling that might cause issues on mobile
 
-    if (canSubmit) {
-      setIsCreating(true);
-      setError(null);
+    if (!canSubmit) {
+      addDebugLog('Cannot submit - validation failed');
+      return;
+    }
 
-      try {
-        if (usePassword) {
-          await initializeAccount(username, password);
-        } else {
-          await initializeAccountWithBiometrics(username);
-        }
-        onComplete();
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to create account'
-        );
-        setIsCreating(false);
+    addDebugLog('Starting account creation process...');
+    setIsCreating(true);
+    setAccountCreationStarted(true); // Mark that we've started - prevent resets
+    setError(null);
+
+    try {
+      addDebugLog(`Calling initializeAccount with username: ${username}`);
+      if (usePassword) {
+        await initializeAccount(username, password);
+      } else {
+        await initializeAccountWithBiometrics(username);
       }
+      addDebugLog('Account initialization completed successfully');
+      addDebugLog('Calling onComplete callback');
+
+      // Call onComplete - this should trigger MainApp to transition
+      onComplete();
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : 'Failed to create account';
+      addDebugLog(`Account creation error: ${errorMsg}`);
+      setError(errorMsg);
+      setIsCreating(false);
+      setAccountCreationStarted(false); // Reset on error so user can try again
     }
   };
 
@@ -254,19 +276,10 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
           )}
 
         {/* WebAuthn Support Check */}
-        {!webauthnSupported && (
+        {(!webauthnSupported || !platformAvailable) && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-600 text-sm">
-              Biometric authentication is not supported in this browser. Using
-              password authentication instead.
-            </p>
-          </div>
-        )}
-
-        {webauthnSupported && !platformAvailable && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-600 text-sm">
-              Biometric authentication is not available on this device. Using
+              Biometric authentication is not supported in this device. Using
               password authentication instead.
             </p>
           </div>
@@ -378,18 +391,21 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
 
             <button
               type="submit"
-              disabled={!canSubmit}
-              className={`w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                canSubmit
+              disabled={!canSubmit || isCreating || accountCreationStarted}
+              className={`w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
+                canSubmit && !isCreating && !accountCreationStarted
                   ? 'bg-black text-white hover:bg-gray-800'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {isCreating
-                ? 'Creating Account...'
-                : usePassword
-                  ? 'Create Account with Password'
-                  : 'Create Account with Biometrics'}
+              {isCreating || accountCreationStarted ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </button>
           </form>
         )}

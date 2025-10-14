@@ -11,8 +11,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
   onBack,
   onComplete,
 }) => {
-  const { initializeAccount, initializeAccountWithBiometrics } =
-    useAccountStore();
+  const { restoreAccountFromMnemonic } = useAccountStore();
   const [mnemonic, setMnemonic] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -76,11 +75,16 @@ const AccountImport: React.FC<AccountImportProps> = ({
         }
       }
 
-      // Import account
+      // Restore account (do not create a new account)
       if (useBiometrics) {
-        await initializeAccountWithBiometrics(username);
+        await restoreAccountFromMnemonic(username, mnemonic, {
+          useBiometrics: true,
+        });
       } else {
-        await initializeAccount(username, password);
+        await restoreAccountFromMnemonic(username, mnemonic, {
+          useBiometrics: false,
+          password,
+        });
       }
 
       onComplete();

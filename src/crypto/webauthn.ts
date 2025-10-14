@@ -299,7 +299,7 @@ export async function encryptPrivateKeyWithWebAuthn(
   privateKey: BufferSource,
   webauthnKey: WebAuthnKeyMaterial
 ): Promise<{
-  encryptedKey: ArrayBuffer;
+  encryptedPrivateKey: ArrayBuffer;
   iv: Uint8Array;
   credentialId: string;
 }> {
@@ -307,14 +307,14 @@ export async function encryptPrivateKeyWithWebAuthn(
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   // Encrypt the private key
-  const encryptedKey = await crypto.subtle.encrypt(
+  const encryptedPrivateKey = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     webauthnKey.privateKey,
     privateKey
   );
 
   return {
-    encryptedKey,
+    encryptedPrivateKey,
     iv,
     credentialId: webauthnKey.credentialId,
   };

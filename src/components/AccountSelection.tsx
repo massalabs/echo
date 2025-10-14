@@ -13,17 +13,13 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   onCreateNewAccount,
   onAccountSelected,
 }) => {
-  const { loadAccountWithBiometrics, loadAccount, getAllAccounts } =
-    useAccountStore();
+  const { getAllAccounts } = useAccountStore();
   const [accounts, setAccounts] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<UserProfile | null>(
     null
   );
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -46,43 +42,9 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   }, [loadAccounts]);
 
   const handleAccountSelect = (account: UserProfile) => {
+    // Immediately notify parent; authentication happens on WelcomeBack
     setSelectedAccount(account);
-    setPassword('');
-    setPasswordError('');
-  };
-
-  const handleAuthenticate = async () => {
-    if (!selectedAccount) return;
-
-    try {
-      setIsAuthenticating(true);
-      setError(null);
-      setPasswordError('');
-
-      // Check if this is a biometric account
-      if (selectedAccount.security?.webauthn?.credentialId) {
-        await loadAccountWithBiometrics();
-      } else {
-        // For password accounts, we need the password
-        if (!password.trim()) {
-          setPasswordError('Password is required');
-          return;
-        }
-        await loadAccount(password);
-      }
-
-      onAccountSelected(selectedAccount);
-    } catch (error) {
-      console.error('Authentication failed:', error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Authentication failed. Please try again.';
-      setPasswordError(errorMessage);
-      setError(errorMessage);
-    } finally {
-      setIsAuthenticating(false);
-    }
+    onAccountSelected(account);
   };
 
   const formatAccountType = (account: UserProfile) => {
@@ -263,81 +225,7 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                 ))}
               </div>
 
-              {/* Authentication Section */}
-              {selectedAccount && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-gray-900 mb-3">
-                    Authenticate to Continue
-                  </h3>
-
-                  {selectedAccount.security?.webauthn?.credentialId ? (
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-4">
-                        Use your biometric authentication to sign in
-                      </p>
-                      <button
-                        onClick={handleAuthenticate}
-                        disabled={isAuthenticating}
-                        className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                      >
-                        {isAuthenticating ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Authenticating...
-                          </>
-                        ) : (
-                          <>
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                              />
-                            </svg>
-                            Authenticate with Biometrics
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors border-gray-200 focus:border-gray-400 mb-3"
-                        disabled={isAuthenticating}
-                      />
-                      {passwordError && (
-                        <p className="text-red-500 text-xs mb-3">
-                          {passwordError}
-                        </p>
-                      )}
-                      <button
-                        onClick={handleAuthenticate}
-                        disabled={isAuthenticating || !password.trim()}
-                        className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                      >
-                        {isAuthenticating ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Signing In...
-                          </>
-                        ) : (
-                          'Sign In'
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Authentication happens on WelcomeBack after selection */}
 
               {/* Create New Account Button */}
               <button

@@ -3,9 +3,13 @@ import appLogo from '../assets/echo_face.svg';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
+  onImportMnemonic?: () => void;
 }
 
-const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
+const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
+  onComplete,
+  onImportMnemonic,
+}) => {
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
@@ -22,7 +26,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
     },
     {
       title: 'Create Your Account',
-      description: 'Set up your username to get started',
+      description: 'Set up your account to get started',
       image: appLogo,
     },
   ];
@@ -73,27 +77,61 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) => {
           </p>
         </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between">
-          <button
-            onClick={prevStep}
-            className={`px-6 py-2 text-sm font-medium rounded-lg ${
-              currentStep === 0
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-            disabled={currentStep === 0}
-          >
-            Back
-          </button>
+        {/* Create Your Account CTAs */}
+        {steps[currentStep].title === 'Create Your Account' && (
+          <div className="space-y-3 mb-4">
+            <button
+              onClick={onImportMnemonic}
+              className="w-full h-12 border border-gray-300 text-black text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            >
+              Import from Mnemonic
+            </button>
+            <button
+              onClick={onComplete}
+              className="w-full h-12 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            >
+              Create New Account
+            </button>
+          </div>
+        )}
 
-          <button
-            onClick={nextStep}
-            className="px-6 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200"
-          >
-            {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
-          </button>
-        </div>
+        {/* Navigation */}
+        {steps[currentStep].title !== 'Create Your Account' ? (
+          <div className="flex justify-between">
+            <button
+              onClick={prevStep}
+              className={`px-6 py-2 text-sm font-medium rounded-lg ${
+                currentStep === 0
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+              disabled={currentStep === 0}
+            >
+              Back
+            </button>
+
+            <button
+              onClick={nextStep}
+              className="px-6 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200"
+            >
+              {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex justify-start">
+            <button
+              onClick={prevStep}
+              className={`px-6 py-2 text-sm font-medium rounded-lg ${
+                currentStep === 0
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+              disabled={currentStep === 0}
+            >
+              Back
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
