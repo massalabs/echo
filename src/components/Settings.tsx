@@ -3,7 +3,7 @@ import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
 import BottomNavigation from './BottomNavigation';
-import MnemonicBackup from './MnemonicBackup';
+import AccountBackup from './AccountBackup';
 
 interface SettingsProps {
   onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
@@ -16,7 +16,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
     getMnemonicBackupInfo,
     resetAccount,
   } = useAccountStore();
-  const [showMnemonicBackup, setShowMnemonicBackup] = useState(false);
+  const [showAccountBackup, setShowAccountBackup] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopyAddress = async () => {
@@ -49,8 +49,8 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   const hasMnemonic = hasMnemonicBackup();
 
   // Show MnemonicBackup screen if active
-  if (showMnemonicBackup) {
-    return <MnemonicBackup onBack={() => setShowMnemonicBackup(false)} />;
+  if (showAccountBackup) {
+    return <AccountBackup onBack={() => setShowAccountBackup(false)} />;
   }
 
   return (
@@ -128,9 +128,9 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
 
         {/* Settings Options */}
         <div className="px-4 space-y-2">
-          {/* Mnemonic Backup Button */}
+          {/* Account Backup Button */}
           <button
-            onClick={() => setShowMnemonicBackup(true)}
+            onClick={() => setShowAccountBackup(true)}
             className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <svg
@@ -147,7 +147,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
               />
             </svg>
             <span className="text-base font-semibold text-black dark:text-white">
-              Mnemonic Backup
+              Account Backup
             </span>
             {hasMnemonic && mnemonicBackupInfo?.backedUp && (
               <div className="ml-auto w-2 h-2 bg-green-500 rounded-full"></div>

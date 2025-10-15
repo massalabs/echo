@@ -22,6 +22,7 @@
     "@scure/bip39": "^2.0.0",
     "@tailwindcss/vite": "^4.1.13",
     "@types/crypto-js": "^4.2.2",
+    "@types/varint": "^6.0.3",
     "buffer": "^6.0.3",
     "crypto-js": "^4.2.0",
     "dexie": "^4.2.0",
@@ -29,6 +30,7 @@
     "pbkdf2": "^3.1.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "varint": "^6.0.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

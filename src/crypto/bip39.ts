@@ -10,12 +10,15 @@ import {
 } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
 import { Account, PrivateKey } from '@massalabs/massa-web3';
+import varint from 'varint';
 
 export interface Bip39BackupDisplay {
   mnemonic: string;
   account: Account;
   createdAt: Date;
 }
+
+export const PRIVATE_KEY_VERSION = 0;
 
 /**
  * Generate a new BIP39 mnemonic phrase
@@ -62,9 +65,10 @@ export async function accountFromMnemonic(
 
     const seed = mnemonicToSeed(mnemonic, passphrase);
 
-    const pkeyVersion = 1;
+    const versionArray = varint.encode(PRIVATE_KEY_VERSION);
+
     const privateKeyBytes = seed.slice(0, 32);
-    const privateKey = new Uint8Array([...[pkeyVersion], ...privateKeyBytes]);
+    const privateKey = new Uint8Array([...versionArray, ...privateKeyBytes]);
 
     const pkey = PrivateKey.fromBytes(privateKey);
     const account = await Account.fromPrivateKey(pkey);
