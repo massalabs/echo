@@ -59,9 +59,9 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   const getAccountIcon = (account: UserProfile) => {
     if (account.security?.webauthn?.credentialId) {
       return (
-        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
           <svg
-            className="w-5 h-5 text-blue-600"
+            className="w-5 h-5 text-blue-600 dark:text-blue-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -77,9 +77,9 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
       );
     } else {
       return (
-        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
           <svg
-            className="w-5 h-5 text-gray-600"
+            className="w-5 h-5 text-gray-600 dark:text-gray-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -98,24 +98,26 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading accounts...</p>
+          <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">
+            Loading accounts...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
             >
               <svg
                 className="w-6 h-6"
@@ -131,23 +133,25 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                 />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold text-black">Select Account</h1>
+            <h1 className="text-xl font-semibold text-black dark:text-white">
+              Select Account
+            </h1>
           </div>
         </div>
 
         {/* Content */}
         <div className="px-4 py-6">
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
             </div>
           )}
 
           {accounts.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
-                  className="w-8 h-8 text-gray-400"
+                  className="w-8 h-8 text-gray-400 dark:text-gray-300"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -160,23 +164,23 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 No Accounts Found
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 You don't have any accounts yet. Create a new account to get
                 started.
               </p>
               <button
                 onClick={onCreateNewAccount}
-                className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full h-12 bg-blue-600 dark:bg-blue-700 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
               >
                 Create New Account
               </button>
             </div>
           ) : (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 Choose an Account
               </h2>
 
@@ -187,18 +191,18 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                     key={account.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                       selectedAccount?.id === account.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                     onClick={() => handleAccountSelect(account)}
                   >
                     <div className="flex items-center gap-3">
                       {getAccountIcon(account)}
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
                           {account.username}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           {formatAccountType(account)} • Created{' '}
                           {account.createdAt
                             ? new Date(account.createdAt).toLocaleDateString()
@@ -206,7 +210,7 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                         </p>
                       </div>
                       {selectedAccount?.id === account.id && (
-                        <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                        <div className="w-5 h-5 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center">
                           <svg
                             className="w-3 h-3 text-white"
                             fill="currentColor"
@@ -230,7 +234,7 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
               {/* Create New Account Button */}
               <button
                 onClick={onCreateNewAccount}
-                className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Create New Account
               </button>

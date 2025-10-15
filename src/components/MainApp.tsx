@@ -139,6 +139,10 @@ const MainApp: React.FC = () => {
     setAppState('main');
   }, []);
 
+  const handleBackToWelcome = useCallback(() => {
+    setAppState('welcome');
+  }, []);
+
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
       setActiveTab(tab);
@@ -174,7 +178,12 @@ const MainApp: React.FC = () => {
 
   // Show account setup for new users
   if (appState === 'setup') {
-    return <AccountCreation onComplete={handleSetupComplete} />;
+    return (
+      <AccountCreation
+        onComplete={handleSetupComplete}
+        onBack={handleBackToWelcome}
+      />
+    );
   }
 
   // Show main app
