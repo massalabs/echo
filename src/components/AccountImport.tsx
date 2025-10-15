@@ -138,12 +138,6 @@ const AccountImport: React.FC<AccountImportProps> = ({
         >
           Continue
         </button>
-        <button
-          onClick={onBack}
-          className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          Back
-        </button>
       </div>
     </div>
   );
@@ -299,20 +293,6 @@ const AccountImport: React.FC<AccountImportProps> = ({
           ) : (
             'Import Account'
           )}
-        </button>
-        <button
-          onClick={() => setStep('mnemonic')}
-          disabled={isImporting}
-          className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          Back to Mnemonic
-        </button>
-        <button
-          onClick={onBack}
-          disabled={isImporting}
-          className="w-full h-12 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-        >
-          Cancel
         </button>
       </div>
     </div>

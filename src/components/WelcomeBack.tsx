@@ -273,14 +273,12 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
               alt="Echo logo"
             />
             <h1 className="text-2xl font-semibold text-black dark:text-white mb-2">
-              Welcome Back!
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              Hello,{' '}
-              <span className="font-semibold">
-                {(currentAccount || userProfile)?.username}
+              Welcome back,{' '}
+              <span className="font-semibold text-blue-600 dark:text-blue-400">
+                {(currentAccount || userProfile)?.username || 'User'}
               </span>
-            </p>
+              !
+            </h1>
           </div>
 
           {/* Authentication Section */}
