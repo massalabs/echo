@@ -46,7 +46,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm mx-auto">
         {/* Progress indicator */}
         <div className="flex justify-center mb-8">
@@ -55,7 +55,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               <div
                 key={index}
                 className={`w-2 h-2 rounded-full ${
-                  index === currentStep ? 'bg-black' : 'bg-gray-300'
+                  index === currentStep
+                    ? 'bg-black dark:bg-white'
+                    : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               />
             ))}
@@ -69,10 +71,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             className="w-32 h-32 mx-auto mb-6 rounded-full object-cover"
             alt="Echo logo"
           />
-          <h1 className="text-2xl font-semibold text-black mb-4">
+          <h1 className="text-2xl font-semibold text-black dark:text-white mb-4">
             {steps[currentStep].title}
           </h1>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
             {steps[currentStep].description}
           </p>
         </div>
@@ -82,13 +84,13 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           <div className="space-y-3 mb-4">
             <button
               onClick={onImportMnemonic}
-              className="w-full h-12 border border-gray-300 text-black text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200"
+              className="w-full h-12 border border-gray-300 dark:border-gray-600 text-black dark:text-white text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
             >
               Import from Mnemonic
             </button>
             <button
               onClick={onComplete}
-              className="w-full h-12 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200"
+              className="w-full h-12 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors duration-200"
             >
               Create New Account
             </button>
@@ -102,8 +104,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               onClick={prevStep}
               className={`px-6 py-2 text-sm font-medium rounded-lg ${
                 currentStep === 0
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:text-gray-800'
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'
               }`}
               disabled={currentStep === 0}
             >
@@ -112,7 +114,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
             <button
               onClick={nextStep}
-              className="px-6 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200"
+              className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors duration-200"
             >
               {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
             </button>
@@ -123,8 +125,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               onClick={prevStep}
               className={`px-6 py-2 text-sm font-medium rounded-lg ${
                 currentStep === 0
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:text-gray-800'
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100'
               }`}
               disabled={currentStep === 0}
             >

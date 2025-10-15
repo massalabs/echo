@@ -76,20 +76,20 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
   const renderAuthStep = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-base font-semibold text-black mb-2">
+        <h3 className="text-base font-semibold text-black dark:text-white mb-2">
           Access Your Mnemonic Backup
         </h3>
-        <p className="text-[15px] font-medium text-[#b2b2b2] mb-4">
+        <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400 mb-4">
           To view your mnemonic backup, you need to authenticate with your
           password or biometrics.
         </p>
       </div>
 
       {/* Security Warnings */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
         <div className="flex items-start">
           <svg
-            className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0"
+            className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -100,10 +100,10 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
             />
           </svg>
           <div>
-            <h4 className="text-base font-semibold text-yellow-800 mb-2">
+            <h4 className="text-base font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
               Important Security Notice
             </h4>
-            <ul className="text-[15px] font-medium text-yellow-700 space-y-1">
+            <ul className="text-[15px] font-medium text-yellow-700 dark:text-yellow-400 space-y-1">
               <li>• Never share this passphrase with anyone</li>
               <li>• Store it in a secure location offline</li>
               <li>• This passphrase can restore access to your account</li>
@@ -114,16 +114,16 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
       </div>
 
       {/* Authentication Method */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 className="text-base font-semibold text-black mb-3">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <h4 className="text-base font-semibold text-black dark:text-white mb-3">
           Authentication Required
         </h4>
 
         {userProfile?.security?.webauthn?.credentialId ? (
           <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-8 h-8 text-blue-600"
+                className="w-8 h-8 text-blue-600 dark:text-blue-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -136,33 +136,33 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
                 />
               </svg>
             </div>
-            <p className="text-[15px] font-medium text-[#b2b2b2] mb-4">
+            <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400 mb-4">
               Use your biometric authentication to access your mnemonic backup
             </p>
             <button
               onClick={handleAuthenticate}
               disabled={isLoading}
-              className="w-full h-[54px] bg-white border border-gray-200 rounded-lg text-base font-semibold text-black hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="w-full h-[54px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
             >
               {isLoading ? 'Authenticating...' : 'Authenticate with Biometrics'}
             </button>
           </div>
         ) : (
           <div>
-            <label className="block text-base font-semibold text-black mb-2">
+            <label className="block text-base font-semibold text-black dark:text-white mb-2">
               Enter your password
             </label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-[15px] font-medium mb-4"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-[15px] font-medium mb-4 text-black dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="Enter your password"
             />
             <button
               onClick={handleAuthenticate}
               disabled={isLoading || !password.trim()}
-              className="w-full h-[54px] bg-white border border-gray-200 rounded-lg text-base font-semibold text-black hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="w-full h-[54px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
             >
               {isLoading ? 'Authenticating...' : 'Authenticate with Password'}
             </button>
@@ -172,14 +172,14 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
 
       {/* Error display */}
       {(error || passwordError) && (
-        <div className="text-[15px] font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="text-[15px] font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
           {error || passwordError}
         </div>
       )}
 
       <button
         onClick={onBack}
-        className="w-full h-[54px] bg-gray-100 rounded-lg text-base font-semibold text-black hover:bg-gray-200 transition-colors"
+        className="w-full h-[54px] bg-gray-100 dark:bg-gray-700 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
       >
         Back
       </button>
@@ -189,24 +189,24 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
   const renderDisplayStep = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-base font-semibold text-black mb-2">
+        <h3 className="text-base font-semibold text-black dark:text-white mb-2">
           Your Mnemonic Backup
         </h3>
-        <p className="text-[15px] font-medium text-[#b2b2b2] mb-4">
+        <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400 mb-4">
           Write down this passphrase and store it in a safe place. You'll need
           it to restore your account.
         </p>
       </div>
 
       {/* Mnemonic Display */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-base font-semibold text-black">
+          <h4 className="text-base font-semibold text-black dark:text-white">
             24-Word Mnemonic
           </h4>
           <button
             onClick={copyMnemonic}
-            className="text-[15px] font-medium text-[#b2b2b2] hover:text-black transition-colors flex items-center gap-2"
+            className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors flex items-center gap-2"
           >
             <svg
               className="w-4 h-4"
@@ -224,18 +224,18 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
             Copy
           </button>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-[15px] font-mono text-black break-all leading-relaxed">
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <p className="text-[15px] font-mono text-black dark:text-white break-all leading-relaxed">
             {backupInfo?.mnemonic || 'Loading...'}
           </p>
         </div>
       </div>
 
       {/* Security Warnings */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
         <div className="flex items-start">
           <svg
-            className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0"
+            className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -246,10 +246,10 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
             />
           </svg>
           <div>
-            <h4 className="text-base font-semibold text-yellow-800 mb-2">
+            <h4 className="text-base font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
               Important Security Notice
             </h4>
-            <ul className="text-[15px] font-medium text-yellow-700 space-y-1">
+            <ul className="text-[15px] font-medium text-yellow-700 dark:text-yellow-400 space-y-1">
               <li>• Never share this passphrase with anyone</li>
               <li>• Store it in a secure location offline</li>
               <li>• This passphrase can restore access to your account</li>
@@ -262,7 +262,7 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
       {/* Action Button */}
       <button
         onClick={onBack}
-        className="w-full h-[54px] bg-gray-100 rounded-lg text-base font-semibold text-black hover:bg-gray-200 transition-colors"
+        className="w-full h-[54px] bg-gray-100 dark:bg-gray-700 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
       >
         Done
       </button>
@@ -270,14 +270,14 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#efefef]">
+    <div className="min-h-screen bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
             >
               <svg
                 className="w-6 h-6"
@@ -293,7 +293,7 @@ const MnemonicBackup: React.FC<MnemonicBackupProps> = ({ onBack }) => {
                 />
               </svg>
             </button>
-            <h1 className="text-2xl font-semibold text-black">
+            <h1 className="text-2xl font-semibold text-black dark:text-white">
               Passphrase Backup
             </h1>
           </div>

@@ -41,19 +41,21 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
   const totalValue = '$0.00'; // Will be calculated from all token balances when price data is available
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-black">WALLET</h1>
+          <h1 className="text-2xl font-semibold text-black dark:text-white">
+            WALLET
+          </h1>
           <button
             onClick={refreshBalance}
             disabled={isBalanceLoading}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50"
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
             title="Refresh balance"
           >
             <svg
-              className={`w-5 h-5 text-gray-600 ${isBalanceLoading ? 'animate-spin' : ''}`}
+              className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${isBalanceLoading ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -70,7 +72,9 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
 
         {/* Total Balance */}
         <div className="px-6 py-4 text-center">
-          <div className="text-4xl font-semibold text-black">{totalValue}</div>
+          <div className="text-4xl font-semibold text-black dark:text-white">
+            {totalValue}
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -78,26 +82,32 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
           <div className="flex justify-center gap-6">
             {/* Send Button */}
             <div className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={sendIcon} alt="Send" />
               </div>
-              <span className="text-xs font-medium text-black">send</span>
+              <span className="text-xs font-medium text-black dark:text-white">
+                send
+              </span>
             </div>
 
             {/* Receive Button */}
             <div className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={receiveIcon} alt="Receive" />
               </div>
-              <span className="text-xs font-medium text-black">receive</span>
+              <span className="text-xs font-medium text-black dark:text-white">
+                receive
+              </span>
             </div>
 
             {/* Swap Button */}
             <div className="flex flex-col items-center">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={swapIcon} alt="Swap" />
               </div>
-              <span className="text-xs font-medium text-black">swap</span>
+              <span className="text-xs font-medium text-black dark:text-white">
+                swap
+              </span>
             </div>
           </div>
         </div>
@@ -119,10 +129,10 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
 
                   {/* Token Info */}
                   <div className="flex-1">
-                    <div className="text-base font-bold text-black">
+                    <div className="text-base font-bold text-black dark:text-white">
                       {token.name}
                     </div>
-                    <div className="text-sm font-medium text-[#b2b2b2]">
+                    <div className="text-sm font-medium text-[#b2b2b2] dark:text-gray-400">
                       {isBalanceLoading
                         ? 'Loading...'
                         : `${token.balance} ${token.ticker}`}
@@ -130,14 +140,14 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
                   </div>
 
                   {/* Token Value */}
-                  <div className="text-sm font-semibold text-black">
+                  <div className="text-sm font-semibold text-black dark:text-white">
                     {token.value}
                   </div>
                 </div>
 
                 {/* Separator Line */}
                 {index < tokens.length - 1 && (
-                  <div className="h-px bg-gray-200"></div>
+                  <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
                 )}
               </div>
             ))}

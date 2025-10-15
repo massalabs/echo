@@ -263,7 +263,7 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
     }
 
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm mx-auto">
           {/* Logo */}
           <div className="text-center mb-8">
@@ -272,10 +272,10 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
               className="w-32 h-32 mx-auto mb-6 rounded-full object-cover"
               alt="Echo logo"
             />
-            <h1 className="text-2xl font-semibold text-black mb-2">
+            <h1 className="text-2xl font-semibold text-black dark:text-white mb-2">
               Welcome Back!
             </h1>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
               Hello,{' '}
               <span className="font-semibold">
                 {(currentAccount || userProfile)?.username}
@@ -287,11 +287,11 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
           <div className="space-y-6">
             {/* Biometric Authentication */}
             {accountSupportsBiometrics && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg
-                      className="w-8 h-8 text-blue-600"
+                      className="w-8 h-8 text-blue-600 dark:text-blue-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -304,15 +304,15 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                       />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">
                     Use Biometric Authentication
                   </h3>
-                  <p className="text-sm text-blue-700 mb-4">
+                  <p className="text-sm text-blue-700 dark:text-blue-400 mb-4">
                     Sign in with your fingerprint, face ID, or Windows Hello
                   </p>
                   {platformResolved &&
                     (!webauthnSupported || !platformAuthenticatorAvailable) && (
-                      <p className="text-xs text-blue-800 mb-3">
+                      <p className="text-xs text-blue-800 dark:text-blue-400 mb-3">
                         Biometric support not detected on this device. We will
                         try anyway.
                       </p>
@@ -320,7 +320,7 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                   <button
                     onClick={handleBiometricAuth}
                     disabled={isLoading}
-                    className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    className="w-full h-12 bg-blue-600 dark:bg-blue-700 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>
@@ -352,8 +352,8 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
 
             {/* Password Authentication */}
             {usePassword && (
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-black mb-4">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-black dark:text-white mb-4">
                   Enter Your Password
                 </h3>
                 <div className="space-y-4">
@@ -378,10 +378,10 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                         }
                       }}
                       placeholder="Enter your password"
-                      className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-all ${
+                      className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-all text-black dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 ${
                         passwordError
-                          ? 'border-red-500 focus:border-red-600 animate-shake'
-                          : 'border-gray-200 focus:border-gray-400'
+                          ? 'border-red-500 dark:border-red-600 focus:border-red-600 dark:focus:border-red-500 animate-shake'
+                          : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
                       }`}
                       disabled={isLoading}
                     />
@@ -389,11 +389,11 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                   <button
                     onClick={handlePasswordAuth}
                     disabled={isLoading || !password.trim()}
-                    className="w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 bg-black text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-white dark:border-black border-t-transparent rounded-full animate-spin"></div>
                         Signing In...
                       </>
                     ) : (
@@ -406,8 +406,10 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
 
             {/* Error Display */}
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600 text-sm">{error}</p>
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-red-600 dark:text-red-400 text-sm">
+                  {error}
+                </p>
               </div>
             )}
 
@@ -415,19 +417,19 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
             <div className="space-y-3">
               <button
                 onClick={handleChangeAccount}
-                className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
+                className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Change Account
               </button>
               <button
                 onClick={onCreateNewAccount}
-                className="w-full h-12 bg-gray-100 rounded-lg text-sm font-medium text-black hover:bg-gray-200 transition-colors"
+                className="w-full h-12 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Create New Account
               </button>
               <button
                 onClick={() => setShowAccountImport(true)}
-                className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
+                className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Import Account
               </button>

@@ -149,10 +149,10 @@ const MainApp: React.FC = () => {
   // Show loading state
   if (appState === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
         </div>
       </div>
     );
@@ -187,7 +187,7 @@ const MainApp: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#efefef]">
+    <div className="min-h-screen bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4">
@@ -198,23 +198,25 @@ const MainApp: React.FC = () => {
                 className="w-9 h-9 rounded object-cover"
                 alt="Echo logo"
               />
-              <h1 className="text-xl font-semibold text-black">Echo</h1>
+              <h1 className="text-xl font-semibold text-black dark:text-white">
+                Echo
+              </h1>
             </div>
           </div>
         </div>
 
         {/* Main content area */}
         <div className="px-4 pb-20">
-          <div className="bg-white rounded-lg p-6 text-center">
-            <h2 className="text-lg font-medium text-black mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center">
+            <h2 className="text-lg font-medium text-black dark:text-white mb-2">
               Conversations list
             </h2>
 
             {/* Placeholder content */}
             <div className="py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <svg
-                  className="w-8 h-8 text-gray-400"
+                  className="w-8 h-8 text-gray-400 dark:text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -227,36 +229,38 @@ const MainApp: React.FC = () => {
                   />
                 </svg>
               </div>
-              <p className="text-sm text-gray-500 mb-4">No conversations yet</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                No conversations yet
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Start a conversation by tapping the compose button
               </p>
             </div>
 
             {/* Debug info - hidden in production */}
-            <div className="mt-8 p-4 bg-gray-50 rounded-lg text-left">
-              <p className="text-xs text-gray-500 mb-1">
+            <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-left">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                 User: {userProfile?.username}
               </p>
-              <p className="text-xs text-gray-500 mb-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Address:{' '}
                 {userProfile?.wallet?.address
                   ? formatMassaAddress(userProfile.wallet.address)
                   : 'N/A'}
               </p>
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 Status: {userProfile?.status}
               </p>
               <button
                 onClick={handleResetAccount}
-                className="text-xs text-red-600 hover:text-red-800 underline"
+                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
               >
                 Reset Account (for testing)
               </button>
               <br />
               <button
                 onClick={handleResetAllAccounts}
-                className="text-xs text-red-600 hover:text-red-800 underline"
+                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
               >
                 Reset All Accounts (wipe local storage)
               </button>
@@ -265,7 +269,7 @@ const MainApp: React.FC = () => {
         </div>
 
         {/* Floating Action Button */}
-        <button className="fixed bottom-24 right-4 w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 transition-colors">
+        <button className="fixed bottom-24 right-4 w-14 h-14 bg-purple-600 dark:bg-purple-700 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 dark:hover:bg-purple-800 transition-colors">
           <svg
             className="w-6 h-6 text-white"
             fill="none"

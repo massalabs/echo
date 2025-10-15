@@ -18,8 +18,6 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
   const [webauthnSupported, setWebauthnSupported] = useState(false);
   const [platformAvailable, setPlatformAvailable] = useState(false);
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
-  const [hasExistingWebAuthnProfile, setHasExistingWebAuthnProfile] =
-    useState(false);
   const [accountCreationStarted, setAccountCreationStarted] = useState(false);
 
   const {
@@ -27,7 +25,6 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
     platformAuthenticatorAvailable,
     initializeAccountWithBiometrics,
     initializeAccount,
-    loadAccountWithBiometrics,
     checkPlatformAvailability,
   } = useAccountStore();
 
@@ -40,33 +37,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
     }
   }, [storeWebauthnSupported, checkPlatformAvailability]);
 
-  // Check for existing WebAuthn profile on component mount
-  useEffect(() => {
-    // Skip this check if account creation has already started
-    if (accountCreationStarted) {
-      return;
-    }
-
-    const checkExistingProfile = async () => {
-      try {
-        const { db } = await import('../db');
-        const state = useAccountStore.getState();
-        const profile =
-          state.userProfile || (await db.userProfile.toCollection().first());
-        if (profile?.security?.webauthn?.credentialId) {
-          setHasExistingWebAuthnProfile(true);
-          // If there's an existing WebAuthn profile, default to biometrics
-          if (webauthnSupported && platformAvailable) {
-            setUsePassword(false);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking for existing profile:', error);
-      }
-    };
-
-    checkExistingProfile();
-  }, [webauthnSupported, platformAvailable, accountCreationStarted]);
+  // In create flow, we no longer check for existing accounts. This screen is only for creating new accounts.
 
   useEffect(() => {
     setPlatformAvailable(platformAuthenticatorAvailable);
@@ -111,20 +82,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
     ? isValid && isPasswordValid && !isCreating
     : isValid && !isCreating;
 
-  const handleReAuthenticate = async () => {
-    setIsCreating(true);
-    setError(null);
-
-    try {
-      await loadAccountWithBiometrics();
-      onComplete();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to re-authenticate'
-      );
-      setIsCreating(false);
-    }
-  };
+  // No re-authentication in create flow
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +121,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm mx-auto">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -172,257 +130,175 @@ const AccountCreation: React.FC<AccountCreationProps> = ({ onComplete }) => {
             className="w-32 h-32 mx-auto mb-6 rounded-full object-cover"
             alt="Echo logo"
           />
-          <h1 className="text-2xl font-semibold text-black mb-2">
-            {hasExistingWebAuthnProfile ? 'Sign In' : 'Create Your Account'}
+          <h1 className="text-2xl font-semibold text-black dark:text-white mb-2">
+            Create Your Account
           </h1>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            {hasExistingWebAuthnProfile
-              ? 'Re-authenticate with your biometrics to access your Echo account'
-              : usePassword
-                ? 'Choose a username and password for your Echo account'
-                : 'Choose a username and use biometric authentication to secure your Echo account'}
+          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            {usePassword
+              ? 'Choose a username and password for your Echo account'
+              : 'Choose a username and use biometric authentication to secure your Echo account'}
           </p>
         </div>
 
-        {/* Re-authentication option for existing WebAuthn profiles */}
-        {hasExistingWebAuthnProfile &&
-          webauthnSupported &&
-          platformAvailable && (
-            <div className="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="text-center">
-                <div className="mb-4">
-                  <svg
-                    className="w-12 h-12 mx-auto text-blue-600 mb-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                  <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                    Welcome Back!
-                  </h3>
-                  <p className="text-sm text-blue-700 mb-1">
-                    We found your existing biometric account
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    Click below to re-authenticate with your biometrics (Touch
-                    ID, Face ID, etc.)
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleReAuthenticate}
-                  disabled={isCreating}
-                  className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {isCreating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Re-authenticating...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
-                      Re-authenticate with Biometrics
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
         {/* Authentication Method Toggle */}
-        {webauthnSupported &&
-          platformAvailable &&
-          !hasExistingWebAuthnProfile && (
-            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    Authentication Method
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {usePassword
-                      ? 'Using password authentication'
-                      : 'Using biometric authentication'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setUsePassword(!usePassword)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  {usePassword ? 'Use Biometrics' : 'Use Password'}
-                </button>
+        {webauthnSupported && platformAvailable && (
+          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Authentication Method
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {usePassword
+                    ? 'Using password authentication'
+                    : 'Using biometric authentication'}
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setUsePassword(!usePassword)}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                {usePassword ? 'Use Biometrics' : 'Use Password'}
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
         {/* WebAuthn Support Check */}
         {(!webauthnSupported || !platformAvailable) && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-600 text-sm">
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-blue-600 dark:text-blue-400 text-sm">
               Biometric authentication is not supported in this device. Using
               password authentication instead.
             </p>
           </div>
         )}
 
-        {/* Account Form - only show if no existing WebAuthn profile or user chose to create new */}
-        {!hasExistingWebAuthnProfile && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Account Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <input
+              type="text"
+              value={username}
+              onChange={handleUsernameChange}
+              placeholder="Enter username"
+              className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 ${
+                username && !isValid
+                  ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
+                  : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
+              }`}
+              maxLength={20}
+              disabled={isCreating}
+            />
+            {username && !isValid && (
+              <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                Username must be 3-20 characters, letters, numbers, and
+                underscores only
+              </p>
+            )}
+          </div>
+
+          {/* Password field - only show when using password authentication */}
+          {usePassword && (
             <div>
               <input
-                type="text"
-                value={username}
-                onChange={handleUsernameChange}
-                placeholder="Enter username"
-                className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors ${
-                  username && !isValid
-                    ? 'border-red-300 focus:border-red-500'
-                    : 'border-gray-200 focus:border-gray-400'
+                type="password"
+                value={password}
+                onChange={handlePasswordChange}
+                placeholder="Enter password"
+                className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 ${
+                  password && !isPasswordValid
+                    ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
+                    : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
                 }`}
-                maxLength={20}
                 disabled={isCreating}
               />
-              {username && !isValid && (
-                <p className="text-red-500 text-xs mt-1">
-                  Username must be 3-20 characters, letters, numbers, and
-                  underscores only
+              {password && !isPasswordValid && (
+                <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                  {_validatePassword(password).error}
                 </p>
               )}
             </div>
+          )}
 
-            {/* Password field - only show when using password authentication */}
-            {usePassword && (
-              <div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={handlePasswordChange}
-                  placeholder="Enter password"
-                  className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors ${
-                    password && !isPasswordValid
-                      ? 'border-red-300 focus:border-red-500'
-                      : 'border-gray-200 focus:border-gray-400'
-                  }`}
-                  disabled={isCreating}
-                />
-                {password && !isPasswordValid && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {_validatePassword(password).error}
-                  </p>
+          {/* Authentication Info */}
+          <div
+            className={`p-4 border rounded-lg ${
+              usePassword
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+            }`}
+          >
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                {usePassword ? (
+                  <svg
+                    className="h-5 w-5 text-green-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="h-5 w-5 text-blue-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                 )}
               </div>
-            )}
-
-            {/* Authentication Info */}
-            <div
-              className={`p-4 border rounded-lg ${
-                usePassword
-                  ? 'bg-green-50 border-green-200'
-                  : 'bg-blue-50 border-blue-200'
-              }`}
-            >
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  {usePassword ? (
-                    <svg
-                      className="h-5 w-5 text-green-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="h-5 w-5 text-blue-400"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <div className="ml-3">
-                  <p
-                    className={`text-sm ${
-                      usePassword ? 'text-green-700' : 'text-blue-700'
-                    }`}
-                  >
-                    {usePassword
-                      ? 'Your account will be secured using a password. Make sure to choose a strong password.'
-                      : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello).'}
-                  </p>
-                </div>
+              <div className="ml-3">
+                <p
+                  className={`text-sm ${
+                    usePassword
+                      ? 'text-green-700 dark:text-green-300'
+                      : 'text-blue-700 dark:text-blue-300'
+                  }`}
+                >
+                  {usePassword
+                    ? 'Your account will be secured using a password. Make sure to choose a strong password.'
+                    : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello).'}
+                </p>
               </div>
             </div>
-
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={!canSubmit || isCreating || accountCreationStarted}
-              className={`w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
-                canSubmit && !isCreating && !accountCreationStarted
-                  ? 'bg-black text-white hover:bg-gray-800'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {isCreating || accountCreationStarted ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </button>
-          </form>
-        )}
-
-        {/* Create New Account option for existing profiles */}
-        {hasExistingWebAuthnProfile && (
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setHasExistingWebAuthnProfile(false)}
-              className="text-sm text-gray-600 hover:text-gray-800 underline"
-            >
-              Create New Account Instead
-            </button>
           </div>
-        )}
+
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={!canSubmit || isCreating || accountCreationStarted}
+            className={`w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
+              canSubmit && !isCreating && !accountCreationStarted
+                ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
+                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {isCreating || accountCreationStarted ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Creating Account...
+              </>
+            ) : (
+              'Create Account'
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );

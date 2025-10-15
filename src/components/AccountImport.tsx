@@ -99,34 +99,34 @@ const AccountImport: React.FC<AccountImportProps> = ({
   const renderMnemonicStep = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-black mb-2">
+        <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
           Enter Your Mnemonic Phrase
         </h3>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          Enter your 12 or 24-word mnemonic phrase to import your account. Make
-          sure to enter the words in the correct order.
+        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+          Enter your 24-word mnemonic phrase to import your account. Make sure
+          to enter the words in the correct order.
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Mnemonic Phrase
         </label>
         <textarea
           value={mnemonic}
           onChange={e => setMnemonic(e.target.value)}
           placeholder="Enter your mnemonic phrase here..."
-          className="w-full h-32 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+          className="w-full h-32 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
           disabled={isImporting}
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Separate words with spaces. The phrase is case-insensitive.
         </p>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         </div>
       )}
 
@@ -140,7 +140,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
         </button>
         <button
           onClick={onBack}
-          className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
+          className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           Back
         </button>
@@ -160,7 +160,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Username
         </label>
         <input
@@ -168,18 +168,18 @@ const AccountImport: React.FC<AccountImportProps> = ({
           value={username}
           onChange={e => setUsername(e.target.value)}
           placeholder="Enter your username"
-          className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="w-full h-12 px-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
           disabled={isImporting}
         />
       </div>
 
       {/* Security Method Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
           Security Method
         </label>
         <div className="space-y-3">
-          <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+          <label className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
             <input
               type="radio"
               name="security"
@@ -189,7 +189,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
             />
             <div className="ml-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
                   <svg
                     className="w-4 h-4 text-blue-600"
                     fill="none"
@@ -204,17 +204,17 @@ const AccountImport: React.FC<AccountImportProps> = ({
                     />
                   </svg>
                 </div>
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-gray-900 dark:text-gray-100">
                   Biometric Authentication
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Use fingerprint, face ID, or Windows Hello
               </p>
             </div>
           </label>
 
-          <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+          <label className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
             <input
               type="radio"
               name="security"
@@ -224,9 +224,9 @@ const AccountImport: React.FC<AccountImportProps> = ({
             />
             <div className="ml-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                   <svg
-                    className="w-4 h-4 text-gray-600"
+                    className="w-4 h-4 text-gray-600 dark:text-gray-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -239,9 +239,11 @@ const AccountImport: React.FC<AccountImportProps> = ({
                     />
                   </svg>
                 </div>
-                <span className="font-medium text-gray-900">Password</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  Password
+                </span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Use a password to secure your account
               </p>
             </div>
@@ -253,7 +255,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
       {!useBiometrics && (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Password
             </label>
             <input
@@ -261,11 +263,11 @@ const AccountImport: React.FC<AccountImportProps> = ({
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full h-12 px-4 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full h-12 px-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
               disabled={isImporting}
             />
             {password && !_validatePassword(password).valid && (
-              <p className="text-red-500 text-xs mt-1">
+              <p className="text-red-500 dark:text-red-400 text-xs mt-1">
                 {_validatePassword(password).error}
               </p>
             )}
@@ -274,8 +276,8 @@ const AccountImport: React.FC<AccountImportProps> = ({
       )}
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         </div>
       )}
 
@@ -301,14 +303,14 @@ const AccountImport: React.FC<AccountImportProps> = ({
         <button
           onClick={() => setStep('mnemonic')}
           disabled={isImporting}
-          className="w-full h-12 bg-white border border-gray-200 rounded-lg text-sm font-medium text-black hover:bg-gray-50 transition-colors"
+          className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           Back to Mnemonic
         </button>
         <button
           onClick={onBack}
           disabled={isImporting}
-          className="w-full h-12 bg-gray-100 rounded-lg text-sm font-medium text-black hover:bg-gray-200 transition-colors"
+          className="w-full h-12 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-medium text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Cancel
         </button>
@@ -317,14 +319,14 @@ const AccountImport: React.FC<AccountImportProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
             >
               <svg
                 className="w-6 h-6"
@@ -340,7 +342,9 @@ const AccountImport: React.FC<AccountImportProps> = ({
                 />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold text-black">Import Account</h1>
+            <h1 className="text-xl font-semibold text-black dark:text-white">
+              Import Account
+            </h1>
           </div>
         </div>
 

@@ -54,16 +54,18 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#efefef]">
+    <div className="min-h-screen bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4">
-          <h1 className="text-2xl font-semibold text-black">SETTINGS</h1>
+          <h1 className="text-2xl font-semibold text-black dark:text-white">
+            SETTINGS
+          </h1>
         </div>
 
         {/* Account Profile Section */}
         <div className="px-4 mb-4">
-          <div className="bg-white rounded-lg p-4 relative">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 relative">
             <div className="flex items-start gap-4">
               <img
                 src={appLogo}
@@ -71,18 +73,18 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 alt="Profile"
               />
               <div className="flex-1">
-                <h3 className="text-base font-bold text-black mb-1">
+                <h3 className="text-base font-bold text-black dark:text-white mb-1">
                   {userProfile?.displayName || 'Account name'}
                 </h3>
                 <div className="flex items-center gap-2">
-                  <p className="text-[15px] font-medium text-[#b2b2b2]">
+                  <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400">
                     {userProfile?.wallet?.address
                       ? formatMassaAddress(userProfile.wallet.address)
                       : 'AU121243124312431243'}
                   </p>
                   <button
                     onClick={handleCopyAddress}
-                    className="p-1 text-[#b2b2b2] hover:text-gray-600 transition-colors"
+                    className="p-1 text-[#b2b2b2] dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     title={copySuccess ? 'Copied!' : 'Copy full address'}
                   >
                     <svg
@@ -103,11 +105,11 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <span className="text-base font-semibold text-black">
+              <span className="text-base font-semibold text-black dark:text-white">
                 Account settings
               </span>
               <svg
-                className="w-6 h-6 text-black"
+                className="w-6 h-6 text-black dark:text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -120,7 +122,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 />
               </svg>
             </div>
-            <div className="mt-4 h-px bg-gray-300"></div>
+            <div className="mt-4 h-px bg-gray-300 dark:bg-gray-600"></div>
           </div>
         </div>
 
@@ -129,10 +131,10 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
           {/* Mnemonic Backup Button */}
           <button
             onClick={() => setShowMnemonicBackup(true)}
-            className="w-full bg-white rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 transition-colors"
+            className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <svg
-              className="w-5 h-5 text-black mr-4"
+              className="w-5 h-5 text-black dark:text-white mr-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -144,7 +146,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-base font-semibold text-black">
+            <span className="text-base font-semibold text-black dark:text-white">
               Mnemonic Backup
             </span>
             {hasMnemonic && mnemonicBackupInfo?.backedUp && (
@@ -153,9 +155,9 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
           </button>
 
           {/* Additional Settings Buttons */}
-          <button className="w-full bg-white rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 transition-colors">
+          <button className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <svg
-              className="w-5 h-5 text-black mr-4"
+              className="w-5 h-5 text-black dark:text-white mr-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -167,12 +169,14 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-base font-semibold text-black">Security</span>
+            <span className="text-base font-semibold text-black dark:text-white">
+              Security
+            </span>
           </button>
 
-          <button className="w-full bg-white rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 transition-colors">
+          <button className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <svg
-              className="w-5 h-5 text-black mr-4"
+              className="w-5 h-5 text-black dark:text-white mr-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -184,14 +188,14 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-base font-semibold text-black">
+            <span className="text-base font-semibold text-black dark:text-white">
               Notifications
             </span>
           </button>
 
-          <button className="w-full bg-white rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 transition-colors">
+          <button className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <svg
-              className="w-5 h-5 text-black mr-4"
+              className="w-5 h-5 text-black dark:text-white mr-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -203,16 +207,18 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-base font-semibold text-black">Privacy</span>
+            <span className="text-base font-semibold text-black dark:text-white">
+              Privacy
+            </span>
           </button>
 
           {/* Logout Button */}
           <button
             onClick={handleResetAccount}
-            className="w-full bg-white rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 transition-colors"
+            className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <svg
-              className="w-5 h-5 text-red-500 mr-4"
+              className="w-5 h-5 text-red-500 dark:text-red-400 mr-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -224,7 +230,9 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               />
             </svg>
-            <span className="text-base font-semibold text-red-500">Logout</span>
+            <span className="text-base font-semibold text-red-500 dark:text-red-400">
+              Logout
+            </span>
           </button>
         </div>
 
