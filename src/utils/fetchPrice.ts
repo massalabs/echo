@@ -65,8 +65,6 @@ class CoinGeckoPriceProvider extends BasePriceProvider {
 
   async fetchPrice(base: string, quote: string): Promise<number | null> {
     const id = (await this.getIds([base]))[base];
-
-    console.log('id', id);
     if (!id) return null;
     const data = await this.fetchJson<Record<string, Record<string, number>>>(
       this.priceUrl([id], quote.toLowerCase())
@@ -79,6 +77,7 @@ class CoinGeckoPriceProvider extends BasePriceProvider {
     quote: string
   ): Promise<Record<string, number | null>> {
     const idsMap = await this.getIds(bases);
+
     const validIds = Object.values(idsMap).filter(
       (id): id is string => id !== null
     );
