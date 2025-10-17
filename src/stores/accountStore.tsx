@@ -40,7 +40,6 @@ async function createProfileFromAccount(
 
   const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
     username,
-    displayName: username,
     wallet: walletInfos,
     security,
     status: 'online',
@@ -485,7 +484,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
       const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
         username,
-        displayName: username,
         wallet: walletInfos,
         security: {
           encryptedPrivateKey,

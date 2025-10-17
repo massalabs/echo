@@ -8,6 +8,9 @@ import Wallet from './Wallet';
 import BottomNavigation from './BottomNavigation';
 import WelcomeBack from './WelcomeBack';
 import AccountCreation from './AccountCreation';
+import NewDiscussion from './NewDiscussion';
+import NewContact from './NewContact';
+import Discussion from './Discussion';
 
 // Global error state (survives component remounts)
 let globalLoginError: string | null = null;
@@ -27,6 +30,11 @@ const MainApp: React.FC = () => {
   const [appState, setAppState] = useState<
     'loading' | 'welcome' | 'setup' | 'main'
   >('loading');
+  const [showNewDiscussion, setShowNewDiscussion] = useState(false);
+  const [showNewContact, setShowNewContact] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<
+    import('../db').Contact | null
+  >(null);
   const [existingAccountInfo, setExistingAccountInfo] =
     useState<UserProfile | null>(null);
   const hasCheckedExistingRef = useRef(false);
@@ -106,9 +114,35 @@ const MainApp: React.FC = () => {
       localStorage.clear();
       sessionStorage.clear();
 
-      // Clear IndexedDB (Dexie database)
+      // Clear IndexedDB (Dexie database) - multiple approaches to ensure it's wiped
       const { db } = await import('../db');
+
+      // Close the database first
+      db.close();
+
+      // Delete the database
       await db.delete();
+
+      // Also try to clear any cached database instances
+      try {
+        const { db: freshDb } = await import('../db');
+        await freshDb.delete();
+      } catch (_e) {
+        // Ignore errors here as the database might already be deleted
+      }
+
+      // Clear any other IndexedDB databases that might exist
+      try {
+        const databases = await indexedDB.databases();
+        for (const database of databases) {
+          if (database.name?.includes('EchoDatabase')) {
+            indexedDB.deleteDatabase(database.name);
+          }
+        }
+      } catch (_e) {
+        // Some browsers don't support indexedDB.databases()
+        console.log('Could not enumerate databases');
+      }
 
       // Reset the account store
       await resetAccount();
@@ -117,6 +151,8 @@ const MainApp: React.FC = () => {
       window.location.reload();
     } catch (error) {
       console.error('Failed to reset all accounts:', error);
+      // Even if there's an error, try to reload to reset state
+      window.location.reload();
     }
   }, [resetAccount]);
 
@@ -146,6 +182,42 @@ const MainApp: React.FC = () => {
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
       setActiveTab(tab);
+    },
+    []
+  );
+
+  const handleOpenNewDiscussion = useCallback(() => {
+    setShowNewDiscussion(true);
+  }, []);
+
+  const handleCloseNewDiscussion = useCallback(() => {
+    setShowNewDiscussion(false);
+  }, []);
+
+  const handleSelectRecipient = useCallback(
+    (contact: import('../db').Contact) => {
+      setSelectedContact(contact);
+      setShowNewDiscussion(false);
+    },
+    []
+  );
+
+  const handleBackFromDiscussion = useCallback(() => {
+    setSelectedContact(null);
+  }, []);
+
+  const handleOpenNewContact = useCallback(() => {
+    setShowNewContact(true);
+  }, []);
+
+  const handleCancelNewContact = useCallback(() => {
+    setShowNewContact(false);
+  }, []);
+
+  const handleCreatedNewContact = useCallback(
+    (_contact: import('../db').Contact) => {
+      setShowNewContact(false);
+      // After creating, return to selector; optionally auto-select the new contact
     },
     []
   );
@@ -182,6 +254,32 @@ const MainApp: React.FC = () => {
       <AccountCreation
         onComplete={handleSetupComplete}
         onBack={handleBackToWelcome}
+      />
+    );
+  }
+
+  // Show new discussion screen
+  if (selectedContact) {
+    return (
+      <Discussion contact={selectedContact} onBack={handleBackFromDiscussion} />
+    );
+  }
+
+  if (showNewContact) {
+    return (
+      <NewContact
+        onCancel={handleCancelNewContact}
+        onCreated={handleCreatedNewContact}
+      />
+    );
+  }
+
+  if (showNewDiscussion) {
+    return (
+      <NewDiscussion
+        onClose={handleCloseNewDiscussion}
+        onSelectRecipient={handleSelectRecipient}
+        onNewContact={handleOpenNewContact}
       />
     );
   }
@@ -278,7 +376,10 @@ const MainApp: React.FC = () => {
         </div>
 
         {/* Floating Action Button */}
-        <button className="fixed bottom-24 right-4 w-14 h-14 bg-purple-600 dark:bg-purple-700 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 dark:hover:bg-purple-800 transition-colors">
+        <button
+          onClick={handleOpenNewDiscussion}
+          className="fixed bottom-24 right-4 w-14 h-14 bg-purple-600 dark:bg-purple-700 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 dark:hover:bg-purple-800 transition-colors"
+        >
           <svg
             className="w-6 h-6 text-white"
             fill="none"

@@ -74,7 +74,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
               />
               <div className="flex-1">
                 <h3 className="text-base font-bold text-black dark:text-white mb-1">
-                  {userProfile?.displayName || 'Account name'}
+                  {userProfile?.username || 'Account name'}
                 </h3>
                 <div className="flex items-center gap-2">
                   <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400">

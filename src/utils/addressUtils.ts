@@ -2,6 +2,8 @@
  * Utility functions for formatting wallet addresses
  */
 
+import { Address } from '@massalabs/massa-web3';
+
 /**
  * Shortens a wallet address by showing the first few and last few characters
  * @param address - The full wallet address
@@ -37,4 +39,13 @@ export function formatMassaAddress(address: string): string {
   // Massa addresses typically start with 'AU' and are quite long
   // Show first 8 characters and last 6 for better readability
   return shortenAddress(address, 8, 6);
+}
+
+export function isValidAddress(address: string): boolean {
+  try {
+    Address.fromString(address.trim());
+    return true;
+  } catch (_error) {
+    return false;
+  }
 }

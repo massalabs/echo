@@ -17,3 +17,11 @@ export function validatePassword(value: string): PasswordValidationResult {
 
   return { valid: true };
 }
+
+export function validateUsername(value: string): boolean {
+  if (!value || value.trim().length === 0) {
+    return false;
+  }
+
+  return value.length >= 3;
+}

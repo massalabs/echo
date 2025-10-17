@@ -3,14 +3,12 @@ import Dexie, { Table } from 'dexie';
 // Define interfaces for your data models
 export interface Contact {
   id?: number;
-  username: string;
-  displayName: string;
+  name: string;
+  address: string;
   avatar?: string;
-  publicKey?: string;
   isOnline: boolean;
   lastSeen: Date;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface Message {
@@ -41,7 +39,6 @@ export interface Conversation {
 export interface UserProfile {
   id?: number;
   username: string;
-  displayName: string;
   avatar?: string;
   wallet: {
     address: string;
@@ -103,9 +100,9 @@ export class EchoDatabase extends Dexie {
   constructor() {
     super('EchoDatabase');
 
-    // Define schema
+    // Define schema with simplified Contact interface
     this.version(1).stores({
-      contacts: '++id, username, displayName, isOnline, lastSeen, createdAt',
+      contacts: '++id, name, address, isOnline, lastSeen, createdAt',
       messages:
         '++id, contactId, type, direction, status, timestamp, encrypted',
       conversations:
@@ -117,15 +114,7 @@ export class EchoDatabase extends Dexie {
     // Add hooks for automatic timestamps
     this.contacts.hook('creating', function (_primKey, obj, _trans) {
       obj.createdAt = new Date();
-      obj.updatedAt = new Date();
     });
-
-    this.contacts.hook(
-      'updating',
-      function (modifications, _primKey, _obj, _trans) {
-        (modifications as Record<string, unknown>).updatedAt = new Date();
-      }
-    );
 
     this.conversations.hook('creating', function (_primKey, obj, _trans) {
       obj.createdAt = new Date();
@@ -164,8 +153,8 @@ export class EchoDatabase extends Dexie {
   }
 
   // Helper methods for common operations
-  async getContactByUsername(username: string): Promise<Contact | undefined> {
-    return await this.contacts.where('username').equals(username).first();
+  async getContactByAddress(address: string): Promise<Contact | undefined> {
+    return await this.contacts.where('address').equals(address).first();
   }
 
   async getMessagesForContact(
