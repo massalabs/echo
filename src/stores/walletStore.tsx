@@ -133,7 +133,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
         return {
           ...token,
           priceUsd: price,
-          valueUsd: valueUsd,
+          valueUsd,
         };
       });
 
