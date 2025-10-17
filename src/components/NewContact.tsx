@@ -18,7 +18,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   const [addressError, setAddressError] = useState<string | null>(null);
 
   const isValid = useMemo(() => {
-    return validateUsername(name) && isValidAddress(massaAddress);
+    return validateUsername(name).valid && isValidAddress(massaAddress);
   }, [name, massaAddress]);
 
   const validateName = useCallback((value: string) => {
@@ -26,10 +26,9 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       setNameError(null);
       return false;
     }
-    if (!validateUsername(value)) {
-      setNameError(
-        'Name must be at least 2 characters and contain only letters, numbers, and spaces'
-      );
+    const result = validateUsername(value);
+    if (!result.valid) {
+      setNameError(result.error || 'Invalid username');
       return false;
     }
     setNameError(null);

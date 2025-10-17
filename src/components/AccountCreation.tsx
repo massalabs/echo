@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { useAccountStore } from '../stores/accountStore';
 import { addDebugLog } from './debugLogs';
-import { validatePassword as _validatePassword } from '../utils/validation';
+import { validatePassword, validateUsername } from '../utils/validation';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -19,6 +19,8 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [webauthnSupported, setWebauthnSupported] = useState(false);
   const [platformAvailable, setPlatformAvailable] = useState(false);
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
@@ -55,30 +57,31 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
     }
   }, [webauthnSupported, platformAuthenticatorAvailable]);
 
-  const validateUsername = (value: string) => {
-    const valid =
-      value.length >= 3 && value.length <= 20 && /^[a-zA-Z0-9_]+$/.test(value);
-    setIsValid(valid);
-    return valid;
+  const validateUsernameField = (value: string) => {
+    const result = validateUsername(value);
+    setIsValid(result.valid);
+    setUsernameError(result.error || null);
+    return result.valid;
   };
 
-  const validatePassword = (value: string) => {
-    const result = _validatePassword(value);
+  const validatePasswordField = (value: string) => {
+    const result = validatePassword(value);
     setIsPasswordValid(result.valid);
+    setPasswordError(result.error || null);
     return result.valid;
   };
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUsername(value);
-    validateUsername(value);
+    validateUsernameField(value);
     setError(null);
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPassword(value);
-    validatePassword(value);
+    validatePasswordField(value);
     setError(null);
   };
 
@@ -252,17 +255,16 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                 onChange={handleUsernameChange}
                 placeholder="Enter username"
                 className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 ${
-                  username && !isValid
+                  usernameError
                     ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
                     : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
                 }`}
                 maxLength={20}
                 disabled={isCreating}
               />
-              {username && !isValid && (
+              {usernameError && (
                 <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                  Username must be 3-20 characters, letters, numbers, and
-                  underscores only
+                  {usernameError}
                 </p>
               )}
             </div>
@@ -276,15 +278,15 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                   onChange={handlePasswordChange}
                   placeholder="Enter password"
                   className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 ${
-                    password && !isPasswordValid
+                    passwordError
                       ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
                       : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
                   }`}
                   disabled={isCreating}
                 />
-                {password && !isPasswordValid && (
+                {passwordError && (
                   <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                    {_validatePassword(password).error}
+                    {passwordError}
                   </p>
                 )}
               </div>
