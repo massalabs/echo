@@ -23,7 +23,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await refreshBalances(true);
+      await refreshBalances();
     } finally {
       setIsRefreshing(false);
     }
