@@ -8,7 +8,9 @@ use crate::{
     utils::timestamp_millis,
 };
 use auth::UserId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 pub enum SessionStatus {
     /// This peer has an active session with us
@@ -27,6 +29,7 @@ pub enum SessionStatus {
     Saturated,
 }
 
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct SessionManagerConfig {
     /// The maximum age of an incoming announcement in milliseconds
     pub max_incoming_announcement_age_millis: u128,
@@ -48,23 +51,34 @@ pub struct SessionManagerConfig {
     pub max_session_lag_length: u64,
 }
 
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 struct SessionInfo {
     session: Session,
     last_incoming_message_timestamp: u128,
     last_outgoing_message_timestamp: u128,
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 struct PeerInfo {
     active_session: Option<SessionInfo>,
     latest_incoming_init_request: Option<IncomingInitiationRequest>,
     latest_outgoing_init_request: Option<OutgoingInitiationRequest>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct SessionManager {
     config: SessionManagerConfig,
-    peers: HashMap<UserId, PeerInfo>,
+    peers: HashMap<UserId, Box<PeerInfo>>,
 }
+
+impl Zeroize for SessionManager {
+    fn zeroize(&mut self) {
+        self.peers.clear();
+        self.config.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for SessionManager {}
 
 impl SessionManager {
     pub fn new(config: SessionManagerConfig) -> Self {
@@ -72,6 +86,93 @@ impl SessionManager {
             config,
             peers: HashMap::new(),
         }
+    }
+
+    /// Deserializes a `SessionManager` from an encrypted blob.
+    ///
+    /// This method decrypts and deserializes a previously encrypted session manager state,
+    /// allowing for secure persistence and restoration of session state. The encrypted blob
+    /// must have been created using [`to_encrypted_blob`](Self::to_encrypted_blob) with the
+    /// same encryption key.
+    ///
+    /// # Arguments
+    ///
+    /// * `encrypted_blob` - The encrypted binary data containing the serialized session manager.
+    ///   The blob format is: `[nonce (12 bytes) || encrypted_data || auth_tag (16 bytes)]`
+    /// * `key` - The AES-256-GCM encryption key used to decrypt the blob. Must be the same key
+    ///   that was used to create the encrypted blob.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(SessionManager)` - If decryption and deserialization succeed
+    /// * `None` - If:
+    ///   - The blob is too short to contain a valid nonce
+    ///   - Decryption fails (wrong key, corrupted data, or failed authentication)
+    ///   - Deserialization fails (incompatible format or corrupted data)
+    ///
+    /// # Security
+    ///
+    /// - Uses AES-256-GCM for authenticated encryption, ensuring both confidentiality and integrity
+    /// - The nonce is prepended to the ciphertext and is unique per encryption
+    /// - All sensitive data is zeroized from memory when dropped
+    /// - Returns `None` on any error to avoid leaking information through error messages
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use sessions::SessionManager;
+    /// use crypto_aead::Key;
+    ///
+    /// // Create a key for encryption
+    /// let key = Key::generate();
+    ///
+    /// // Serialize and encrypt a session manager
+    /// let manager = SessionManager::new(config);
+    /// let encrypted_blob = manager.to_encrypted_blob(&key).unwrap();
+    ///
+    /// // Later, restore from encrypted blob
+    /// let restored_manager = SessionManager::from_encrypted_blob(&encrypted_blob, &key).unwrap();
+    /// ```
+    pub fn from_encrypted_blob(encrypted_blob: &[u8], key: &crypto_aead::Key) -> Option<Self> {
+        // read nonce
+        let nonce = {
+            let nonce_bytes: [u8; crypto_aead::NONCE_SIZE] = encrypted_blob
+                .get(..crypto_aead::NONCE_SIZE)?
+                .try_into()
+                .ok()?;
+            crypto_aead::Nonce::from(nonce_bytes)
+        };
+
+        // decrypt
+        let decrypted_blob =
+            Zeroizing::new(crypto_aead::decrypt(key, &nonce, encrypted_blob, b"")?);
+
+        // deserialize
+        let session_manager: Self = bincode::deserialize(&decrypted_blob).ok()?;
+
+        // return
+        Some(session_manager)
+    }
+
+    pub fn to_encrypted_blob(&self, key: &crypto_aead::Key) -> Option<Vec<u8>> {
+        // generate nonce
+        let nonce = {
+            let mut nonce_bytes = [0u8; crypto_aead::NONCE_SIZE];
+            crypto_rng::fill_buffer(&mut nonce_bytes);
+            crypto_aead::Nonce::from(nonce_bytes)
+        };
+
+        // serialize
+        let serialized_blob = Zeroizing::new(bincode::serialize(self).ok()?);
+
+        // encrypt
+        let encrypted_blob =
+            Zeroizing::new(crypto_aead::encrypt(key, &nonce, &serialized_blob, b""));
+
+        // combine nonce and encrypted blob
+        let combined_blob = [nonce.as_bytes().as_slice(), &encrypted_blob].concat();
+
+        Some(combined_blob)
     }
 
     /// Returns the peer IDs that need a keep-alive message
