@@ -153,8 +153,8 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
                     {isLoading
                       ? 'Loading...'
                       : token.valueUsd != null
-                        ? `$${token.valueUsd.toFixed(2)}`
-                        : '$0.00'}
+                      ? `$${token.valueUsd.toFixed(2)}`
+                      : 'N/A'}
                   </div>
                 </div>
 
