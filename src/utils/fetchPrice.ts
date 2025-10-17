@@ -7,7 +7,6 @@ interface PriceProvider {
 }
 
 abstract class BasePriceProvider implements PriceProvider {
-
   protected async fetchJson<T>(
     url: string,
     retries = 2,
