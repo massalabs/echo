@@ -184,6 +184,12 @@ impl ZeroizeOnDrop for PublicKey {}
 /// though the underlying `MlKemPrivateKey` type does not implement zeroization.
 pub struct SecretKey(MlKemPrivateKey<PRIVATE_KEY_SIZE>);
 
+impl Clone for SecretKey {
+    fn clone(&self) -> Self {
+        Self(MlKemPrivateKey::from(self.0.as_slice()))
+    }
+}
+
 impl From<[u8; PRIVATE_KEY_SIZE]> for SecretKey {
     fn from(bytes: [u8; PRIVATE_KEY_SIZE]) -> Self {
         Self(MlKemPrivateKey::from(bytes))

@@ -2,9 +2,8 @@
 //!
 //! This module handles the initial key derivation for session establishment.
 //! Unlike regular messages, announcements include an authentication key that
-//! can be used for out-of-band authentication (e.g., comparing QR codes).
+//! can be used for authentication.
 
-use crate::types::Role;
 use crypto_aead as cipher;
 use crypto_kdf as kdf;
 use crypto_kem as kem;
@@ -14,7 +13,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// Announcements are the first messages exchanged to establish a session.
 /// This KDF differs from `MessageRootKdf` by also deriving an authentication key
-/// that can be used for out-of-band verification.
+/// that can be used for verification.
 ///
 /// # Protocol Context
 ///
@@ -22,7 +21,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// 1. Alice (initiator) generates fresh randomness and creates an announcement to Bob
 /// 2. The announcement contains a KEM ciphertext encrypted to Bob's static public key
 /// 3. Bob decrypts the announcement and extracts the `auth_payload`
-/// 4. Both parties can use `auth_key` for out-of-band authentication
+/// 4. Both parties can use `auth_key` for authentication
 /// 5. After verification, both parties establish an `Agraphon` session
 ///
 /// # Security Properties
@@ -35,22 +34,27 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// # Cryptographic Details
 ///
 /// Uses HKDF with:
-/// - Salt: `"session.announcement_root_kdf.salt"`
+/// - Salt: `"agraphon.announcement_root_kdf.V1---"`
 /// - Inputs: randomness, `shared_secret`, ciphertext, `peer_public_key`, `Role::Initiator`
-/// - Info strings: `"session.announcement_root_kdf.cipher_key"`,
-///   `"session.announcement_root_kdf.cipher_nonce"`,
-///   `"session.announcement_root_kdf.auth_key"`, and
-///   `"session.announcement_root_kdf.integrity_seed"`
+/// - Info strings: `"agraphon.announcement_root_kdf.cipher_key"`
+///   `"agraphon.announcement_root_kdf.cipher_nonce"`,
+///   `"agraphon.announcement_root_kdf.k_next"`,
+///   `"agraphon.announcement_root_kdf.seeker_next"`, and
+///   `"agraphon.announcement_root_kdf.auth_pre_key"`
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct AnnouncementRootKdf {
-    /// Cipher key for encrypting the announcement payload
-    pub(crate) cipher_key: cipher::Key,
     /// Nonce for the cipher (derived, not random)
     pub(crate) cipher_nonce: cipher::Nonce,
-    /// Authentication key for out-of-band verification
-    pub(crate) auth_key: [u8; 32],
-    /// Seed for deriving the integrity key and initial master key
-    pub(crate) integrity_seed: [u8; 32],
+    /// Cipher key for encrypting the announcement payload
+    pub(crate) cipher_key: cipher::Key,
+    /// Key for next message reference
+    pub(crate) k_next: [u8; 32],
+    /// Key for next message seeking
+    pub(crate) seeker_next: [u8; 32],
+    /// Authentication pre-key
+    pub(crate) auth_pre_key: [u8; 32],
+    /// Id of the announcement
+    pub(crate) id: [u8; 32],
 }
 
 impl AnnouncementRootKdf {
@@ -65,7 +69,7 @@ impl AnnouncementRootKdf {
     ///
     /// # Returns
     ///
-    /// An `AnnouncementRootKdf` containing cipher keys, auth key, and integrity seed.
+    /// An `AnnouncementRootKdf` containing cipher keys, next keys, and auth pre-key.
     ///
     /// # Example Usage (internal)
     ///
@@ -84,7 +88,7 @@ impl AnnouncementRootKdf {
     /// let (ct, ss) = kem::encapsulate(&bob_pk, enc_rand);
     ///
     /// let kdf = AnnouncementRootKdf::new(&randomness, &ss, &ct, &bob_pk);
-    /// // kdf.auth_key can be shown to user for verification
+    /// // kdf.auth_pre_key is used to derive the auth_key
     /// // kdf.cipher_key encrypts the announcement payload
     /// ```
     pub(crate) fn new(
@@ -93,40 +97,49 @@ impl AnnouncementRootKdf {
         ct: &kem::Ciphertext,
         pk: &kem::PublicKey,
     ) -> Self {
-        let mut cipher_key = [0u8; cipher::KEY_SIZE];
         let mut cipher_nonce = [0u8; cipher::NONCE_SIZE];
-        let mut auth_key = [0u8; 32];
-        let mut integrity_seed = [0u8; 32];
+        let mut cipher_key = [0u8; cipher::KEY_SIZE];
+        let mut k_next = [0u8; 32];
+        let mut seeker_next = [0u8; 32];
+        let mut auth_pre_key = [0u8; 32];
+        let mut id = [0u8; 32];
 
-        let mut root_kdf = kdf::Extract::new("session.announcement_root_kdf.salt".as_bytes());
+        let mut root_kdf = kdf::Extract::new("agraphon.announcement_root_kdf.V1".as_bytes());
         root_kdf.input_item(randomness.as_slice());
-        root_kdf.input_item(ss.as_bytes());
         root_kdf.input_item(ct.as_bytes());
+        root_kdf.input_item(ss.as_bytes());
         root_kdf.input_item(pk.as_bytes());
-        root_kdf.input_item(Role::Initiator.as_bytes());
         let root_kdf = root_kdf.finalize();
         root_kdf.expand(
-            "session.announcement_root_kdf.cipher_key".as_bytes(),
-            &mut cipher_key,
-        );
-        root_kdf.expand(
-            "session.announcement_root_kdf.cipher_nonce".as_bytes(),
+            "agraphon.announcement_root_kdf.cipher_nonce".as_bytes(),
             &mut cipher_nonce,
         );
         root_kdf.expand(
-            "session.announcement_root_kdf.auth_key".as_bytes(),
-            &mut auth_key,
+            "agraphon.announcement_root_kdf.cipher_key".as_bytes(),
+            &mut cipher_key,
+        );
+
+        root_kdf.expand(
+            "agraphon.announcement_root_kdf.k_next".as_bytes(),
+            &mut k_next,
         );
         root_kdf.expand(
-            "session.announcement_root_kdf.integrity_seed".as_bytes(),
-            &mut integrity_seed,
+            "agraphon.announcement_root_kdf.seeker_next".as_bytes(),
+            &mut seeker_next,
         );
+        root_kdf.expand(
+            "agraphon.announcement_root_kdf.auth_pre_key".as_bytes(),
+            &mut auth_pre_key,
+        );
+        root_kdf.expand("agraphon.announcement_root_kdf.id".as_bytes(), &mut id);
 
         Self {
             cipher_key: cipher_key.into(),
             cipher_nonce: cipher_nonce.into(),
-            auth_key,
-            integrity_seed,
+            k_next,
+            seeker_next,
+            auth_pre_key,
+            id,
         }
     }
 }
@@ -138,11 +151,12 @@ mod tests {
 
     #[test]
     fn test_announcement_root_kdf_deterministic() {
-        let randomness = [7u8; 32];
+        // Same inputs should produce same outputs
+        let randomness = [42u8; 32];
 
         let mut pk_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut pk_rand);
-        let (_, pk) = kem::generate_key_pair(pk_rand);
+        let (_sk, pk) = kem::generate_key_pair(pk_rand);
 
         let mut enc_rand = [0u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut enc_rand);
@@ -153,18 +167,20 @@ mod tests {
 
         assert_eq!(kdf1.cipher_key.as_bytes(), kdf2.cipher_key.as_bytes());
         assert_eq!(kdf1.cipher_nonce.as_bytes(), kdf2.cipher_nonce.as_bytes());
-        assert_eq!(kdf1.auth_key, kdf2.auth_key);
-        assert_eq!(kdf1.integrity_seed, kdf2.integrity_seed);
+        assert_eq!(kdf1.k_next, kdf2.k_next);
+        assert_eq!(kdf1.seeker_next, kdf2.seeker_next);
+        assert_eq!(kdf1.auth_pre_key, kdf2.auth_pre_key);
     }
 
     #[test]
     fn test_announcement_root_kdf_different_randomness() {
-        let randomness1 = [7u8; 32];
-        let randomness2 = [8u8; 32];
+        // Different randomness should produce different outputs
+        let randomness1 = [1u8; 32];
+        let randomness2 = [2u8; 32];
 
         let mut pk_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut pk_rand);
-        let (_, pk) = kem::generate_key_pair(pk_rand);
+        let (_sk, pk) = kem::generate_key_pair(pk_rand);
 
         let mut enc_rand = [0u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut enc_rand);
@@ -173,7 +189,53 @@ mod tests {
         let kdf1 = AnnouncementRootKdf::new(&randomness1, &ss, &ct, &pk);
         let kdf2 = AnnouncementRootKdf::new(&randomness2, &ss, &ct, &pk);
 
-        // Different randomness should produce different keys
-        assert_ne!(kdf1.auth_key, kdf2.auth_key);
+        assert_ne!(kdf1.cipher_key.as_bytes(), kdf2.cipher_key.as_bytes());
+        assert_ne!(kdf1.k_next, kdf2.k_next);
+    }
+
+    #[test]
+    fn test_announcement_root_kdf_different_ss() {
+        // Different shared secrets should produce different outputs
+        let randomness = [42u8; 32];
+
+        let mut pk_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
+        rng::fill_buffer(&mut pk_rand);
+        let (_sk, pk) = kem::generate_key_pair(pk_rand);
+
+        let mut enc_rand1 = [0u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
+        rng::fill_buffer(&mut enc_rand1);
+        let (ct1, ss1) = kem::encapsulate(&pk, enc_rand1);
+
+        let mut enc_rand2 = [1u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
+        rng::fill_buffer(&mut enc_rand2);
+        let (ct2, ss2) = kem::encapsulate(&pk, enc_rand2);
+
+        let kdf1 = AnnouncementRootKdf::new(&randomness, &ss1, &ct1, &pk);
+        let kdf2 = AnnouncementRootKdf::new(&randomness, &ss2, &ct2, &pk);
+
+        assert_ne!(kdf1.cipher_key.as_bytes(), kdf2.cipher_key.as_bytes());
+        assert_ne!(kdf1.k_next, kdf2.k_next);
+    }
+
+    #[test]
+    fn test_announcement_root_kdf_output_sizes() {
+        // Verify all outputs have correct sizes
+        let randomness = [42u8; 32];
+
+        let mut pk_rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
+        rng::fill_buffer(&mut pk_rand);
+        let (_sk, pk) = kem::generate_key_pair(pk_rand);
+
+        let mut enc_rand = [0u8; kem::ENCAPSULATION_RANDOMNESS_SIZE];
+        rng::fill_buffer(&mut enc_rand);
+        let (ct, ss) = kem::encapsulate(&pk, enc_rand);
+
+        let kdf = AnnouncementRootKdf::new(&randomness, &ss, &ct, &pk);
+
+        assert_eq!(kdf.cipher_key.as_bytes().len(), cipher::KEY_SIZE);
+        assert_eq!(kdf.cipher_nonce.as_bytes().len(), cipher::NONCE_SIZE);
+        assert_eq!(kdf.k_next.len(), 32);
+        assert_eq!(kdf.seeker_next.len(), 32);
+        assert_eq!(kdf.auth_pre_key.len(), 32);
     }
 }

@@ -1,16 +1,17 @@
 //! # crypto-agraphon
 //!
-//! A secure, asynchronous messaging protocol implementation that provides forward + backward secrecy,
-//! post-compromise security, and out-of-order message delivery.
-//! It is based on KEM making it compatible with quantum-resistant algorithms.
+//! A secure, asynchronous messaging protocol implementation that provides forward + backward secrecy
+//! and post-compromise security. It is based on KEM making it compatible with quantum-resistant algorithms.
 //!
 //! This crate implements a Double Ratchet-like protocol where parties can establish secure
 //! sessions and exchange encrypted messages. The protocol supports:
 //!
 //! - **Forward Secrecy**: Past messages remain secure even if current keys are compromised
 //! - **Post-Compromise Security**: Future messages are secure after key material is refreshed
-//! - **Asynchronous Communication**: Messages can be sent without waiting for responses
-//! - **Out-of-Order Delivery**: Messages can arrive in any order and still be decrypted
+//! - **Asynchronous Communication**: Either party can send multiple messages without waiting for responses
+//!
+//! **Note**: Messages must be processed in the order they were sent. Out-of-order delivery is not supported
+//! due to the ratcheting mechanism that chains cryptographic keys between successive messages
 //!
 //! ## ⚠️ Security Warnings
 //!
@@ -119,43 +120,49 @@
 //! rng::fill_buffer(&mut bob_rand);
 //! let (bob_sk, bob_pk) = kem::generate_key_pair(bob_rand);
 //!
-//! // Alice initiates the session
-//! let announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
-//! let auth_payload = b"Alice's authentication data";
-//! let (announcement_bytes, announcement) = announcement_pre.finalize(auth_payload, &alice_pk);
+//! // Alice creates announcement to Bob
+//! let alice_announcement_pre = OutgoingAnnouncementPrecursor::new(&bob_pk);
+//! let alice_auth_payload = b"Alice's authentication data";
+//! let (alice_announcement_bytes, alice_announcement) = alice_announcement_pre.finalize(alice_auth_payload);
 //!
-//! // Bob receives the announcement
-//! let incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
-//!     &announcement_bytes,
+//! // Bob receives Alice's announcement
+//! let alice_incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
+//!     &alice_announcement_bytes,
 //!     &bob_pk,
 //!     &bob_sk,
 //! ).expect("Failed to parse announcement");
+//! let alice_incoming = alice_incoming_pre.finalize(alice_pk.clone()).expect("Integrity check failed");
 //!
-//! // After verifying auth_payload, Bob finalizes
-//! let incoming = incoming_pre.finalize(alice_pk).expect("Integrity check failed");
-//! let mut bob_session = Agraphon::try_from_incoming_announcement(incoming, &bob_pk)
-//!     .expect("Failed to create session");
+//! // Bob creates announcement to Alice
+//! let bob_announcement_pre = OutgoingAnnouncementPrecursor::new(&alice_pk);
+//! let bob_auth_payload = b"Bob's authentication data";
+//! let (bob_announcement_bytes, bob_announcement) = bob_announcement_pre.finalize(bob_auth_payload);
 //!
-//! // Alice creates her session
-//! let mut alice_session = Agraphon::from_outgoing_announcement(announcement, bob_pk);
+//! // Alice receives Bob's announcement
+//! let bob_incoming_pre = IncomingAnnouncementPrecursor::try_from_incoming_announcement_bytes(
+//!     &bob_announcement_bytes,
+//!     &alice_pk,
+//!     &alice_sk,
+//! ).expect("Failed to parse announcement");
+//! let bob_incoming = bob_incoming_pre.finalize(bob_pk.clone()).expect("Integrity check failed");
+//!
+//! // Both create sessions by pairing their outgoing with peer's incoming
+//! let mut alice_session = Agraphon::from_announcement_pair(&alice_announcement, &bob_incoming);
+//! let mut bob_session = Agraphon::from_announcement_pair(&bob_announcement, &alice_incoming);
 //!
 //! // Now they can exchange messages
-//! let (_seeker, message) = alice_session.send_outgoing_message(b"Hello, Bob!");
-//! let decrypted = bob_session.try_feed_incoming_message(0, &bob_sk, &message)
+//! let result = alice_session.send_outgoing_message(b"Hello, Bob!", &bob_pk);
+//! let decrypted = bob_session.try_feed_incoming_message(&bob_sk, &result.message_bytes)
 //!     .expect("Failed to decrypt message");
-//! assert_eq!(decrypted, b"Hello, Bob!");
+//! assert_eq!(&decrypted.message_bytes, b"Hello, Bob!");
 //! ```
-
-mod announcement_root_kdf;
-mod history;
-mod message_integrity_kdf;
-mod message_root_kdf;
-mod seeker_kdf;
-mod static_kdf;
-mod types;
 
 mod agraphon;
 mod announcement;
+mod announcement_auth_kdf;
+mod announcement_root_kdf;
+mod history;
+mod message_root_kdf;
 
 pub use agraphon::Agraphon;
 pub use announcement::{

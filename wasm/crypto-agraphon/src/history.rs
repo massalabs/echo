@@ -3,8 +3,6 @@
 //! This module maintains the state needed to support out-of-order message delivery.
 //! Each party tracks their own sent messages and the peer's most recent message.
 
-use crate::static_kdf::StaticKdf;
-use crate::types::KeySource;
 use crypto_kem as kem;
 use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -17,9 +15,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 ///
 /// # Fields
 ///
-/// - `local_id`: Sequential identifier for our sent messages
 /// - `sk_next`: The secret key to use for decrypting responses to this message
-/// - `mk_next`: Master key derived after sending this message
+/// - `k_next`: Root key derived after sending this message
 /// - `seeker_next`: Seeker seed for identifying responses to this message
 ///
 /// # Protocol Context
@@ -29,39 +26,16 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 /// of our messages they're responding to.
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct HistoryItemSelf {
-    /// Sequential local identifier for this message
-    pub(crate) local_id: u64,
+    /// Seeker for this message
+    pub(crate) seeker: [u8; 32],
+    /// Unique identifier for this message
+    pub(crate) height: u64,
     /// Secret key for decrypting responses (Static or Ephemeral)
-    pub(crate) sk_next: KeySource<kem::SecretKey>,
-    /// Master key derived after sending this message
-    pub(crate) mk_next: [u8; 32],
+    pub(crate) sk_next: kem::SecretKey,
+    /// Root key for children messages
+    pub(crate) k_next: [u8; 32],
     /// Seeker seed for message identification
     pub(crate) seeker_next: [u8; 32],
-}
-
-impl HistoryItemSelf {
-    /// Creates the initial history item from our static public key.
-    ///
-    /// This represents the "virtual" message with ID 0 that exists before
-    /// any actual messages are sent. It uses the static public key to derive
-    /// initial key material.
-    ///
-    /// # Arguments
-    ///
-    /// * `static_pk_self` - Our static (long-term) public key
-    ///
-    /// # Returns
-    ///
-    /// A `HistoryItemSelf` with `local_id` 0 and keys derived from the static key.
-    pub fn initial(static_pk_self: &kem::PublicKey) -> Self {
-        let static_kem = StaticKdf::new(static_pk_self);
-        Self {
-            local_id: 0,
-            sk_next: KeySource::Static,
-            mk_next: static_kem.mk_next,
-            seeker_next: static_kem.seeker_next,
-        }
-    }
 }
 
 /// History item representing the peer's most recent message.
@@ -71,52 +45,28 @@ impl HistoryItemSelf {
 ///
 /// # Fields
 ///
-/// - `our_parent_id`: Which of our messages they were responding to
+/// - `our_parent_height`: Which of our messages they were responding to
 /// - `pk_next`: Their next public key (for us to encapsulate to)
-/// - `mk_next`: Their master key after this message
+/// - `k_next`: Their root key after this message
 /// - `seeker_next`: Their seeker seed for future message identification
 ///
 /// # Protocol Context
 ///
 /// When the peer sends a message:
-/// 1. They include which of our messages they're responding to (`our_parent_id`)
+/// 1. They include which of our messages they're responding to (`our_parent_height`)
 /// 2. They include their next public key (`pk_next`)
 /// 3. We update this structure with their new state
-/// 4. We can delete our history items older than `our_parent_id` (they've been acknowledged)
+/// 4. We can delete our history items older than `our_parent_height` (they've been acknowledged)
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct HistoryItemPeer {
     /// Which of our messages they were responding to
-    pub(crate) our_parent_id: u64,
+    pub(crate) our_parent_height: u64,
     /// Their next public key for us to encapsulate to
     pub(crate) pk_next: kem::PublicKey,
     /// Their master key after this message
-    pub(crate) mk_next: [u8; 32],
+    pub(crate) k_next: [u8; 32],
     /// Their seeker seed for message identification
     pub(crate) seeker_next: [u8; 32],
-}
-
-impl HistoryItemPeer {
-    /// Creates the initial peer history item from their static public key.
-    ///
-    /// This represents the peer's initial state before any messages are received.
-    /// It uses their static public key to derive initial key material.
-    ///
-    /// # Arguments
-    ///
-    /// * `static_pk_peer` - The peer's static (long-term) public key
-    ///
-    /// # Returns
-    ///
-    /// A `HistoryItemPeer` with `our_parent_id` 0 and keys derived from their static key.
-    pub fn initial(static_pk_peer: kem::PublicKey) -> Self {
-        let static_kem = StaticKdf::new(&static_pk_peer);
-        Self {
-            our_parent_id: 0,
-            pk_next: static_pk_peer,
-            mk_next: static_kem.mk_next,
-            seeker_next: static_kem.seeker_next,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -125,27 +75,49 @@ mod tests {
     use crypto_rng as rng;
 
     #[test]
-    fn test_history_item_self_initial() {
+    fn test_history_item_self_creation() {
+        // Generate a key pair
         let mut rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut rand);
-        let (_, pk) = kem::generate_key_pair(rand);
+        let (sk_next, _) = kem::generate_key_pair(rand);
 
-        let item = HistoryItemSelf::initial(&pk);
+        let k_next = [42u8; 32];
+        let seeker_next = [99u8; 32];
 
-        assert_eq!(item.local_id, 0);
-        assert!(matches!(item.sk_next, KeySource::Static));
+        let seeker = [0u8; 32];
+
+        let history_item = HistoryItemSelf {
+            height: 1,
+            sk_next,
+            k_next,
+            seeker_next,
+            seeker,
+        };
+
+        assert_eq!(history_item.height, 1);
+        assert_eq!(history_item.k_next, k_next);
+        assert_eq!(history_item.seeker_next, seeker_next);
     }
 
     #[test]
-    fn test_history_item_peer_initial() {
+    fn test_history_item_peer_creation() {
+        // Generate a key pair
         let mut rand = [0u8; kem::KEY_GENERATION_RANDOMNESS_SIZE];
         rng::fill_buffer(&mut rand);
-        let (_, pk) = kem::generate_key_pair(rand);
+        let (_, pk_next) = kem::generate_key_pair(rand);
 
-        let pk_bytes = *pk.as_bytes();
-        let item = HistoryItemPeer::initial(pk);
+        let k_next = [42u8; 32];
+        let seeker_next = [99u8; 32];
 
-        assert_eq!(item.our_parent_id, 0);
-        assert_eq!(item.pk_next.as_bytes(), &pk_bytes);
+        let history_item = HistoryItemPeer {
+            our_parent_height: 5,
+            pk_next,
+            k_next,
+            seeker_next,
+        };
+
+        assert_eq!(history_item.our_parent_height, 5);
+        assert_eq!(history_item.k_next, k_next);
+        assert_eq!(history_item.seeker_next, seeker_next);
     }
 }

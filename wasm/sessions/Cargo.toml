@@ -1,5 +1,5 @@
 [package]
-name = "session"
+name = "sessions"
 version.workspace = true
 edition.workspace = true
 
