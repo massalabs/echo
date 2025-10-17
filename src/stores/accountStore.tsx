@@ -835,7 +835,7 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
 
     useAccountStoreBase.setState({ provider: provider });
     await useWalletStore.getState().initializeTokens();
-    useWalletStore.getState().refreshBalances();
+    await useWalletStore.getState().refreshBalances();
   }
 });
 
