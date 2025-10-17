@@ -83,7 +83,6 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
   lastPriceUpdatedAt: undefined,
   priceCache: {},
   error: null,
-  totalValueUsd: 0,
 
   initializeTokens: async () => {
     // TODO - Initialize tokens from DB
