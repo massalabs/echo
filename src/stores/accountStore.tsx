@@ -30,7 +30,7 @@ import {
 } from '@massalabs/massa-web3';
 import { useAppStore } from './appStore';
 import { useWalletStore } from './walletStore';
-import { createSelectors } from './createSelectors';
+import { createSelectors } from './utils/createSelectors';
 
 async function createProfileFromAccount(
   username: string,

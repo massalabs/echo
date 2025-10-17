@@ -3,7 +3,7 @@ import masIcon from '../assets/MAS.svg';
 import { Mas, MRC20, Provider } from '@massalabs/massa-web3';
 import { useAccountStore } from './accountStore';
 import { priceFetcher } from '../utils/fetchPrice';
-import { createSelectors } from './createSelectors';
+import { createSelectors } from './utils/createSelectors';
 
 export type Ticker = string;
 
