@@ -128,7 +128,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
 
         const balanceNum = parseFloat(formatBalance(token.balance)) || 0;
         const valueUsd =
-          price != null ? Number((balanceNum * price).toFixed(2)) : 0;
+          price != null ? balanceNum * price : 0;
 
         return {
           ...token,
