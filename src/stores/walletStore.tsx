@@ -26,8 +26,6 @@ interface WalletStoreState {
   tokens: TokenState[];
   isLoading: boolean;
   isInitialized: boolean;
-  lastPriceUpdatedAt?: number;
-  lastUpdatedAt?: number;
   error: string | null;
 
   initializeTokens: () => Promise<void>;
@@ -115,8 +113,6 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
         .getState()
         .getTokenBalances(provider);
 
-      const now = Date.now();
-      // Batch fetch prices for all tokens on every refresh (no cache)
       const tokenTickers = useWalletStore
         .getState()
         .tokens.map(token => token.ticker);
@@ -124,15 +120,14 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
       const prices = await priceFetcher.getUsdPrices(tokenTickers);
 
       const updatedTokens = tokenWithBalances.map(token => {
-        const price = prices[token.ticker.toUpperCase()];
+        const priceUsd = prices[token.ticker.toUpperCase()];
 
         const balanceNum = parseFloat(formatBalance(token.balance)) || 0;
-        const valueUsd =
-          price != null ? balanceNum * price : 0;
+        const valueUsd = priceUsd != null ? balanceNum * priceUsd : 0;
 
         return {
           ...token,
-          priceUsd: price,
+          priceUsd,
           valueUsd,
         };
       });
@@ -140,8 +135,6 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
       set({
         tokens: updatedTokens,
         isLoading: false,
-        lastPriceUpdatedAt: now,
-        lastUpdatedAt: now,
         error: null,
       });
     } catch (error) {

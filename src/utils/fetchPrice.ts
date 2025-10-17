@@ -37,31 +37,36 @@ abstract class BasePriceProvider implements PriceProvider {
 }
 
 class CoinGeckoPriceProvider extends BasePriceProvider {
-  private searchUrl = (query: string) =>
-    `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`;
   private priceUrl = (ids: string[], vs: string) =>
     `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=${vs}`;
-
-  private async getId(symbol: string): Promise<string | null> {
-    const data = await this.fetchJson<{ coins: { id: string }[] }>(
-      this.searchUrl(symbol.toLowerCase())
-    );
-    return data?.coins?.[0]?.id ?? null;
-  }
+  private coinsListUrl = 'https://api.coingecko.com/api/v3/coins/list';
+  private idCache: Record<string, string | null> = {};
 
   private async getIds(
     symbols: string[]
   ): Promise<Record<string, string | null>> {
-    const idPromises = symbols.map(async symbol => ({
-      symbol,
-      id: await this.getId(symbol),
-    }));
-    const results = await Promise.all(idPromises);
-    return Object.fromEntries(results.map(({ symbol, id }) => [symbol, id]));
+    if (!Object.keys(this.idCache).length) {
+      const coins = await this.fetchJson<{ id: string; symbol: string }[]>(
+        this.coinsListUrl
+      );
+      if (coins) {
+        this.idCache = Object.fromEntries(
+          coins.map(coin => [coin.symbol.toUpperCase(), coin.id])
+        );
+      }
+    }
+    return Object.fromEntries(
+      symbols.map(symbol => {
+        const upperSymbol = symbol.toUpperCase();
+        return [symbol, this.idCache[upperSymbol] ?? null];
+      })
+    );
   }
 
   async fetchPrice(base: string, quote: string): Promise<number | null> {
-    const id = await this.getId(base);
+    const id = (await this.getIds([base]))[base];
+
+    console.log('id', id);
     if (!id) return null;
     const data = await this.fetchJson<Record<string, Record<string, number>>>(
       this.priceUrl([id], quote.toLowerCase())
@@ -96,7 +101,6 @@ class CoinGeckoPriceProvider extends BasePriceProvider {
     );
   }
 }
-
 class BinancePriceProvider extends BasePriceProvider {
   private priceUrl = (pair: string) =>
     `https://api.binance.com/api/v3/ticker/price?symbol=${pair}`;
