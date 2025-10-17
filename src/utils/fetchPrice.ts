@@ -15,6 +15,8 @@ abstract class BasePriceProvider implements PriceProvider {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const response = await fetch(url);
+
+        // TODO: Handle error and show to user
         if (response.status === 429) {
           // Handle rate limiting
           await new Promise(resolve => setTimeout(resolve, delay * attempt));

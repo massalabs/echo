@@ -413,6 +413,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       }
 
       set({
+        account: null,
         userProfile: null,
         encryptionKey: null,
         isLoading: false,
@@ -836,6 +837,8 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
     useAccountStoreBase.setState({ provider: provider });
     await useWalletStore.getState().initializeTokens();
     await useWalletStore.getState().refreshBalances();
+  } else {
+    useAccountStoreBase.setState({ provider: null });
   }
 });
 
