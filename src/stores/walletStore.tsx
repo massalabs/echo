@@ -117,14 +117,14 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
 
       const now = Date.now();
       // Batch fetch prices for all tokens on every refresh (no cache)
-      const tokenNames = useWalletStore
+      const tokenTickers = useWalletStore
         .getState()
-        .tokens.map(token => token.name);
+        .tokens.map(token => token.ticker);
 
-      const prices = await priceFetcher.getUsdPrices(tokenNames);
+      const prices = await priceFetcher.getUsdPrices(tokenTickers);
 
       const updatedTokens = tokenWithBalances.map(token => {
-        const price = prices[token.name.toUpperCase()];
+        const price = prices[token.ticker.toUpperCase()];
 
         const balanceNum = parseFloat(formatBalance(token.balance)) || 0;
         const valueUsd =
