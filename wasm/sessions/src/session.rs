@@ -20,14 +20,14 @@ pub struct SendOutgoingMessageOutput {
     pub ciphertext: Vec<u8>,
 }
 
-#[derive(Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 
 pub struct FeedIncomingMessageOutput {
     pub message: Message,
     pub newly_acknowledged_self_seekers: Vec<Vec<u8>>,
 }
 
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct IncomingInitiationRequest {
     agraphon_announcement: crypto_agraphon::IncomingAnnouncement,
     pub(crate) origin_public_keys: auth::UserPublicKeys,
@@ -81,7 +81,7 @@ impl IncomingInitiationRequest {
     }
 }
 
-#[derive(Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingInitiationRequest {
     agraphon_announcement: crypto_agraphon::OutgoingAnnouncement,
     pub(crate) timestamp_millis: u128,

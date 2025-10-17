@@ -9,6 +9,7 @@ use crate::announcement_root_kdf::AnnouncementRootKdf;
 use crypto_aead as cipher;
 use crypto_kem as kem;
 use crypto_rng as rng;
+use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 /// Intermediate state when receiving an announcement.
@@ -263,7 +264,7 @@ impl IncomingAnnouncementPrecursor {
 /// `IncomingAnnouncementPrecursor::finalize()`.
 ///
 /// Pass this to `Agraphon::try_from_incoming_announcement()` to create the session.
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct IncomingAnnouncement {
     pub(crate) pk_peer: kem::PublicKey,
     pub(crate) pk_next: kem::PublicKey,
@@ -471,7 +472,7 @@ impl OutgoingAnnouncementPrecursor {
 /// the responder acknowledges receipt.
 ///
 /// Pass this to `Agraphon::from_outgoing_announcement()` to create the session.
-#[derive(Clone, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingAnnouncement {
     pub(crate) k_next: [u8; 32],
     pub(crate) sk_next: kem::SecretKey,

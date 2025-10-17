@@ -9,7 +9,8 @@ members = [
     "crypto-dsa",
     "crypto-agraphon",
     "auth",
-    "sessions"
+    "sessions",
+    "main"
 ]
 
 [workspace.package]
