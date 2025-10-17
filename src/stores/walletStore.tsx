@@ -13,6 +13,7 @@ export interface TokenMeta {
   ticker: Ticker;
   icon: string;
   decimals?: number;
+  isNative: boolean;
 }
 
 export interface TokenState extends TokenMeta {
@@ -43,6 +44,7 @@ const initialTokens = [
     balance: null,
     priceUsd: null,
     valueUsd: null,
+    isNative: true,
   },
 
   // TODO- Remove, testing purposes
@@ -54,6 +56,7 @@ const initialTokens = [
     balance: null,
     priceUsd: null,
     valueUsd: null,
+    isNative: false,
   },
 ];
 
@@ -81,31 +84,22 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
   getTokenBalances: async (provider: Provider): Promise<TokenState[]> => {
     const tokens = useWalletStore.getState().tokens;
 
-    const tokenWithBalances: TokenState[] = await Promise.all(
-      tokens.slice(1).map(async token => {
-        // const balance = await provider.balance(false);
-        const tokenWrapper = new MRC20(provider, token.address);
+    return Promise.all(
+      tokens.map(async token => {
         let balance = 0n;
         try {
-          balance = await tokenWrapper.balanceOf(provider.address);
+          if (token.isNative) {
+            balance = await provider.balance(false);
+          } else {
+            const tokenWrapper = new MRC20(provider, token.address);
+            balance = await tokenWrapper.balanceOf(provider.address);
+          }
         } catch (error) {
-          console.error('Error getting balance:', error);
+          console.error(`Error getting balance for ${token.name}:`, error);
         }
-
-        return {
-          ...token,
-          balance: balance,
-        };
+        return { ...token, balance };
       })
     );
-
-    const masBalance = await provider.balance(false);
-    tokenWithBalances.unshift({
-      ...tokens[0],
-      balance: masBalance,
-    });
-
-    return tokenWithBalances;
   },
 
   refreshBalances: async () => {
