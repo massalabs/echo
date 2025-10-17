@@ -21,25 +21,17 @@ export interface TokenState extends TokenMeta {
   valueUsd: number | null;
 }
 
-export interface PriceCacheEntry {
-  priceUsd: number | null;
-  fetchedAt: number;
-  ttlMs: number;
-}
-
 interface WalletStoreState {
   tokens: TokenState[];
   isLoading: boolean;
   isInitialized: boolean;
   lastPriceUpdatedAt?: number;
   lastUpdatedAt?: number;
-  priceCache: Record<Ticker, PriceCacheEntry>;
   error: string | null;
 
   initializeTokens: () => Promise<void>;
   getTokenBalances: (provider: Provider) => Promise<TokenState[]>;
-  refreshBalances: (forcePrices?: boolean) => Promise<void>;
-  clearCache: (ticker?: Ticker) => void;
+  refreshBalances: () => Promise<void>;
 }
 
 const initialTokens = [
@@ -65,7 +57,6 @@ const initialTokens = [
   },
 ];
 
-const DEFAULT_TTL_MS = 90_000;
 const DISPLAY_DECIMALS = 3;
 
 // TODO - take from ui-kit
@@ -81,7 +72,6 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
   isLoading: false,
   isInitialized: false,
   lastPriceUpdatedAt: undefined,
-  priceCache: {},
   error: null,
 
   initializeTokens: async () => {
@@ -118,7 +108,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
     return tokenWithBalances;
   },
 
-  refreshBalances: async (forcePrices = false) => {
+  refreshBalances: async () => {
     const provider = useAccountStore.getState().provider;
     if (!provider) {
       set({ error: 'No provider available' });
@@ -132,9 +122,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
         .getTokenBalances(provider);
 
       const now = Date.now();
-      const nextPriceCache = { ...useWalletStore.getState().priceCache };
-
-      // Batch fetch prices for all tokens
+      // Batch fetch prices for all tokens on every refresh (no cache)
       const tokenNames = useWalletStore
         .getState()
         .tokens.map(token => token.name);
@@ -142,20 +130,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
       const prices = await priceFetcher.getUsdPrices(tokenNames);
 
       const updatedTokens = tokenWithBalances.map(token => {
-        const cached = nextPriceCache[token.ticker];
-        const fresh = cached && now - cached.fetchedAt < cached.ttlMs;
-        const price =
-          !forcePrices && fresh
-            ? cached.priceUsd
-            : prices[token.name.toUpperCase()];
-
-        if (!fresh || forcePrices) {
-          nextPriceCache[token.ticker] = {
-            priceUsd: price,
-            fetchedAt: now,
-            ttlMs: DEFAULT_TTL_MS,
-          };
-        }
+        const price = prices[token.name.toUpperCase()];
 
         const balanceNum = parseFloat(formatBalance(token.balance)) || 0;
         const valueUsd =
@@ -170,7 +145,6 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
 
       set({
         tokens: updatedTokens,
-        priceCache: nextPriceCache,
         isLoading: false,
         lastPriceUpdatedAt: now,
         lastUpdatedAt: now,
@@ -180,16 +154,6 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
       console.error('Error refreshing wallet:', error);
       set({ isLoading: false, error: 'Failed to refresh wallet' });
     }
-  },
-
-  clearCache: (ticker?: Ticker) => {
-    set(state => ({
-      priceCache: ticker
-        ? Object.fromEntries(
-            Object.entries(state.priceCache).filter(([key]) => key !== ticker)
-          )
-        : {},
-    }));
   },
 }));
 
