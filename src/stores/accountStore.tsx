@@ -225,7 +225,7 @@ interface AccountState {
   getAllAccounts: () => Promise<UserProfile[]>;
 }
 
-const useAccountStoreBase = create<AccountState>((set, get, store) => ({
+const useAccountStoreBase = create<AccountState>((set, get) => ({
   // Initial state
   userProfile: null,
   encryptionKey: null,
@@ -412,9 +412,10 @@ const useAccountStoreBase = create<AccountState>((set, get, store) => ({
         hasAnyAccount = false;
       }
 
-      const initialState = store.getInitialState();
       set({
-        ...initialState,
+        userProfile: null,
+        encryptionKey: null,
+        isLoading: false,
         isInitialized: hasAnyAccount,
       });
     } catch (error) {
