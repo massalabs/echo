@@ -125,10 +125,7 @@ class BinancePriceProvider extends BasePriceProvider {
       const pair = `${base}${this.normalizeQuote(quote)}`;
       const data = await this.fetchJson<{ price: string }>(this.priceUrl(pair));
       const price = Number(data?.price);
-      return [base, Number.isFinite(price) ? price : null] as [
-        string,
-        number | null,
-      ];
+      return [base, Number.isFinite(price) ? price : null];
     });
     return Object.fromEntries(await Promise.all(pairPromises));
   }
