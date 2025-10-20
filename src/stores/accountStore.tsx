@@ -819,32 +819,34 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   },
 }));
 
-// TODO: Consider race condition mitigation - if account changes happen rapidly,
-// multiple provider initializations and wallet refreshes could run concurrently.
-// Current implementation may cause overlapping async executions. Consider:
-// 1. Debouncing the subscription callback
-// 2. Adding a lock/runId guard to prevent overlapping executions
-// 3. Using useEffect in components instead of store-level subscription
+let isProcessing = false;
 useAccountStoreBase.subscribe(async (state, prevState) => {
-  if (state.account === prevState.account) return;
+  if (state.account === prevState.account || isProcessing) return;
+  isProcessing = true;
 
-  const networkName = useAppStore.getState().networkName;
-  const publicApiUrl =
-    networkName === NetworkName.Buildnet
-      ? PublicApiUrl.Buildnet
-      : PublicApiUrl.Mainnet;
+  try {
+    const networkName = useAppStore.getState().networkName;
+    const publicApiUrl =
+      networkName === NetworkName.Buildnet
+        ? PublicApiUrl.Buildnet
+        : PublicApiUrl.Mainnet;
 
-  if (state.account) {
-    const provider = await JsonRpcProvider.fromRPCUrl(
-      publicApiUrl,
-      state.account
-    );
+    if (state.account) {
+      const provider = await JsonRpcProvider.fromRPCUrl(
+        publicApiUrl,
+        state.account
+      );
 
-    useAccountStoreBase.setState({ provider: provider });
-    await useWalletStore.getState().initializeTokens();
-    await useWalletStore.getState().refreshBalances();
-  } else {
-    useAccountStoreBase.setState({ provider: null });
+      useAccountStoreBase.setState({ provider: provider });
+      await useWalletStore.getState().initializeTokens();
+      await useWalletStore.getState().refreshBalances();
+    } else {
+      useAccountStoreBase.setState({ provider: null });
+    }
+  } catch (error) {
+    console.log(error);
+  } finally {
+    isProcessing = false;
   }
 });
 
