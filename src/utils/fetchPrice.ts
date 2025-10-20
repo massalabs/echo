@@ -106,8 +106,12 @@ class BinancePriceProvider extends BasePriceProvider {
   private priceUrl = (pair: string) =>
     `https://api.binance.com/api/v3/ticker/price?symbol=${pair}`;
 
+  private normalizeQuote(quote: string): string {
+    return quote === 'USD' ? 'USDT' : quote;
+  }
+
   async fetchPrice(base: string, quote: string): Promise<number | null> {
-    const pair = `${base}${quote === 'USD' ? 'USDT' : quote}`;
+    const pair = `${base}${this.normalizeQuote(quote)}`;
     const data = await this.fetchJson<{ price: string }>(this.priceUrl(pair));
     const price = Number(data?.price);
     return Number.isFinite(price) ? price : null;
@@ -118,7 +122,7 @@ class BinancePriceProvider extends BasePriceProvider {
     quote: string
   ): Promise<Record<string, number | null>> {
     const pairPromises = bases.map(async base => {
-      const pair = `${base}${quote === 'USD' ? 'USDT' : quote}`;
+      const pair = `${base}${this.normalizeQuote(quote)}`;
       const data = await this.fetchJson<{ price: string }>(this.priceUrl(pair));
       const price = Number(data?.price);
       return [base, Number.isFinite(price) ? price : null] as [
