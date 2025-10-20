@@ -1,0 +1,150 @@
+import { create } from 'zustand';
+import masIcon from '../assets/MAS.svg';
+import { Mas, MRC20, Provider } from '@massalabs/massa-web3';
+import { useAccountStore } from './accountStore';
+import { priceFetcher } from '../utils/fetchPrice';
+import { createSelectors } from './utils/createSelectors';
+
+type WithNonNull<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]-?: NonNullable<T[P]>;
+};
+
+export type Ticker = string;
+
+type TokenWithBalance = WithNonNull<TokenState, 'balance'>;
+
+export interface TokenMeta {
+  address: string;
+  name: string;
+  ticker: Ticker;
+  icon: string;
+  decimals: number;
+  isNative: boolean;
+}
+
+export interface TokenState extends TokenMeta {
+  balance: bigint | null;
+  priceUsd: number | null;
+  valueUsd: number | null;
+}
+
+interface WalletStoreState {
+  tokens: TokenState[];
+  isLoading: boolean;
+  isInitialized: boolean;
+  error: string | null;
+
+  initializeTokens: () => Promise<void>;
+  getTokenBalances: (provider: Provider) => Promise<TokenWithBalance[]>;
+  refreshBalances: () => Promise<void>;
+}
+
+const initialTokens: TokenState[] = [
+  {
+    address: 'MASSA',
+    name: 'Massa',
+    ticker: 'MAS',
+    icon: masIcon,
+    balance: null,
+    priceUsd: null,
+    valueUsd: null,
+    isNative: true,
+    decimals: 9,
+  },
+
+  // TODO- Remove, testing purposes
+  {
+    address: 'AS125oPLYRTtfVjpWisPZVTLjBhCFfQ1jDsi75XNtRm1NZux54eCj',
+    name: 'Wrapped Ether',
+    ticker: 'ETH',
+    icon: masIcon, // Assumes you have an ETH icon
+    balance: null,
+    priceUsd: null,
+    valueUsd: null,
+    isNative: false,
+    decimals: 18,
+  },
+];
+
+const DISPLAY_DECIMALS = 3;
+
+// TODO - take from ui-kit
+export function formatBalance(
+  raw: bigint | null,
+  decimals: number = DISPLAY_DECIMALS
+): string {
+  return Mas.toString(raw ?? 0n, decimals);
+}
+
+const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
+  tokens: initialTokens,
+  isLoading: false,
+  isInitialized: false,
+  error: null,
+
+  initializeTokens: async () => {
+    // TODO - Load user's custom token list from IndexedDB (or other persistent storage) and initialize tokens array
+  },
+
+  getTokenBalances: async (provider: Provider): Promise<TokenWithBalance[]> => {
+    const tokens = get().tokens;
+
+    return Promise.all(
+      tokens.map(async token => {
+        let balance = 0n;
+        try {
+          if (token.isNative) {
+            balance = await provider.balance(false);
+          } else {
+            const tokenWrapper = new MRC20(provider, token.address);
+            balance = await tokenWrapper.balanceOf(provider.address);
+          }
+        } catch (error) {
+          // TODO: Display error for User
+          console.error(`Error getting balance for ${token.name}:`, error);
+        }
+        return { ...token, balance };
+      })
+    );
+  },
+
+  refreshBalances: async () => {
+    const provider = useAccountStore.getState().provider;
+    if (!provider) {
+      set({ error: 'No provider available' });
+      return;
+    }
+    set({ isLoading: true, error: null });
+
+    try {
+      const tokenWithBalances = await get().getTokenBalances(provider);
+
+      const tokenTickers = tokenWithBalances.map(token => token.ticker);
+
+      const prices = await priceFetcher.getUsdPrices(tokenTickers);
+
+      const updatedTokens = tokenWithBalances.map(token => {
+        const priceUsd = prices[token.ticker.toUpperCase()];
+        const balance = Number(token.balance / 10n ** BigInt(token.decimals));
+        const valueUsd = priceUsd != null ? balance * priceUsd : null;
+
+        return {
+          ...token,
+          priceUsd,
+          valueUsd,
+        };
+      });
+
+      set({
+        tokens: updatedTokens,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error) {
+      console.error('Error refreshing wallet:', error);
+      set({ isLoading: false, error: 'Failed to refresh wallet' });
+    }
+  },
+}));
+
+export const useWalletStore = createSelectors(useWalletStoreBase);

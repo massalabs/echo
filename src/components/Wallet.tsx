@@ -1,44 +1,36 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useAccountStore } from '../stores/accountStore';
+import { formatBalance, useWalletStore } from '../stores/walletStore';
 import BottomNavigation from './BottomNavigation';
 import sendIcon from '../assets/icons/send.svg';
 import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
-import masIcon from '../assets/MAS.svg';
-import { Mas } from '@massalabs/massa-web3';
+import { formatMassaAddress } from '../utils/addressUtils';
 
 interface WalletProps {
   onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
 }
 
 const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
-  const {
-    provider,
-    masBalance,
-    isBalanceLoading,
-    fetchBalance,
-    refreshBalance,
-  } = useAccountStore();
+  const { userProfile } = useAccountStore();
+  const tokens = useWalletStore.use.tokens();
+  const isLoading = useWalletStore.use.isLoading();
+  const refreshBalances = useWalletStore.use.refreshBalances();
+  const totalValueUsd = tokens.reduce((sum, t) => sum + (t.valueUsd ?? 0), 0);
 
-  // Fetch balance when component mounts
-  useEffect(() => {
-    if (provider && !masBalance) {
-      fetchBalance();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshBalances();
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [provider, masBalance, fetchBalance]);
+  }, [refreshBalances]);
 
-  // MAS is the native token - always displayed
-  const tokens = [
-    {
-      name: 'Massa',
-      ticker: 'MAS',
-      balance: Mas.toString(masBalance ?? 0n, 3),
-      value: '$0.00', // Will be calculated from balance when price data is available
-      icon: masIcon,
-    },
-  ];
-
-  const totalValue = '$0.00'; // Will be calculated from all token balances when price data is available
+  const fullAddress = userProfile?.wallet?.address ?? '';
+  const displayAddress = formatMassaAddress(fullAddress);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -49,13 +41,13 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             WALLET
           </h1>
           <button
-            onClick={refreshBalance}
-            disabled={isBalanceLoading}
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
-            title="Refresh balance"
+            title="Refresh balance and prices"
           >
             <svg
-              className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${isBalanceLoading ? 'animate-spin' : ''}`}
+              className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${isRefreshing ? '-animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -70,10 +62,27 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
           </button>
         </div>
 
+        {/* Address */}
+        {fullAddress && (
+          <div className="px-6 -mt-2">
+            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+              <span className="uppercase tracking-wide">Address</span>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(fullAddress)}
+                className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer active:bg-gray-300 dark:active:bg-gray-700"
+                title="Copy address"
+              >
+                {displayAddress}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Total Balance */}
         <div className="px-6 py-4 text-center">
           <div className="text-4xl font-semibold text-black dark:text-white">
-            {totalValue}
+            {isLoading ? 'Loading...' : `$${totalValueUsd.toFixed(2)}`}
           </div>
         </div>
 
@@ -133,15 +142,19 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
                       {token.name}
                     </div>
                     <div className="text-sm font-medium text-[#b2b2b2] dark:text-gray-400">
-                      {isBalanceLoading
+                      {isLoading
                         ? 'Loading...'
-                        : `${token.balance} ${token.ticker}`}
+                        : `${formatBalance(token.balance)} ${token.ticker}`}
                     </div>
                   </div>
 
                   {/* Token Value */}
                   <div className="text-sm font-semibold text-black dark:text-white">
-                    {token.value}
+                    {isLoading
+                      ? 'Loading...'
+                      : token.valueUsd != null
+                        ? `$${token.valueUsd.toFixed(2)}`
+                        : 'N/A'}
                   </div>
                 </div>
 

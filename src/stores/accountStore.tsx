@@ -26,7 +26,11 @@ import {
   PublicApiUrl,
   Account,
   PrivateKey,
+  NetworkName,
 } from '@massalabs/massa-web3';
+import { useAppStore } from './appStore';
+import { useWalletStore } from './walletStore';
+import { createSelectors } from './utils/createSelectors';
 
 async function createProfileFromAccount(
   username: string,
@@ -187,11 +191,8 @@ interface AccountState {
   isLoading: boolean;
   webauthnSupported: boolean;
   platformAuthenticatorAvailable: boolean;
+  account: Account | null;
   provider: Provider | null;
-  // Balance state
-  masBalance: bigint | null;
-  isBalanceLoading: boolean;
-  lastBalanceUpdate: Date | null;
   initializeAccountWithBiometrics: (username: string) => Promise<void>;
   loadAccountWithBiometrics: () => Promise<void>;
   initializeAccount: (username: string, password: string) => Promise<void>;
@@ -209,9 +210,6 @@ interface AccountState {
   resetAccount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   checkPlatformAvailability: () => Promise<void>;
-  // Balance methods
-  fetchBalance: () => Promise<void>;
-  refreshBalance: () => Promise<void>;
 
   // Mnemonic backup methods
   showMnemonicBackup: (password?: string) => Promise<Bip39BackupDisplay>;
@@ -227,7 +225,7 @@ interface AccountState {
   getAllAccounts: () => Promise<UserProfile[]>;
 }
 
-export const useAccountStore = create<AccountState>((set, get) => ({
+const useAccountStoreBase = create<AccountState>((set, get) => ({
   // Initial state
   userProfile: null,
   encryptionKey: null,
@@ -235,11 +233,8 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   isLoading: true,
   webauthnSupported: isWebAuthnSupported(),
   platformAuthenticatorAvailable: false,
+  account: null,
   provider: null,
-  // Balance state
-  masBalance: null,
-  isBalanceLoading: false,
-  lastBalanceUpdate: null,
   // Actions
   initializeAccount: async (username: string, password: string) => {
     try {
@@ -249,7 +244,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       const mnemonic = generateMnemonic(256);
       const account = await accountFromMnemonic(mnemonic);
 
-      console.log('Private key:', account.privateKey.toString());
       const { profile, encryptionKey } = await provisionAccount(
         username,
         account,
@@ -259,14 +253,11 @@ export const useAccountStore = create<AccountState>((set, get) => ({
           password,
         }
       );
-      const provider = await JsonRpcProvider.fromRPCUrl(
-        PublicApiUrl.Buildnet,
-        account
-      );
+
       set({
         userProfile: profile,
         encryptionKey,
-        provider,
+        account,
         isInitialized: true,
         isLoading: false,
       });
@@ -299,7 +290,9 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         mnemonic,
         opts
       );
+
       set({
+        account,
         userProfile: profile,
         encryptionKey,
         isInitialized: true,
@@ -331,6 +324,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       );
 
       set({
+        account,
         userProfile: profile,
         encryptionKey,
         isInitialized: true,
@@ -373,9 +367,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         throw new Error('Encrypted key not found');
       }
 
+      let account: Account;
       try {
         // Attempt to decrypt the private key - this will fail if password is wrong
-        await decryptPrivateKey(encryptedKey, iv, encryptionKey);
+        const rawBytes = new Uint8Array(
+          await decryptPrivateKey(encryptedKey, iv, encryptionKey)
+        );
+        const pkey = PrivateKey.fromBytes(rawBytes);
+        account = await Account.fromPrivateKey(pkey);
       } catch (_decryptError) {
         // If decryption fails, the password is incorrect
         throw new Error('Invalid password. Please try again.');
@@ -383,6 +382,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
 
       set({
         userProfile: profile,
+        account,
         encryptionKey,
         isInitialized: true,
         isLoading: false,
@@ -413,10 +413,11 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       }
 
       set({
+        account: null,
         userProfile: null,
         encryptionKey: null,
-        isInitialized: hasAnyAccount,
         isLoading: false,
+        isInitialized: hasAnyAccount,
       });
     } catch (error) {
       console.error('Error resetting account:', error);
@@ -560,9 +561,14 @@ export const useAccountStore = create<AccountState>((set, get) => ({
         throw new Error('Encrypted key not found');
       }
 
+      let account: Account;
       try {
         // Attempt to decrypt the private key - this will fail if the key is wrong
-        await decryptPrivateKey(encryptedKey, iv, webauthnKey.privateKey);
+        const rawBytes = new Uint8Array(
+          await decryptPrivateKey(encryptedKey, iv, webauthnKey.privateKey)
+        );
+        const pkey = PrivateKey.fromBytes(rawBytes);
+        account = await Account.fromPrivateKey(pkey);
       } catch (_decryptError) {
         // If decryption fails, something is wrong with the credential or stored data
         throw new Error(
@@ -573,6 +579,7 @@ export const useAccountStore = create<AccountState>((set, get) => ({
       set({
         userProfile: profile,
         encryptionKey: webauthnKey.privateKey,
+        account,
         isInitialized: true,
         isLoading: false,
       });
@@ -777,36 +784,6 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     return !!state.userProfile?.security?.mnemonicBackup;
   },
 
-  // Balance methods
-  fetchBalance: async () => {
-    const { provider } = get();
-    if (!provider) {
-      console.warn('No provider available for balance fetch');
-      return;
-    }
-
-    try {
-      set({ isBalanceLoading: true });
-      // The balance() method should return the balance for the account associated with the provider
-      // false = non-final data (faster), true = final data (slower but more reliable)
-      const balance = await provider.balance(false);
-      set({
-        masBalance: balance,
-        lastBalanceUpdate: new Date(),
-        isBalanceLoading: false,
-      });
-    } catch (error) {
-      console.error('Error fetching balance:', error);
-      set({ isBalanceLoading: false });
-      throw error;
-    }
-  },
-
-  refreshBalance: async () => {
-    const { fetchBalance } = get();
-    await fetchBalance();
-  },
-
   // Account detection methods
   hasExistingAccount: async () => {
     try {
@@ -841,3 +818,36 @@ export const useAccountStore = create<AccountState>((set, get) => ({
     }
   },
 }));
+
+// TODO: Investigate potential race conditions when rapidly switching accounts
+// - Multiple async operations (provider creation, token initialization, balance refresh) may overlap
+// - Consider adding cancellation tokens or operation queuing to prevent state inconsistencies
+// - Test scenario: rapidly switch between accounts to identify any timing issues
+useAccountStoreBase.subscribe(async (state, prevState) => {
+  if (state.account === prevState.account) return;
+
+  try {
+    const networkName = useAppStore.getState().networkName;
+    const publicApiUrl =
+      networkName === NetworkName.Buildnet
+        ? PublicApiUrl.Buildnet
+        : PublicApiUrl.Mainnet;
+
+    if (state.account) {
+      const provider = await JsonRpcProvider.fromRPCUrl(
+        publicApiUrl,
+        state.account
+      );
+
+      useAccountStoreBase.setState({ provider });
+      await useWalletStore.getState().initializeTokens();
+      await useWalletStore.getState().refreshBalances();
+    } else {
+      useAccountStoreBase.setState({ provider: null });
+    }
+  } catch (error) {
+    console.error('Error initializing provider or refreshing balances:', error);
+  }
+});
+
+export const useAccountStore = createSelectors(useAccountStoreBase);
