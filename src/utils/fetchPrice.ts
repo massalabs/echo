@@ -16,9 +16,9 @@ abstract class BasePriceProvider implements PriceProvider {
       try {
         const response = await fetch(url);
 
-        // TODO: Handle error and show to user
         if (response.status === 429) {
-          // Handle rate limiting
+          // Rate limit encountered, notify user and retry after delay
+          console.warn(`Rate limit hit (HTTP 429) when fetching ${url}. Retrying in ${delay * attempt}ms (attempt ${attempt} of ${retries})`);
           await new Promise(resolve => setTimeout(resolve, delay * attempt));
           continue;
         }
