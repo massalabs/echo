@@ -844,7 +844,7 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
       useAccountStoreBase.setState({ provider: null });
     }
   } catch (error) {
-    console.log(error);
+    console.error('Error initializing provider or refreshing balances:', error);
   } finally {
     isProcessing = false;
   }
