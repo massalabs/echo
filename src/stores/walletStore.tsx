@@ -5,7 +5,13 @@ import { useAccountStore } from './accountStore';
 import { priceFetcher } from '../utils/fetchPrice';
 import { createSelectors } from './utils/createSelectors';
 
+type WithNonNull<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]-?: NonNullable<T[P]>;
+};
+
 export type Ticker = string;
+
+type TokenWithBalance = WithNonNull<TokenState, 'balance'>;
 
 export interface TokenMeta {
   address: string;
@@ -29,7 +35,7 @@ interface WalletStoreState {
   error: string | null;
 
   initializeTokens: () => Promise<void>;
-  getTokenBalances: (provider: Provider) => Promise<TokenState[]>;
+  getTokenBalances: (provider: Provider) => Promise<TokenWithBalance[]>;
   refreshBalances: () => Promise<void>;
 }
 
@@ -80,7 +86,7 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
     // TODO - Load user's custom token list from IndexedDB (or other persistent storage) and initialize tokens array
   },
 
-  getTokenBalances: async (provider: Provider): Promise<TokenState[]> => {
+  getTokenBalances: async (provider: Provider): Promise<TokenWithBalance[]> => {
     const tokens = get().tokens;
 
     return Promise.all(
@@ -94,6 +100,7 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
             balance = await tokenWrapper.balanceOf(provider.address);
           }
         } catch (error) {
+          // TODO: Display error for User
           console.error(`Error getting balance for ${token.name}:`, error);
         }
         return { ...token, balance };
@@ -110,8 +117,7 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const tokenWithBalances: TokenState[] =
-        await get().getTokenBalances(provider);
+      const tokenWithBalances = await get().getTokenBalances(provider);
 
       const tokenTickers = tokenWithBalances.map(token => token.ticker);
 
@@ -119,9 +125,8 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
 
       const updatedTokens = tokenWithBalances.map(token => {
         const priceUsd = prices[token.ticker.toUpperCase()];
-
-        const balanceNum = Number(token.balance) / 10 ** token.decimals || 0;
-        const valueUsd = priceUsd != null ? balanceNum * priceUsd : null;
+        const balance = Number(token.balance / 10n ** BigInt(token.decimals));
+        const valueUsd = priceUsd != null ? balance * priceUsd : null;
 
         return {
           ...token,

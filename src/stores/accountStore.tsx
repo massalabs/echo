@@ -819,10 +819,12 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   },
 }));
 
-let isProcessing = false;
+// TODO: Investigate potential race conditions when rapidly switching accounts
+// - Multiple async operations (provider creation, token initialization, balance refresh) may overlap
+// - Consider adding cancellation tokens or operation queuing to prevent state inconsistencies
+// - Test scenario: rapidly switch between accounts to identify any timing issues
 useAccountStoreBase.subscribe(async (state, prevState) => {
-  if (state.account === prevState.account || isProcessing) return;
-  isProcessing = true;
+  if (state.account === prevState.account) return;
 
   try {
     const networkName = useAppStore.getState().networkName;
@@ -837,7 +839,7 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
         state.account
       );
 
-      useAccountStoreBase.setState({ provider: provider });
+      useAccountStoreBase.setState({ provider });
       await useWalletStore.getState().initializeTokens();
       await useWalletStore.getState().refreshBalances();
     } else {
@@ -845,8 +847,6 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
     }
   } catch (error) {
     console.error('Error initializing provider or refreshing balances:', error);
-  } finally {
-    isProcessing = false;
   }
 });
 
