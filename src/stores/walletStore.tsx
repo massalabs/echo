@@ -68,7 +68,7 @@ export function formatBalance(
   return Mas.toString(raw ?? 0n, decimals);
 }
 
-const useWalletStoreBase = create<WalletStoreState>(set => ({
+const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
   tokens: initialTokens,
   isLoading: false,
   isInitialized: false,
@@ -79,7 +79,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
   },
 
   getTokenBalances: async (provider: Provider): Promise<TokenState[]> => {
-    const tokens = useWalletStore.getState().tokens;
+    const tokens = get().tokens;
 
     return Promise.all(
       tokens.map(async token => {
@@ -108,13 +108,10 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
     set({ isLoading: true, error: null });
 
     try {
-      const tokenWithBalances: TokenState[] = await useWalletStore
-        .getState()
-        .getTokenBalances(provider);
+      const tokenWithBalances: TokenState[] =
+        await get().getTokenBalances(provider);
 
-      const tokenTickers = useWalletStore
-        .getState()
-        .tokens.map(token => token.ticker);
+      const tokenTickers = get().tokens.map(token => token.ticker);
 
       const prices = await priceFetcher.getUsdPrices(tokenTickers);
 
