@@ -75,7 +75,7 @@ const useWalletStoreBase = create<WalletStoreState>(set => ({
   error: null,
 
   initializeTokens: async () => {
-    // TODO - Initialize tokens from DB
+    // TODO - Load user's custom token list from IndexedDB (or other persistent storage) and initialize tokens array
   },
 
   getTokenBalances: async (provider: Provider): Promise<TokenState[]> => {
