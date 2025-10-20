@@ -12,7 +12,7 @@ export interface TokenMeta {
   name: string;
   ticker: Ticker;
   icon: string;
-  decimals?: number;
+  decimals: number;
   isNative: boolean;
 }
 
@@ -33,7 +33,7 @@ interface WalletStoreState {
   refreshBalances: () => Promise<void>;
 }
 
-const initialTokens = [
+const initialTokens: TokenState[] = [
   {
     address: 'MASSA',
     name: 'Massa',
@@ -43,6 +43,7 @@ const initialTokens = [
     priceUsd: null,
     valueUsd: null,
     isNative: true,
+    decimals: 9,
   },
 
   // TODO- Remove, testing purposes
@@ -55,6 +56,7 @@ const initialTokens = [
     priceUsd: null,
     valueUsd: null,
     isNative: false,
+    decimals: 18,
   },
 ];
 
@@ -111,14 +113,14 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
       const tokenWithBalances: TokenState[] =
         await get().getTokenBalances(provider);
 
-      const tokenTickers = get().tokens.map(token => token.ticker);
+      const tokenTickers = tokenWithBalances.map(token => token.ticker);
 
       const prices = await priceFetcher.getUsdPrices(tokenTickers);
 
       const updatedTokens = tokenWithBalances.map(token => {
         const priceUsd = prices[token.ticker.toUpperCase()];
 
-        const balanceNum = Number(token.balance) / 10 ** (token.decimals ?? 9) || 0;
+        const balanceNum = Number(token.balance) / 10 ** token.decimals || 0;
         const valueUsd = priceUsd != null ? balanceNum * priceUsd : null;
 
         return {
