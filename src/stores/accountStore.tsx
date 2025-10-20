@@ -819,6 +819,12 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   },
 }));
 
+// TODO: Consider race condition mitigation - if account changes happen rapidly,
+// multiple provider initializations and wallet refreshes could run concurrently.
+// Current implementation may cause overlapping async executions. Consider:
+// 1. Debouncing the subscription callback
+// 2. Adding a lock/runId guard to prevent overlapping executions
+// 3. Using useEffect in components instead of store-level subscription
 useAccountStoreBase.subscribe(async (state, prevState) => {
   if (state.account === prevState.account) return;
 
