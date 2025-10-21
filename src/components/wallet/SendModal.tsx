@@ -7,6 +7,7 @@ import ConfirmTransactionDialog from './ConfirmTransactionDialog';
 import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
 import { useAccountStore } from '../../stores/accountStore';
 import { useSend } from '@massalabs/react-ui-kit';
+import TokenSelect from '../TokenSelect';
 
 interface SendModalProps {
   isOpen: boolean;
@@ -286,49 +287,16 @@ const SendModal: React.FC<SendModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Token
             </label>
-            <div className="space-y-2">
-              {tokens.map((token, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedTokenIndex(index)}
-                  className={`w-full flex items-center p-3 rounded-xl border transition-colors ${
-                    selectedTokenIndex === index
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <img
-                    src={token.icon}
-                    alt={token.name}
-                    className="w-8 h-8 rounded-full mr-3"
-                  />
-                  <div className="flex-1 text-left">
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {token.name}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatBalance(token.balance, token.decimals)}{' '}
-                      {token.ticker}
-                    </div>
-                  </div>
-                  {selectedTokenIndex === index && (
-                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
+            <TokenSelect
+              tokens={tokens}
+              selectedToken={selectedToken}
+              onSelect={token => {
+                const index = tokens.findIndex(
+                  t => t.address === token.address
+                );
+                setSelectedTokenIndex(index);
+              }}
+            />
           </div>
 
           {/* Recipient Address */}

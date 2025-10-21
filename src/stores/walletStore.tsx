@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import masIcon from '../assets/MAS.svg';
 import { Mas, MRC20, Provider } from '@massalabs/massa-web3';
 import { useAccountStore } from './accountStore';
 import { priceFetcher } from '../utils/fetchPrice';
@@ -7,6 +6,7 @@ import { createSelectors } from './utils/createSelectors';
 
 import { FeeConfig } from '../components/wallet/FeeConfigModal';
 import { addDebugLog } from '../components/debugLogs';
+import { initialTokens } from './utils/const';
 
 type WithNonNull<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: NonNullable<T[P]>;
@@ -47,33 +47,6 @@ interface WalletStoreState {
   setFeeConfig: (config: FeeConfig) => void;
   getFeeConfig: () => FeeConfig;
 }
-
-const initialTokens: TokenState[] = [
-  {
-    address: 'MASSA',
-    name: 'Massa',
-    ticker: 'MAS',
-    icon: masIcon,
-    balance: null,
-    priceUsd: null,
-    valueUsd: null,
-    isNative: true,
-    decimals: 9,
-  },
-
-  // TODO- Remove, testing purposes
-  {
-    address: 'AS125oPLYRTtfVjpWisPZVTLjBhCFfQ1jDsi75XNtRm1NZux54eCj',
-    name: 'Wrapped Ether',
-    ticker: 'ETH',
-    icon: masIcon, // Assumes you have an ETH icon
-    balance: null,
-    priceUsd: null,
-    valueUsd: null,
-    isNative: false,
-    decimals: 18,
-  },
-];
 
 const DISPLAY_DECIMALS = 3;
 
