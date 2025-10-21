@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
+import { createUserId } from '../utils/userIdUtils';
 import {
   encryptPrivateKey,
   deriveKey,
@@ -42,20 +43,22 @@ async function createProfileFromAccount(
     publicKey: account.publicKey.toString(),
   };
 
-  const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
+  // Derive user ID from public key and username
+  const userId = await createUserId(walletInfos.publicKey, username);
+
+  const newProfile: UserProfile = {
+    userId,
     username,
     wallet: walletInfos,
     security,
     status: 'online',
     lastSeen: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
-  const profileId = await db.userProfile.add(newProfile as UserProfile);
-  const createdProfile = await db.userProfile.get(profileId);
-  if (!createdProfile) {
-    throw new Error('Failed to create user profile');
-  }
-  return createdProfile;
+  await db.userProfile.add(newProfile);
+  return newProfile;
 }
 
 async function provisionAccount(
@@ -196,7 +199,7 @@ interface AccountState {
   initializeAccountWithBiometrics: (username: string) => Promise<void>;
   loadAccountWithBiometrics: () => Promise<void>;
   initializeAccount: (username: string, password: string) => Promise<void>;
-  loadAccount: (password: string, accountId?: number) => Promise<void>;
+  loadAccount: (password: string, userId?: string) => Promise<void>;
   restoreAccountFromMnemonic: (
     username: string,
     mnemonic: string,
@@ -337,14 +340,14 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
     }
   },
 
-  loadAccount: async (password: string, accountId?: number) => {
+  loadAccount: async (password: string, userId?: string) => {
     try {
       set({ isLoading: true });
 
-      // If accountId is provided, load that specific account, otherwise use active or first
+      // If userId is provided, load that specific account, otherwise use active or first
       let profile: UserProfile | null;
-      if (accountId) {
-        profile = (await db.userProfile.get(accountId)) || null;
+      if (userId) {
+        profile = (await db.userProfile.get(userId)) || null;
       } else {
         profile = await getActiveOrFirstProfile(get);
       }
@@ -399,8 +402,8 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       set({ isLoading: true });
       // Delete only the current account, not all accounts
       const currentProfile = await getActiveOrFirstProfile(get);
-      if (currentProfile?.id != null) {
-        await db.userProfile.delete(currentProfile.id);
+      if (currentProfile?.userId != null) {
+        await db.userProfile.delete(currentProfile.userId);
       }
 
       // Determine if any accounts remain after deletion
@@ -460,7 +463,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       // Generate a BIP39 mnemonic and create account from it
       const mnemonic = generateMnemonic(256);
       const account = await accountFromMnemonic(mnemonic);
-      console.log('Bio Private key:', account.privateKey.toString());
 
       // Create WebAuthn credential
       const webauthnKey = await createWebAuthnCredential(username);
@@ -483,7 +485,11 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         publicKey: account.publicKey.toString(),
       };
 
-      const newProfile: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt'> = {
+      // Derive user ID from public key and username
+      const userId = await createUserId(walletInfos.publicKey, username);
+
+      const newProfile: UserProfile = {
+        userId,
         username,
         wallet: walletInfos,
         security: {
@@ -506,20 +512,19 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         },
         status: 'online',
         lastSeen: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const profileId = await db.userProfile.add(newProfile as UserProfile);
-      const createdProfile = await db.userProfile.get(profileId);
+      await db.userProfile.add(newProfile);
 
-      if (createdProfile) {
-        set({
-          userProfile: createdProfile,
-          encryptionKey: webauthnKey.privateKey,
-          isInitialized: true,
-          isLoading: false,
-          platformAuthenticatorAvailable: platformAvailable,
-        });
-      }
+      set({
+        userProfile: newProfile,
+        encryptionKey: webauthnKey.privateKey,
+        isInitialized: true,
+        isLoading: false,
+        platformAuthenticatorAvailable: platformAvailable,
+      });
     } catch (error) {
       console.error('Error creating user profile with biometrics:', error);
       set({ isLoading: false });
@@ -528,13 +533,13 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   },
 
   // WebAuthn-based account loading
-  loadAccountWithBiometrics: async (accountId?: number) => {
+  loadAccountWithBiometrics: async (userId?: string) => {
     try {
       set({ isLoading: true });
 
       let profile: UserProfile | null;
-      if (accountId) {
-        profile = (await db.userProfile.get(accountId)) || null;
+      if (userId) {
+        profile = (await db.userProfile.get(userId)) || null;
       } else {
         // Prefer currently authenticated user if present
         profile = await getActiveOrFirstProfile(get);
@@ -733,7 +738,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         },
       };
 
-      await db.userProfile.update(profile.id!, updatedProfile);
+      await db.userProfile.update(profile.userId, updatedProfile);
       set({ userProfile: updatedProfile });
     } catch (error) {
       console.error('Error creating mnemonic backup:', error);
@@ -771,7 +776,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         },
       };
 
-      await db.userProfile.update(profile.id!, updatedProfile);
+      await db.userProfile.update(profile.userId, updatedProfile);
       set({ userProfile: updatedProfile });
     } catch (error) {
       console.error('Error marking mnemonic backup as complete:', error);

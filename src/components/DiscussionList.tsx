@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
-import { UserProfile } from '../db';
+import { UserProfile, DiscussionThread, Contact } from '../db';
+import { db } from '../db';
+import { formatRelativeTime } from '../utils/timeUtils';
 import appLogo from '../assets/echo_face.svg';
 import Settings from './Settings';
 import Wallet from './Wallet';
@@ -11,11 +13,12 @@ import AccountCreation from './AccountCreation';
 import NewDiscussion from './NewDiscussion';
 import NewContact from './NewContact';
 import Discussion from './Discussion';
+import ContactAvatar from './avatar/ContactAvatar';
 
 // Global error state (survives component remounts)
 let globalLoginError: string | null = null;
 
-const MainApp: React.FC = () => {
+const DiscussionList: React.FC = () => {
   const {
     userProfile,
     resetAccount,
@@ -37,8 +40,37 @@ const MainApp: React.FC = () => {
   >(null);
   const [existingAccountInfo, setExistingAccountInfo] =
     useState<UserProfile | null>(null);
+  const [discussionThreads, setDiscussionThreads] = useState<
+    DiscussionThread[]
+  >([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const hasCheckedExistingRef = useRef(false);
   const [, forceUpdate] = useState({});
+
+  const loadDiscussionThreads = useCallback(async () => {
+    try {
+      const discussionThreadsList = await db.getDiscussionThreads();
+      setDiscussionThreads(discussionThreadsList);
+    } catch (error) {
+      console.error('Failed to load discussion threads:', error);
+    }
+  }, []);
+
+  const loadContacts = useCallback(async () => {
+    try {
+      const contactsList = await db.contacts.toArray();
+      setContacts(contactsList);
+    } catch (error) {
+      console.error('Failed to load contacts:', error);
+    }
+  }, []);
+
+  const getContactByUserId = useCallback(
+    (userId: string) => {
+      return contacts.find(contact => contact.userId === userId);
+    },
+    [contacts]
+  );
 
   useEffect(() => {
     const checkExistingAccount = async () => {
@@ -98,6 +130,14 @@ const MainApp: React.FC = () => {
     getExistingAccountInfo,
     appState,
   ]);
+
+  // Load discussion threads and contacts when entering main app
+  useEffect(() => {
+    if (appState === 'main') {
+      loadDiscussionThreads();
+      loadContacts();
+    }
+  }, [appState, loadDiscussionThreads, loadContacts]);
 
   const handleResetAccount = useCallback(async () => {
     try {
@@ -202,9 +242,28 @@ const MainApp: React.FC = () => {
     []
   );
 
+  const handleNewDiscussionCreated = useCallback(() => {
+    // Reload discussion threads and contacts when a new discussion is created or message is sent
+    loadDiscussionThreads();
+    loadContacts();
+  }, [loadDiscussionThreads, loadContacts]);
+
   const handleBackFromDiscussion = useCallback(() => {
     setSelectedContact(null);
-  }, []);
+    // Reload discussion threads and contacts to show updated data
+    loadDiscussionThreads();
+    loadContacts();
+  }, [loadDiscussionThreads, loadContacts]);
+
+  const handleSelectDiscussionThread = useCallback(
+    (discussionThread: DiscussionThread) => {
+      const contact = getContactByUserId(discussionThread.contactUserId);
+      if (contact) {
+        setSelectedContact(contact);
+      }
+    },
+    [getContactByUserId]
+  );
 
   const handleOpenNewContact = useCallback(() => {
     setShowNewContact(true);
@@ -261,7 +320,11 @@ const MainApp: React.FC = () => {
   // Show new discussion screen
   if (selectedContact) {
     return (
-      <Discussion contact={selectedContact} onBack={handleBackFromDiscussion} />
+      <Discussion
+        contact={selectedContact}
+        onBack={handleBackFromDiscussion}
+        onDiscussionCreated={handleNewDiscussionCreated}
+      />
     );
   }
 
@@ -314,34 +377,89 @@ const MainApp: React.FC = () => {
 
         {/* Main content area */}
         <div className="px-4 pb-20">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center">
-            <h2 className="text-lg font-medium text-black dark:text-white mb-2">
-              Conversations list
-            </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-lg font-medium text-black dark:text-white">
+                Discussions
+              </h2>
+              <button
+                onClick={loadDiscussionThreads}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+              >
+                Refresh
+              </button>
+            </div>
 
-            {/* Placeholder content */}
-            <div className="py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-gray-400 dark:text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                No conversations yet
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Start a conversation by tapping the compose button
-              </p>
+            {/* Discussion threads list */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {discussionThreads.length === 0 ? (
+                <div className="py-8 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-gray-400 dark:text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    No discussions yet
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Start a discussion by tapping the compose button
+                  </p>
+                </div>
+              ) : (
+                discussionThreads.map(discussionThread => {
+                  const contact = getContactByUserId(
+                    discussionThread.contactUserId
+                  );
+                  if (!contact) return null;
+
+                  return (
+                    <button
+                      key={discussionThread.id}
+                      onClick={() =>
+                        handleSelectDiscussionThread(discussionThread)
+                      }
+                      className="w-full px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <ContactAvatar contact={contact} size={12} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {contact.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatRelativeTime(
+                                discussionThread.lastMessageTimestamp
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {discussionThread.lastMessageContent}
+                            </p>
+                            {discussionThread.unreadCount > 0 && (
+                              <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                                {discussionThread.unreadCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
 
             {/* Debug info - hidden in production */}
@@ -402,4 +520,4 @@ const MainApp: React.FC = () => {
   );
 };
 
-export default MainApp;
+export default DiscussionList;

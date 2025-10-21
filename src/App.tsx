@@ -2,7 +2,7 @@ import React, { useEffect, useCallback, useState } from 'react';
 import { useAccountStore } from './stores/accountStore';
 import { db } from './db';
 import OnboardingFlow from './components/OnboardingFlow';
-import MainApp from './components/MainApp';
+import DiscussionList from './components/DiscussionList';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWABadge from './PWABadge.tsx';
 import DebugOverlay from './components/DebugOverlay';
@@ -32,7 +32,7 @@ const AppContent: React.FC = () => {
         state.userProfile || (await db.userProfile.toCollection().first());
 
       if (profile) {
-        // Profile exists - let MainApp handle the welcome flow
+        // Profile exists - let DiscussionList handle the welcome flow
         useAccountStore.setState({ isInitialized: true });
       } else {
         // No profile exists - show onboarding
@@ -66,8 +66,8 @@ const AppContent: React.FC = () => {
 
   // If we have a user profile, always show MainApp (user is authenticated)
   if (userProfile) {
-    addDebugLog('Rendering MainApp - user profile exists');
-    return <MainApp />;
+    addDebugLog('Rendering DiscussionList - user profile exists');
+    return <DiscussionList />;
   }
 
   // If not initialized and no profile, show onboarding
@@ -89,7 +89,7 @@ const AppContent: React.FC = () => {
     return (
       <OnboardingFlow
         onComplete={() => {
-          // When onboarding is complete, set isInitialized to true to trigger MainApp
+          // When onboarding is complete, set isInitialized to true to trigger DiscussionList
           addDebugLog(
             'OnboardingFlow completed - setting isInitialized to true'
           );
@@ -100,9 +100,9 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If initialized but no profile, show MainApp (it will handle showing account creation)
-  addDebugLog('Rendering MainApp - initialized but no profile');
-  return <MainApp />;
+  // If initialized but no profile, show DiscussionList (it will handle showing account creation)
+  addDebugLog('Rendering DiscussionList - initialized but no profile');
+  return <DiscussionList />;
 };
 
 function App() {

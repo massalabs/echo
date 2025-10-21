@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { UserProfile } from '../db';
+import { formatDate } from '../utils/timeUtils';
 
 interface AccountSelectionProps {
   onBack: () => void;
@@ -188,9 +189,9 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
               <div className="space-y-3">
                 {accounts.map(account => (
                   <div
-                    key={account.id}
+                    key={account.userId}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedAccount?.id === account.id
+                      selectedAccount?.userId === account.userId
                         ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
@@ -205,11 +206,11 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {formatAccountType(account)} • Created{' '}
                           {account.createdAt
-                            ? new Date(account.createdAt).toLocaleDateString()
+                            ? formatDate(new Date(account.createdAt))
                             : 'Unknown'}
                         </p>
                       </div>
-                      {selectedAccount?.id === account.id && (
+                      {selectedAccount?.userId === account.userId && (
                         <div className="w-5 h-5 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center">
                           <svg
                             className="w-3 h-3 text-white"

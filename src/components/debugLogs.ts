@@ -1,3 +1,5 @@
+import { createTimestamp } from '../utils/timeUtils';
+
 export interface DebugLog {
   timestamp: string;
   message: string;
@@ -7,7 +9,7 @@ let debugLogs: DebugLog[] = [];
 let logListeners: Array<() => void> = [];
 
 export const addDebugLog = (message: string): void => {
-  const timestamp = new Date().toLocaleTimeString();
+  const timestamp = createTimestamp();
   debugLogs.push({ timestamp, message });
   if (debugLogs.length > 20) {
     debugLogs = debugLogs.slice(-20);

@@ -6,7 +6,7 @@ import AccountImport from './AccountImport';
 import appLogo from '../assets/echo_face.svg';
 
 // Persist the last selected account across re-renders/remounts
-let globalSelectedAccountId: number | null = null;
+let globalSelectedAccountId: string | null = null;
 let globalSelectedUsername: string | null = null;
 
 interface WelcomeBackProps {
@@ -29,7 +29,7 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
     const userProfile = useAccountStore(state => state.userProfile);
     const loadAccountWithBiometrics = useAccountStore(
       state => state.loadAccountWithBiometrics
-    ) as unknown as (accountId?: number) => Promise<void>;
+    ) as unknown as (userId?: string) => Promise<void>;
     const loadAccount = useAccountStore(state => state.loadAccount);
     const getAllAccounts = useAccountStore(state => state.getAllAccounts);
     const webauthnSupported = useAccountStore(state => state.webauthnSupported);
@@ -69,7 +69,8 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
             const all = await getAllAccounts();
             let match: UserProfile | null = null;
             if (globalSelectedAccountId != null) {
-              match = all.find(a => a.id === globalSelectedAccountId) || null;
+              match =
+                all.find(a => a.userId === globalSelectedAccountId) || null;
             }
             if (!match && globalSelectedUsername) {
               match =
@@ -116,13 +117,13 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
 
         // Resolve the correct account id when available to avoid loading the wrong profile
         const account = currentAccount || userProfile;
-        let targetAccountId = account?.id ?? null;
+        let targetAccountId = account?.userId ?? null;
         if (targetAccountId == null && account?.username) {
           try {
             const all = await getAllAccounts();
             const match = all.find(a => a.username === account.username);
-            if (match?.id != null) {
-              targetAccountId = match.id;
+            if (match?.userId != null) {
+              targetAccountId = match.userId;
             }
           } catch {
             // ignore lookup errors
@@ -181,13 +182,13 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
 
         const account = currentAccount || userProfile;
         // Resolve correct account id to avoid falling back to first DB user
-        let targetAccountId = account?.id;
+        let targetAccountId = account?.userId;
         if (targetAccountId == null && account?.username) {
           try {
             const all = await getAllAccounts();
             const match = all.find(a => a.username === account.username);
-            if (match?.id != null) {
-              targetAccountId = match.id;
+            if (match?.userId != null) {
+              targetAccountId = match.userId;
             }
           } catch {
             // ignore account lookup errors; we'll fallback to currentAccount
@@ -217,7 +218,7 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
     const handleAccountSelected = (account: UserProfile) => {
       setSelectedAccountInfo(account);
       // Persist selection globally to survive remounts
-      globalSelectedAccountId = account.id ?? null;
+      globalSelectedAccountId = account.userId ?? null;
       globalSelectedUsername = account.username ?? null;
       setShowAccountSelection(false);
       // Clear any previous errors and password

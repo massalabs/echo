@@ -115,7 +115,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
       addDebugLog('Account initialization completed successfully');
       addDebugLog('Calling onComplete callback');
 
-      // Call onComplete - this should trigger MainApp to transition
+      // Call onComplete - this should trigger DiscussionList to transition
       onComplete();
     } catch (err) {
       const errorMsg =

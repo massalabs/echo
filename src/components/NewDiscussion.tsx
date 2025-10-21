@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Contact, db } from '../db';
-import { formatMassaAddress } from '../utils/addressUtils';
+import { formatUserId } from '../utils/addressUtils';
 import ContactAvatar from './avatar/ContactAvatar';
 
 interface NewDiscussionProps {
@@ -155,7 +155,7 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
               <ul className="max-h-[60vh] overflow-y-auto">
                 {filteredContacts.map(contact => {
                   return (
-                    <li key={contact.id}>
+                    <li key={contact.userId}>
                       <button
                         onClick={() => onSelectRecipient(contact)}
                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
@@ -166,7 +166,7 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
                             {contact.name}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {formatMassaAddress(contact.address)}
+                            {formatUserId(contact.userId)}
                           </p>
                         </div>
                       </button>

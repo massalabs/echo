@@ -65,7 +65,7 @@ The built files will be in the `dist` directory, ready for deployment.
 src/
 ├── components/          # React components
 │   ├── ErrorBoundary.tsx
-│   ├── MainApp.tsx
+│   ├── DiscussionList.tsx
 │   ├── OnboardingFlow.tsx
 │   └── AccountCreation.tsx
 ├── stores/             # State management

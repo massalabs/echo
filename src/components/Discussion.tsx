@@ -1,25 +1,51 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Contact } from '../db';
-import { formatMassaAddress } from '../utils/addressUtils';
+import { formatUserId } from '../utils/addressUtils';
+import { formatTime } from '../utils/timeUtils';
 import ContactAvatar from './avatar/ContactAvatar';
 import { useMessages } from '../hooks/useMessages';
+import { useDiscussion } from '../hooks/useDiscussion';
 
 interface DiscussionProps {
   contact: Contact;
   onBack: () => void;
+  onDiscussionCreated?: () => void;
 }
 
-const Discussion: React.FC<DiscussionProps> = ({ contact, onBack }) => {
+const Discussion: React.FC<DiscussionProps> = ({
+  contact,
+  onBack,
+  onDiscussionCreated,
+}) => {
   const [newMessage, setNewMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const {
+    discussion,
+    isInitializing,
+    isLoading: isDiscussionLoading,
+    ensureDiscussionExists,
+  } = useDiscussion({ contact });
+
   const { messages, isLoading, isSending, loadMessages, sendMessage } =
-    useMessages({ contact });
+    useMessages({
+      contact,
+      discussionId: discussion?.id,
+      onDiscussionRequired: ensureDiscussionExists,
+      onMessageSent: onDiscussionCreated,
+    });
 
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
+
+  // Notify parent when discussion is created
+  useEffect(() => {
+    if (discussion && onDiscussionCreated) {
+      onDiscussionCreated();
+    }
+  }, [discussion, onDiscussionCreated]);
 
   const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim()) return;
@@ -64,14 +90,6 @@ const Discussion: React.FC<DiscussionProps> = ({ contact, onBack }) => {
     adjustTextareaHeight();
   }, [newMessage, adjustTextareaHeight]);
 
-  const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(date);
-  };
-
   return (
     <div className="h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
       <div className="max-w-sm mx-auto w-full h-full flex flex-col">
@@ -107,8 +125,28 @@ const Discussion: React.FC<DiscussionProps> = ({ contact, onBack }) => {
                 </h1>
                 <div className="flex items-center gap-2">
                   <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                    {formatMassaAddress(contact.address)}
+                    {formatUserId(contact.userId)}
                   </p>
+                  {discussion && (
+                    <div
+                      className="flex items-center gap-1"
+                      title="End-to-end encrypted"
+                    >
+                      <svg
+                        className="w-3 h-3 text-green-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                    </div>
+                  )}
                   <span
                     className={`w-2 h-2 rounded-full ${
                       contact.isOnline ? 'bg-green-500' : 'bg-gray-400'
@@ -123,9 +161,18 @@ const Discussion: React.FC<DiscussionProps> = ({ contact, onBack }) => {
 
         {/* Messages - modern chat layout */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-          {isLoading ? (
+          {isLoading || isDiscussionLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            </div>
+          ) : isInitializing ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Initializing secure discussion...
+                </p>
+              </div>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
@@ -199,7 +246,7 @@ const Discussion: React.FC<DiscussionProps> = ({ contact, onBack }) => {
                 autoCapitalize="sentences"
                 spellCheck="true"
                 className="w-full min-h-[40px] max-h-[120px] px-4 py-3 pr-12 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-all duration-200 overflow-hidden scrollbar-hide"
-                disabled={isSending}
+                disabled={isSending || isInitializing}
                 style={
                   {
                     height: `${inputHeight}px`,
@@ -210,10 +257,10 @@ const Discussion: React.FC<DiscussionProps> = ({ contact, onBack }) => {
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isSending}
+                disabled={!newMessage.trim() || isSending || isInitializing}
                 className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
               >
-                {isSending ? (
+                {isSending || isInitializing ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <svg

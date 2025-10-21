@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
-import { isValidAddress } from '../utils/addressUtils';
+import { isValidUserId, generateUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
 
 interface NewContactProps {
@@ -11,15 +11,15 @@ interface NewContactProps {
 
 const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   const [name, setName] = useState('');
-  const [massaAddress, setMassaAddress] = useState('');
+  const [userId, setUserId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
-  const [addressError, setAddressError] = useState<string | null>(null);
+  const [userIdError, setUserIdError] = useState<string | null>(null);
 
   const isValid = useMemo(() => {
-    return validateUsername(name).valid && isValidAddress(massaAddress);
-  }, [name, massaAddress]);
+    return validateUsername(name).valid && isValidUserId(userId);
+  }, [name, userId]);
 
   const validateName = useCallback((value: string) => {
     if (!value.trim()) {
@@ -35,25 +35,27 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     return true;
   }, []);
 
-  const validateAddress = useCallback((value: string) => {
+  const validateUserId = useCallback((value: string) => {
     if (!value.trim()) {
-      setAddressError(null);
+      setUserIdError(null);
       return false;
     }
-    if (!isValidAddress(value)) {
-      setAddressError('Please enter a valid Massa address');
+    if (!isValidUserId(value)) {
+      setUserIdError(
+        'Please enter a valid 32-byte user ID (64 hex characters)'
+      );
       return false;
     }
-    setAddressError(null);
+    setUserIdError(null);
     return true;
   }, []);
 
   const handleBack = useCallback(() => {
-    if (name || massaAddress) {
+    if (name || userId) {
       if (!window.confirm('Discard this contact?')) return;
     }
     onCancel();
-  }, [name, massaAddress, onCancel]);
+  }, [name, userId, onCancel]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid) return;
@@ -62,31 +64,30 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     try {
       const contact: Omit<Contact, 'id'> = {
         name: name.trim(),
-        address: massaAddress.trim(),
+        userId: userId.trim().toLowerCase(),
         avatar: undefined,
         isOnline: false,
         lastSeen: new Date(),
         createdAt: new Date(),
       };
 
-      // Ensure unique address
-      const existing = await db.getContactByAddress(contact.address);
+      // Ensure unique user ID
+      const existing = await db.getContactByUserId(contact.userId);
       if (existing) {
-        setError('This Massa address already exists in your contacts.');
+        setError('This user ID already exists in your contacts.');
         setIsSubmitting(false);
         return;
       }
 
-      const id = await db.contacts.add(contact);
-      const created = { ...contact, id } as Contact;
-      onCreated(created);
+      await db.contacts.add(contact);
+      onCreated(contact);
     } catch (e) {
       console.error(e);
       setError('Failed to create contact. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, name, massaAddress, onCreated]);
+  }, [isValid, name, userId, onCreated]);
 
   return (
     <div className="min-h-screen bg-[#efefef] dark:bg-gray-900">
@@ -156,28 +157,45 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Massa address
+                User ID
               </label>
-              <input
-                type="text"
-                value={massaAddress}
-                onChange={e => {
-                  setMassaAddress(e.target.value);
-                  validateAddress(e.target.value);
-                }}
-                onBlur={e => validateAddress(e.target.value)}
-                placeholder="Enter Massa address"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                  addressError
-                    ? 'border-red-500 dark:border-red-500'
-                    : 'border-gray-300 dark:border-gray-600'
-                }`}
-              />
-              {addressError && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={userId}
+                  onChange={e => {
+                    setUserId(e.target.value);
+                    validateUserId(e.target.value);
+                  }}
+                  onBlur={e => validateUserId(e.target.value)}
+                  placeholder="Enter 32-byte user ID (64 hex characters)"
+                  className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                    userIdError
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newUserId = generateUserId();
+                    setUserId(newUserId);
+                    validateUserId(newUserId);
+                  }}
+                  className="px-3 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+                  title="Generate random user ID"
+                >
+                  Generate
+                </button>
+              </div>
+              {userIdError && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {addressError}
+                  {userIdError}
                 </p>
               )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                User ID is a unique 32-byte identifier
+              </p>
             </div>
 
             {error && (
