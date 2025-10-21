@@ -1,0 +1,10 @@
+export const colorGreen = '#1AE19D';
+export const colorWhite = '#D1D1D1D1';
+export const colorDarkGrey = '#DADADA';
+export const colorLightGrey = '#F1F1F1';
+export const colorDarkBlue = '#151A26';
+export const colorBasicBlue = '#1A202E';
+export const colorLightBlue = '#2E374C';
+export const colorWarning = '#FFA41D';
+export const colorError = '#FF4F4F';
+export const colorInfo = '#4AB2FF';

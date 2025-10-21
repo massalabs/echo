@@ -5,6 +5,9 @@ import { useAccountStore } from './accountStore';
 import { priceFetcher } from '../utils/fetchPrice';
 import { createSelectors } from './utils/createSelectors';
 
+import { FeeConfig } from '../components/wallet/FeeConfigModal';
+import { addDebugLog } from '../components/debugLogs';
+
 type WithNonNull<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: NonNullable<T[P]>;
 };
@@ -33,10 +36,16 @@ interface WalletStoreState {
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
+  feeConfig: FeeConfig;
 
   initializeTokens: () => Promise<void>;
   getTokenBalances: (provider: Provider) => Promise<TokenWithBalance[]>;
   refreshBalances: () => Promise<void>;
+  refreshBalance: (tokenIndex: number) => Promise<void>;
+
+  // Fee configuration
+  setFeeConfig: (config: FeeConfig) => void;
+  getFeeConfig: () => FeeConfig;
 }
 
 const initialTokens: TokenState[] = [
@@ -81,6 +90,10 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
   isLoading: false,
   isInitialized: false,
   error: null,
+  feeConfig: {
+    type: 'preset',
+    preset: 'standard',
+  },
 
   initializeTokens: async () => {
     // TODO - Load user's custom token list from IndexedDB (or other persistent storage) and initialize tokens array
@@ -99,9 +112,9 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
             const tokenWrapper = new MRC20(provider, token.address);
             balance = await tokenWrapper.balanceOf(provider.address);
           }
-        } catch (error) {
-          // TODO: Display error for User
-          console.error(`Error getting balance for ${token.name}:`, error);
+        } catch (_) {
+          // TODO: Display error for User ?
+          addDebugLog(`Error getting balance for ${token.name}`);
         }
         return { ...token, balance };
       })
@@ -144,6 +157,54 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
       console.error('Error refreshing wallet:', error);
       set({ isLoading: false, error: 'Failed to refresh wallet' });
     }
+  },
+
+  refreshBalance: async (tokenIndex: number) => {
+    try {
+      const provider = useAccountStore.getState().provider;
+      if (!provider) {
+        set({ error: 'No provider available' });
+        return;
+      }
+
+      const tokens = get().tokens;
+      const token = tokens[tokenIndex];
+      if (!token) return;
+
+      let balance = 0n;
+      try {
+        if (token.isNative) {
+          balance = await provider.balance(false);
+        } else {
+          const tokenWrapper = new MRC20(provider, token.address);
+          balance = await tokenWrapper.balanceOf(provider.address);
+        }
+      } catch (e) {
+        console.error(`Error getting balance for ${token.name}:`, e);
+      }
+
+      // Fetch only this token price
+      const prices = await priceFetcher.getUsdPrices([token.ticker]);
+      const priceUsd = prices[token.ticker.toUpperCase()];
+      const balanceWhole = Number(balance / 10n ** BigInt(token.decimals));
+      const valueUsd = priceUsd != null ? balanceWhole * priceUsd : null;
+
+      const updated: TokenState = { ...token, balance, priceUsd, valueUsd };
+      const next = tokens.slice();
+      next[tokenIndex] = updated;
+      set({ tokens: next });
+    } catch (error) {
+      console.error('Error refreshing token balance:', error);
+    }
+  },
+
+  // Fee configuration methods
+  setFeeConfig: (config: FeeConfig) => {
+    set({ feeConfig: config });
+  },
+
+  getFeeConfig: (): FeeConfig => {
+    return get().feeConfig;
   },
 }));
 

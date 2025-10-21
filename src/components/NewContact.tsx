@@ -204,13 +204,16 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
               </div>
             )}
 
-            <button
+            <Button
               onClick={handleSubmit}
               disabled={!isValid || isSubmitting}
-              className="w-full bg-purple-600 dark:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              loading={isSubmitting}
+              variant="primary"
+              fullWidth
+              className="bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800"
             >
               {isSubmitting ? 'Saving…' : 'Save contact'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

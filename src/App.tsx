@@ -137,6 +137,7 @@ function App() {
       <div className="hidden">
         <PWABadge />
       </div>
+      <Toast />
     </ErrorBoundary>
   );
 }

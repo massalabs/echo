@@ -1,15 +1,18 @@
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
+
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    include: ['react-dom', 'dot-object', 'copy-to-clipboard'],
+  },
   plugins: [
     react(),
-    tailwindcss(),
+
     nodePolyfills({
       // Whether to polyfill `node:` protocol imports.
       protocolImports: true,
