@@ -124,14 +124,19 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             </button>
 
             {/* Swap Button */}
-            <div className="flex flex-col items-center">
+            <button
+              onClick={() =>
+                alert('Swap functionality will be implemented soon!')
+              }
+              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+            >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={swapIcon} alt="Swap" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 swap
               </span>
-            </div>
+            </button>
           </div>
         </div>
 
