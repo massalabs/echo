@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import Button from '../Button';
+import Button from '../ui/Button';
 
 export interface FeeConfig {
   type: 'preset' | 'custom';

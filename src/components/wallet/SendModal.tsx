@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useWalletStore } from '../../stores/walletStore';
 import AddressInput from '../AddressInput';
-import Button from '../Button';
+import Button from '../ui/Button';
 import { formatBalance } from '../../stores/walletStore';
 import ConfirmTransactionDialog from './ConfirmTransactionDialog';
 import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
 import { useAccountStore } from '../../stores/accountStore';
 import { useSend } from '@massalabs/react-ui-kit';
-import TokenSelect from '../TokenSelect';
+import TokenSelect from './TokenSelect';
 
 interface SendModalProps {
   isOpen: boolean;

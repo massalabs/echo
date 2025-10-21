@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { formatMassaAddress } from '../../utils/addressUtils';
-import Button from '../Button';
+import Button from '../ui/Button';
 
 interface ConfirmTransactionDialogProps {
   isOpen: boolean;

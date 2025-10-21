@@ -1,7 +1,7 @@
 import React from 'react';
-import Select from './Select';
-import { TokenState } from '../stores/walletStore';
-import { formatBalance } from '../stores/walletStore';
+import Select from '../ui/Select';
+import { TokenState } from '../../stores/walletStore';
+import { formatBalance } from '../../stores/walletStore';
 
 interface TokenSelectProps {
   tokens: TokenState[];
