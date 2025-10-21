@@ -3,6 +3,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import { formatBalance, useWalletStore } from '../../stores/walletStore';
 import BottomNavigation from '../BottomNavigation';
 import SendModal from './SendModal';
+import ReceiveModal from './ReceiveModal';
 import sendIcon from '../../assets/icons/send.svg';
 import receiveIcon from '../../assets/icons/receive.svg';
 import swapIcon from '../../assets/icons/swap.svg';
@@ -21,6 +22,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -109,14 +111,17 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             </button>
 
             {/* Receive Button */}
-            <div className="flex flex-col items-center">
+            <button
+              onClick={() => setIsReceiveModalOpen(true)}
+              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+            >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={receiveIcon} alt="Receive" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 receive
               </span>
-            </div>
+            </button>
 
             {/* Swap Button */}
             <div className="flex flex-col items-center">
@@ -185,6 +190,12 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
         isOpen={isSendModalOpen}
         onClose={() => setIsSendModalOpen(false)}
         onSuccess={handleSendSuccess}
+      />
+
+      {/* Receive Modal */}
+      <ReceiveModal
+        isOpen={isReceiveModalOpen}
+        onClose={() => setIsReceiveModalOpen(false)}
       />
     </div>
   );

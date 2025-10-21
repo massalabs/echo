@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useWalletStore } from '../../stores/walletStore';
 import AddressInput from '../AddressInput';
 import Button from '../ui/Button';
+import BaseModal from '../ui/BaseModal';
 import { formatBalance } from '../../stores/walletStore';
 import ConfirmTransactionDialog from './ConfirmTransactionDialog';
 import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
@@ -228,193 +229,137 @@ const SendModal: React.FC<SendModalProps> = ({
     }
   }, [feeConfig]);
 
-  // Animation mount flag (animate on open)
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      // next tick to allow transition
-      const id = requestAnimationFrame(() => setMounted(true));
-      return () => cancelAnimationFrame(id);
-    }
-    setMounted(false);
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-6">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 dark:bg-black/60 transition-opacity"
-        onClick={onClose}
+    <BaseModal isOpen={isOpen} onClose={onClose} title="Send">
+      {/* Token Selector */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Select Token
+        </label>
+        <TokenSelect
+          tokens={tokens}
+          selectedToken={selectedToken}
+          onSelect={token => {
+            const index = tokens.findIndex(t => t.address === token.address);
+            setSelectedTokenIndex(index);
+          }}
+        />
+      </div>
+
+      {/* Recipient Address */}
+      <AddressInput
+        value={recipient}
+        onChange={value => {
+          setRecipient(value);
+          setError(null);
+        }}
+        placeholder="Enter recipient address"
+        label="Recipient Address"
+        onValidationChange={handleAddressValidationChange}
       />
 
-      {/* Modal */}
-      <div
-        className={`relative w-full max-w-sm md:max-w-md bg-white dark:bg-gray-900 md:rounded-2xl rounded-t-3xl shadow-2xl transform transition-all duration-300 ease-out 
-        ${mounted ? 'translate-y-0 md:translate-y-0 md:opacity-100' : 'translate-y-full md:translate-y-4 md:opacity-0'}`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Send
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      {/* Fee Configuration */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Network Fee
+        </label>
+        <button
+          onClick={() => setShowFeeConfig(true)}
+          className="w-full flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        >
+          <span className="text-sm text-gray-900 dark:text-white">
+            {getFeeDisplayText()}
+          </span>
+          <svg
+            className="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Token Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Token
-            </label>
-            <TokenSelect
-              tokens={tokens}
-              selectedToken={selectedToken}
-              onSelect={token => {
-                const index = tokens.findIndex(
-                  t => t.address === token.address
-                );
-                setSelectedTokenIndex(index);
-              }}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
             />
-          </div>
+          </svg>
+        </button>
+      </div>
 
-          {/* Recipient Address */}
-          <AddressInput
-            value={recipient}
-            onChange={value => {
-              setRecipient(value);
+      {/* Amount */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Amount
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={amount}
+            onChange={e => {
+              setAmount(e.target.value);
               setError(null);
             }}
-            placeholder="Enter recipient address"
-            label="Recipient Address"
-            onValidationChange={handleAddressValidationChange}
+            placeholder="0.00"
+            step="any"
+            min="0"
+            className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
-
-          {/* Fee Configuration */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Network Fee
-            </label>
-            <button
-              onClick={() => setShowFeeConfig(true)}
-              className="w-full flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              <span className="text-sm text-gray-900 dark:text-white">
-                {getFeeDisplayText()}
-              </span>
-              <svg
-                className="w-4 h-4 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Amount
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={amount}
-                onChange={e => {
-                  setAmount(e.target.value);
-                  setError(null);
-                }}
-                placeholder="0.00"
-                step="any"
-                min="0"
-                className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-              />
-              <button
-                onClick={handleMaxAmount}
-                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
-              >
-                MAX
-              </button>
-            </div>
-            <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
-              <span>
-                Available:{' '}
-                {formatBalance(availableBalance, selectedToken?.decimals || 9)}{' '}
-                {selectedToken?.ticker}
-              </span>
-              {selectedToken?.valueUsd &&
-                amount &&
-                !isNaN(parseFloat(amount)) && (
-                  <span>
-                    ≈ $
-                    {(
-                      (parseFloat(amount) * selectedToken.valueUsd) /
-                      parseFloat(
-                        formatBalance(availableBalance, selectedToken.decimals)
-                      )
-                    ).toFixed(2)}
-                  </span>
-                )}
-            </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button onClick={onClose} variant="secondary" fullWidth>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSend}
-              disabled={
-                !recipient ||
-                !amount ||
-                isValidRecipient === false ||
-                isConfirming ||
-                isProcessing
-              }
-              loading={isConfirming || isProcessing}
-              variant="primary"
-              fullWidth
-            >
-              {isProcessing ? 'Sending...' : 'Send'}
-            </Button>
-          </div>
+          <button
+            onClick={handleMaxAmount}
+            className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
+          >
+            MAX
+          </button>
         </div>
+        <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
+          <span>
+            Available:{' '}
+            {formatBalance(availableBalance, selectedToken?.decimals || 9)}{' '}
+            {selectedToken?.ticker}
+          </span>
+          {selectedToken?.valueUsd && amount && !isNaN(parseFloat(amount)) && (
+            <span>
+              ≈ $
+              {(
+                (parseFloat(amount) * selectedToken.valueUsd) /
+                parseFloat(
+                  formatBalance(availableBalance, selectedToken.decimals)
+                )
+              ).toFixed(2)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex gap-3 pt-4">
+        <Button onClick={onClose} variant="secondary" fullWidth>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSend}
+          disabled={
+            !recipient ||
+            !amount ||
+            isValidRecipient === false ||
+            isConfirming ||
+            isProcessing
+          }
+          loading={isConfirming || isProcessing}
+          variant="primary"
+          fullWidth
+        >
+          {isProcessing ? 'Sending...' : 'Send'}
+        </Button>
       </div>
 
       {/* Confirmation Dialog */}
@@ -446,7 +391,7 @@ const SendModal: React.FC<SendModalProps> = ({
         onConfirm={handleFeeConfigChange}
         currentConfig={feeConfig}
       />
-    </div>
+    </BaseModal>
   );
 };
 
