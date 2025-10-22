@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
-import { formatBalance, useWalletStore } from '../../stores/walletStore';
+import { useWalletStore } from '../../stores/walletStore';
 import BottomNavigation from '../BottomNavigation';
 import SendModal from './SendModal';
 import ReceiveModal from './ReceiveModal';
@@ -8,6 +8,7 @@ import sendIcon from '../../assets/icons/send.svg';
 import receiveIcon from '../../assets/icons/receive.svg';
 import swapIcon from '../../assets/icons/swap.svg';
 import { formatMassaAddress } from '../../utils/addressUtils';
+import { formatAmount } from '@massalabs/react-ui-kit';
 
 interface WalletProps {
   onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
@@ -163,7 +164,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
                     <div className="text-sm font-medium text-[#b2b2b2] dark:text-gray-400">
                       {isLoading
                         ? 'Loading...'
-                        : `${formatBalance(token.balance)} ${token.ticker}`}
+                        : `${formatAmount(token.balance ?? 0n, token.decimals).preview} ${token.ticker}`}
                     </div>
                   </div>
 

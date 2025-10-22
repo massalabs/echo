@@ -1,7 +1,7 @@
 import React from 'react';
 import Select from '../ui/Select';
 import { TokenState } from '../../stores/walletStore';
-import { formatBalance } from '../../stores/walletStore';
+import { formatAmount } from '@massalabs/react-ui-kit';
 
 interface TokenSelectProps {
   tokens: TokenState[];
@@ -29,7 +29,8 @@ const TokenSelect: React.FC<TokenSelectProps> = ({
           {token.name}
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          {formatBalance(token.balance, token.decimals)} {token.ticker}
+          {formatAmount(token.balance ?? 0n, token.decimals).preview}{' '}
+          {token.ticker}
         </div>
       </div>
     </>
@@ -48,7 +49,8 @@ const TokenSelect: React.FC<TokenSelectProps> = ({
           {token.name}
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          {formatBalance(token.balance, token.decimals)} {token.ticker}
+          {formatAmount(token.balance ?? 0n, token.decimals).preview}{' '}
+          {token.ticker}
         </div>
       </div>
       {selectedToken && selectedToken.address === token.address && (

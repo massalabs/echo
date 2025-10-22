@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Mas, MRC20, Provider } from '@massalabs/massa-web3';
+import { MRC20, Provider } from '@massalabs/massa-web3';
 import { useAccountStore } from './accountStore';
 import { priceFetcher } from '../utils/fetchPrice';
 import { createSelectors } from './utils/createSelectors';
@@ -46,16 +46,6 @@ interface WalletStoreState {
   // Fee configuration
   setFeeConfig: (config: FeeConfig) => void;
   getFeeConfig: () => FeeConfig;
-}
-
-const DISPLAY_DECIMALS = 3;
-
-// TODO - take from ui-kit
-export function formatBalance(
-  raw: bigint | null,
-  decimals: number = DISPLAY_DECIMALS
-): string {
-  return Mas.toString(raw ?? 0n, decimals);
 }
 
 const useWalletStoreBase = create<WalletStoreState>((set, get) => ({

@@ -3,11 +3,10 @@ import { useWalletStore } from '../../stores/walletStore';
 import AddressInput from '../AddressInput';
 import Button from '../ui/Button';
 import BaseModal from '../ui/BaseModal';
-import { formatBalance } from '../../stores/walletStore';
 import ConfirmTransactionDialog from './ConfirmTransactionDialog';
 import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
 import { useAccountStore } from '../../stores/accountStore';
-import { useSend } from '@massalabs/react-ui-kit';
+import { formatAmount, useSend } from '@massalabs/react-ui-kit';
 import TokenSelect from './TokenSelect';
 
 interface SendModalProps {
@@ -93,11 +92,9 @@ const SendModal: React.FC<SendModalProps> = ({
       const feeInAtomic = BigInt(
         Math.floor(feeAmount * 10 ** selectedToken.decimals)
       );
-      const maxAmount = formatBalance(
-        availableBalance - feeInAtomic,
-        selectedToken.decimals
-      );
-      setAmount(maxAmount);
+      const maxAmount = availableBalance - feeInAtomic;
+
+      setAmount(formatAmount(maxAmount, selectedToken.decimals).preview);
     }
   }, [selectedToken, availableBalance, getFeeAmount]);
 
@@ -131,7 +128,7 @@ const SendModal: React.FC<SendModalProps> = ({
 
     if (totalRequired > availableBalance) {
       setError(
-        `Insufficient balance. Need ${formatBalance(totalRequired, selectedToken.decimals)} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`
+        `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals)} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`
       );
       return false;
     }
@@ -316,17 +313,18 @@ const SendModal: React.FC<SendModalProps> = ({
         <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
           <span>
             Available:{' '}
-            {formatBalance(availableBalance, selectedToken?.decimals || 9)}{' '}
+            {
+              formatAmount(availableBalance, selectedToken?.decimals || 9)
+                .preview
+            }{' '}
             {selectedToken?.ticker}
           </span>
           {selectedToken?.valueUsd && amount && !isNaN(parseFloat(amount)) && (
             <span>
               ≈ $
               {(
-                (parseFloat(amount) * selectedToken.valueUsd) /
-                parseFloat(
-                  formatBalance(availableBalance, selectedToken.decimals)
-                )
+                parseFloat(amount) * (selectedToken.priceUsd ?? 0) +
+                getFeeAmount()
               ).toFixed(2)}
             </span>
           )}
@@ -372,15 +370,13 @@ const SendModal: React.FC<SendModalProps> = ({
         tokenName={selectedToken?.name || ''}
         tokenTicker={selectedToken?.ticker || ''}
         estimatedFee={`${getFeeAmount()} ${selectedToken?.ticker || 'MAS'}`}
-        totalCost={
-          (
-            parseFloat(
-              formatBalance(amountBigInt, selectedToken?.decimals || 9)
-            ) + getFeeAmount()
-          ).toFixed(6) +
-          ' ' +
-          (selectedToken?.ticker || 'MAS')
-        }
+        totalCost={`${
+          formatAmount(
+            amountBigInt +
+              BigInt(getFeeAmount() * 10 ** selectedToken.decimals),
+            selectedToken.decimals
+          ).preview
+        } ${selectedToken.ticker}`}
         isLoading={isConfirming}
       />
 
