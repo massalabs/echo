@@ -51,6 +51,7 @@ export function useAllowance(options: UseAllowanceOptions) {
         setState(prev => ({
           ...prev,
           error: { message: 'Invalid spender address' },
+          isPending: false,
         }));
         return;
       }
@@ -59,6 +60,7 @@ export function useAllowance(options: UseAllowanceOptions) {
         setState(prev => ({
           ...prev,
           error: { message: 'Token address required' },
+          isPending: false,
         }));
         return;
       }
@@ -67,6 +69,7 @@ export function useAllowance(options: UseAllowanceOptions) {
         setState(prev => ({
           ...prev,
           error: { message: 'Amount must be greater than zero' },
+          isPending: false,
         }));
         return;
       }
