@@ -5,6 +5,7 @@ import { formatTime } from '../utils/timeUtils';
 import ContactAvatar from './avatar/ContactAvatar';
 import { useMessages } from '../hooks/useMessages';
 import { useDiscussion } from '../hooks/useDiscussion';
+import { messageReceptionService } from '../services/messageReception';
 
 interface DiscussionProps {
   contact: Contact;
@@ -20,6 +21,7 @@ const Discussion: React.FC<DiscussionProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     discussion,
@@ -28,17 +30,35 @@ const Discussion: React.FC<DiscussionProps> = ({
     ensureDiscussionExists,
   } = useDiscussion({ contact });
 
-  const { messages, isLoading, isSending, loadMessages, sendMessage } =
-    useMessages({
-      contact,
-      discussionId: discussion?.id,
-      onDiscussionRequired: ensureDiscussionExists,
-      onMessageSent: onDiscussionCreated,
-    });
+  const {
+    messages,
+    isLoading,
+    isSending,
+    isSyncing,
+    loadMessages,
+    sendMessage,
+    syncMessages,
+  } = useMessages({
+    contact,
+    discussionId: discussion?.id,
+    onDiscussionRequired: ensureDiscussionExists,
+    onMessageSent: onDiscussionCreated,
+  });
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
+
+  // Scroll to bottom when component first loads with messages
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading) {
+      scrollToBottom();
+    }
+  }, [isLoading, messages.length, scrollToBottom]);
 
   // Notify parent when discussion is created
   useEffect(() => {
@@ -86,9 +106,48 @@ const Discussion: React.FC<DiscussionProps> = ({
     }
   }, []);
 
+  const handleSimulateReceivedMessage = useCallback(async () => {
+    if (!discussion?.id) {
+      console.log('No discussion available for message simulation');
+      return;
+    }
+
+    try {
+      console.log('Simulating received message for discussion:', discussion.id);
+
+      // Get the message reception service
+      const service = await messageReceptionService.getInstance();
+
+      // Use the dedicated simulation method
+      const result = await service.simulateReceivedMessage(discussion.id);
+
+      if (result.success && result.newMessagesCount > 0) {
+        console.log('Successfully simulated received message!');
+        // Reload messages to show the new one
+        await loadMessages();
+      } else {
+        console.log('Failed to simulate received message:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to simulate received message:', error);
+    }
+  }, [discussion?.id, loadMessages]);
+
   useEffect(() => {
     adjustTextareaHeight();
   }, [newMessage, adjustTextareaHeight]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Use a small timeout to ensure DOM is updated before scrolling
+      const timeoutId = setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages, scrollToBottom]);
 
   return (
     <div className="h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
@@ -153,8 +212,62 @@ const Discussion: React.FC<DiscussionProps> = ({
                     }`}
                     title={contact.isOnline ? 'Online' : 'Offline'}
                   />
+                  {isSyncing && (
+                    <div className="ml-2">
+                      <div className="w-3 h-3 border border-gray-400 border-t-blue-500 rounded-full animate-spin"></div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Manual sync button */}
+              {discussion && (
+                <button
+                  onClick={syncMessages}
+                  disabled={isSyncing}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-full"
+                  title="Sync messages"
+                >
+                  <svg
+                    className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${
+                      isSyncing ? 'animate-spin' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Test button for simulating received message */}
+              {discussion && (
+                <button
+                  onClick={handleSimulateReceivedMessage}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-full ml-2"
+                  title="Simulate received message (test)"
+                >
+                  <svg
+                    className="w-4 h-4 text-blue-600 dark:text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -227,6 +340,8 @@ const Discussion: React.FC<DiscussionProps> = ({
               </div>
             ))
           )}
+          {/* Invisible element to scroll to */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Modern input composer */}

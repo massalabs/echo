@@ -80,9 +80,13 @@ export async function initializeDiscussion(
       nextPublicKey: result.session.nextPublicKey,
       nextPrivateKey: result.session.nextPrivateKey,
       version: result.session.version,
+      discussionKey: result.session.discussionKey,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    // Create session in session module with discussion ID as key
+    await sessionModule.createSession(discussionId.toString());
 
     // Store the initiation message
     await db.discussionMessages.add({
@@ -169,9 +173,13 @@ export async function processIncomingInitiation(
       nextPublicKey: result.session.nextPublicKey,
       nextPrivateKey: new Uint8Array(0), // Recipient doesn't have the private key
       version: result.session.version,
+      discussionKey: result.session.discussionKey,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    // Create session in session module with discussion ID as key
+    await sessionModule.createSession(discussionId.toString());
 
     // Store the initiation message
     await db.discussionMessages.add({

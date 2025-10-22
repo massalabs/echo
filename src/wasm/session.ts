@@ -26,14 +26,18 @@ export class MockSessionModule implements SessionModule {
   }
 
   async createSession(sessionId: string): Promise<void> {
+    const masterKey = crypto.getRandomValues(new Uint8Array(32));
+    const discussionKey = this.generateDiscussionKey(masterKey);
+
     this.sessions.set(sessionId, {
       id: sessionId,
-      masterKey: crypto.getRandomValues(new Uint8Array(32)),
+      masterKey,
       innerKey: crypto.getRandomValues(new Uint8Array(32)),
       nextPublicKey: crypto.getRandomValues(new Uint8Array(1184)),
       nextPrivateKey: crypto.getRandomValues(new Uint8Array(2400)),
       version: 1,
       status: 'pending',
+      discussionKey,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -159,5 +163,19 @@ export class MockSessionModule implements SessionModule {
       transactionHash,
       session,
     };
+  }
+
+  /**
+   * Generate a discussion key from the master key
+   * This key is used to access messages in the protocol's key-value store
+   */
+  private generateDiscussionKey(masterKey: Uint8Array): string {
+    // Convert master key to hex string and hash it for a consistent key
+    const hexKey = Array.from(masterKey)
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Create a simple hash-based key (in production, this would use proper crypto)
+    return `discussion_${hexKey.substring(0, 16)}`;
   }
 }
