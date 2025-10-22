@@ -60,6 +60,7 @@ export interface Session {
   nextPrivateKey: Uint8Array;
   version: number;
   status: 'pending' | 'active' | 'closed';
+  discussionKey: string; // Key for accessing messages in the key-value store
   createdAt: Date;
   updatedAt: Date;
 }

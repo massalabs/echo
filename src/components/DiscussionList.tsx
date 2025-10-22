@@ -14,6 +14,7 @@ import NewDiscussion from './NewDiscussion';
 import NewContact from './NewContact';
 import Discussion from './Discussion';
 import ContactAvatar from './avatar/ContactAvatar';
+import { messageReceptionService } from '../services/messageReception';
 
 // Global error state (survives component remounts)
 let globalLoginError: string | null = null;
@@ -35,9 +36,7 @@ const DiscussionList: React.FC = () => {
   >('loading');
   const [showNewDiscussion, setShowNewDiscussion] = useState(false);
   const [showNewContact, setShowNewContact] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<
-    import('../db').Contact | null
-  >(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [existingAccountInfo, setExistingAccountInfo] =
     useState<UserProfile | null>(null);
   const [discussionThreads, setDiscussionThreads] = useState<
@@ -155,8 +154,6 @@ const DiscussionList: React.FC = () => {
       sessionStorage.clear();
 
       // Clear IndexedDB (Dexie database) - multiple approaches to ensure it's wiped
-      const { db } = await import('../db');
-
       // Close the database first
       db.close();
 
@@ -165,8 +162,7 @@ const DiscussionList: React.FC = () => {
 
       // Also try to clear any cached database instances
       try {
-        const { db: freshDb } = await import('../db');
-        await freshDb.delete();
+        await db.delete();
       } catch (_e) {
         // Ignore errors here as the database might already be deleted
       }
@@ -219,6 +215,38 @@ const DiscussionList: React.FC = () => {
     setAppState('welcome');
   }, []);
 
+  const handleSimulateIncomingDiscussion = useCallback(async () => {
+    try {
+      console.log('Simulating incoming discussion announcement...');
+
+      // Request notification permission first
+      if ('Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+      }
+
+      // Get the message reception service
+      const service = await messageReceptionService.getInstance();
+
+      // Use the dedicated simulation method
+      const result = await service.simulateIncomingDiscussion();
+
+      if (result.success && result.newMessagesCount > 0) {
+        console.log('Successfully simulated incoming discussion!');
+        // Reload discussion threads and contacts to show the new discussion
+        await loadDiscussionThreads();
+        await loadContacts();
+      } else {
+        console.log(
+          'No new discussions created from simulation:',
+          result.error
+        );
+      }
+    } catch (error) {
+      console.error('Failed to simulate incoming discussion:', error);
+    }
+  }, [loadDiscussionThreads, loadContacts]);
+
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
       setActiveTab(tab);
@@ -234,13 +262,10 @@ const DiscussionList: React.FC = () => {
     setShowNewDiscussion(false);
   }, []);
 
-  const handleSelectRecipient = useCallback(
-    (contact: import('../db').Contact) => {
-      setSelectedContact(contact);
-      setShowNewDiscussion(false);
-    },
-    []
-  );
+  const handleSelectRecipient = useCallback((contact: Contact) => {
+    setSelectedContact(contact);
+    setShowNewDiscussion(false);
+  }, []);
 
   const handleNewDiscussionCreated = useCallback(() => {
     // Reload discussion threads and contacts when a new discussion is created or message is sent
@@ -273,13 +298,10 @@ const DiscussionList: React.FC = () => {
     setShowNewContact(false);
   }, []);
 
-  const handleCreatedNewContact = useCallback(
-    (_contact: import('../db').Contact) => {
-      setShowNewContact(false);
-      // After creating, return to selector; optionally auto-select the new contact
-    },
-    []
-  );
+  const handleCreatedNewContact = useCallback((_contact: Contact) => {
+    setShowNewContact(false);
+    // After creating, return to selector; optionally auto-select the new contact
+  }, []);
 
   // Show loading state
   if (appState === 'loading' || isLoading) {
@@ -488,6 +510,13 @@ const DiscussionList: React.FC = () => {
                 className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
               >
                 Reset All Accounts (wipe local storage)
+              </button>
+              <br />
+              <button
+                onClick={handleSimulateIncomingDiscussion}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+              >
+                Simulate Incoming Discussion (test)
               </button>
             </div>
           </div>

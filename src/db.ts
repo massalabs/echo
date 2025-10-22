@@ -98,6 +98,8 @@ export interface Discussion {
   nextPublicKey: Uint8Array; // The next Kyber public key
   nextPrivateKey: Uint8Array; // The next Kyber private key
   version: number;
+  discussionKey: string; // Key for accessing messages in the key-value store
+  lastSyncTimestamp?: Date; // Last time messages were synced from protocol
   createdAt: Date;
   updatedAt: Date;
 }
@@ -150,7 +152,7 @@ export class EchoDatabase extends Dexie {
       userProfile: 'userId, username, status, lastSeen',
       settings: '++id, key, updatedAt',
       discussions:
-        '++id, contactUserId, direction, status, version, createdAt, updatedAt',
+        '++id, contactUserId, direction, status, version, discussionKey, lastSyncTimestamp, createdAt, updatedAt',
       discussionKeys: '++id, discussionId, isActive, createdAt',
       discussionMessages:
         '++id, discussionId, messageType, direction, status, timestamp',
@@ -318,6 +320,49 @@ export class EchoDatabase extends Dexie {
     await this.settings.put({
       key,
       value,
+      updatedAt: new Date(),
+    });
+  }
+
+  /**
+   * Get messages for a discussion since a specific timestamp
+   * @param discussionId - The discussion ID
+   * @param timestamp - The timestamp to filter from
+   * @returns Array of messages newer than the timestamp
+   */
+  async getMessagesSince(
+    discussionId: number,
+    timestamp: Date
+  ): Promise<DiscussionMessage[]> {
+    return await this.discussionMessages
+      .where('discussionId')
+      .equals(discussionId)
+      .filter(msg => msg.timestamp > timestamp)
+      .toArray()
+      .then(messages =>
+        messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+      );
+  }
+
+  /**
+   * Get all active discussions with their sync status
+   * @returns Array of active discussions
+   */
+  async getActiveDiscussions(): Promise<Discussion[]> {
+    return await this.discussions.where('status').equals('active').toArray();
+  }
+
+  /**
+   * Update the last sync timestamp for a discussion
+   * @param discussionId - The discussion ID
+   * @param timestamp - The sync timestamp
+   */
+  async updateLastSyncTimestamp(
+    discussionId: number,
+    timestamp: Date
+  ): Promise<void> {
+    await this.discussions.update(discussionId, {
+      lastSyncTimestamp: timestamp,
       updatedAt: new Date(),
     });
   }

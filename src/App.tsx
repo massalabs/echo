@@ -8,6 +8,7 @@ import PWABadge from './PWABadge.tsx';
 import DebugOverlay from './components/DebugOverlay';
 import { addDebugLog } from './components/debugLogs';
 import AccountImport from './components/AccountImport';
+import { backgroundSyncService } from './services/backgroundSync';
 import './App.css';
 
 const AppContent: React.FC = () => {
@@ -49,11 +50,43 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     loadProfile();
+
+    // Initialize background sync service
+    backgroundSyncService.initialize().catch(error => {
+      console.error('Failed to initialize background sync:', error);
+    });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
+  // Trigger message sync when user logs in (when userProfile is available)
+  useEffect(() => {
+    if (userProfile) {
+      console.log('User logged in, triggering message sync');
+      backgroundSyncService.triggerManualSync().catch(error => {
+        console.error('Failed to sync messages on login:', error);
+      });
+    }
+  }, [userProfile]);
+
+  // Sync messages when app becomes visible (user returns to app)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && userProfile) {
+        console.log('App became visible, triggering message sync');
+        backgroundSyncService.triggerManualSync().catch(error => {
+          console.error('Failed to sync messages on visibility change:', error);
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [userProfile]);
+
   if (isLoading) {
-    addDebugLog('Rendering loading screen');
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -66,21 +99,16 @@ const AppContent: React.FC = () => {
 
   // If we have a user profile, always show MainApp (user is authenticated)
   if (userProfile) {
-    addDebugLog('Rendering DiscussionList - user profile exists');
     return <DiscussionList />;
   }
 
   // If not initialized and no profile, show onboarding
   if (!isInitialized) {
-    addDebugLog('Rendering OnboardingFlow - not initialized');
     if (showImport) {
       return (
         <AccountImport
           onBack={() => setShowImport(false)}
           onComplete={() => {
-            addDebugLog(
-              'AccountImport completed - setting isInitialized to true'
-            );
             useAccountStore.setState({ isInitialized: true });
           }}
         />
@@ -90,9 +118,6 @@ const AppContent: React.FC = () => {
       <OnboardingFlow
         onComplete={() => {
           // When onboarding is complete, set isInitialized to true to trigger DiscussionList
-          addDebugLog(
-            'OnboardingFlow completed - setting isInitialized to true'
-          );
           useAccountStore.setState({ isInitialized: true });
         }}
         onImportMnemonic={() => setShowImport(true)}
@@ -100,8 +125,6 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If initialized but no profile, show DiscussionList (it will handle showing account creation)
-  addDebugLog('Rendering DiscussionList - initialized but no profile');
   return <DiscussionList />;
 };
 
