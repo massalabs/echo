@@ -10,6 +10,7 @@ import TokenSelect from './TokenSelect';
 import { useSend } from '../../hooks/temp/useSend';
 import { formatAmount } from '../../hooks/temp/parseAmount';
 import toast from 'react-hot-toast';
+import { parseMas, parseUnits } from '@massalabs/massa-web3';
 
 interface SendModalProps {
   isOpen: boolean;
@@ -51,9 +52,9 @@ const SendModal: React.FC<SendModalProps> = ({
 
   // Calculate amount in bigint for validation
   const amountBigInt = amount
-    ? BigInt(
-        Math.floor(parseFloat(amount) * 10 ** (selectedToken?.decimals || 9))
-      )
+    ? selectedToken.isNative
+      ? parseMas(amount)
+      : parseUnits(amount, selectedToken.decimals)
     : 0n;
 
   const resetModalState = useCallback(() => {
@@ -94,17 +95,19 @@ const SendModal: React.FC<SendModalProps> = ({
     }
   }, [feeConfig]);
 
+  const getFeeAmountAtomic = useCallback((): bigint => {
+    const feeAmount = getFeeAmount();
+    return parseMas(feeAmount.toString());
+  }, [getFeeAmount]);
+
   const handleMaxAmount = useCallback(() => {
     if (selectedToken) {
-      const feeAmount = getFeeAmount();
-      const feeInAtomic = BigInt(
-        Math.floor(feeAmount * 10 ** selectedToken.decimals)
-      );
+      const feeInAtomic = getFeeAmountAtomic();
       const maxAmount = availableBalance - feeInAtomic;
 
       setAmount(formatAmount(maxAmount, selectedToken.decimals).preview);
     }
-  }, [selectedToken, availableBalance, getFeeAmount]);
+  }, [selectedToken, availableBalance, getFeeAmountAtomic]);
 
   const validateForm = useCallback(() => {
     if (!recipient.trim()) {
@@ -137,9 +140,7 @@ const SendModal: React.FC<SendModalProps> = ({
 
     // Check if user has enough balance for amount + fees
     const feeAmount = getFeeAmount();
-    const feeInAtomic = BigInt(
-      Math.floor(feeAmount * 10 ** selectedToken.decimals)
-    );
+    const feeInAtomic = getFeeAmountAtomic();
     const totalRequired = amountBigInt + feeInAtomic;
 
     if (totalRequired > availableBalance) {
@@ -158,6 +159,7 @@ const SendModal: React.FC<SendModalProps> = ({
     amountBigInt,
     availableBalance,
     getFeeAmount,
+    getFeeAmountAtomic,
     isValidRecipient,
   ]);
 
@@ -179,9 +181,9 @@ const SendModal: React.FC<SendModalProps> = ({
 
     try {
       // Convert amount to bigint
-      const amountBigInt = BigInt(
-        Math.floor(parseFloat(amount) * 10 ** selectedToken.decimals)
-      );
+      const amountBigInt = selectedToken.isNative
+        ? parseMas(amount)
+        : parseUnits(amount, selectedToken.decimals);
 
       // Create asset object for ui-kit
       const asset = {
@@ -403,8 +405,7 @@ const SendModal: React.FC<SendModalProps> = ({
         estimatedFee={`${getFeeAmount()} ${selectedToken?.ticker || 'MAS'}`}
         totalCost={`${
           formatAmount(
-            amountBigInt +
-              BigInt(getFeeAmount() * 10 ** selectedToken.decimals),
+            amountBigInt + getFeeAmountAtomic(),
             selectedToken.decimals
           ).preview
         } ${selectedToken.ticker}`}

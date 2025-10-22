@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { MRC20, Provider } from '@massalabs/massa-web3';
+import { MRC20, Provider, formatUnits } from '@massalabs/massa-web3';
 import { useAccountStore } from './accountStore';
 import { priceFetcher } from '../utils/fetchPrice';
 import { createSelectors } from './utils/createSelectors';
@@ -103,7 +103,7 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
 
       const updatedTokens = tokenWithBalances.map(token => {
         const priceUsd = prices[token.ticker.toUpperCase()];
-        const balance = Number(token.balance / 10n ** BigInt(token.decimals));
+        const balance = Number(formatUnits(token.balance, token.decimals));
         const valueUsd = priceUsd != null ? balance * priceUsd : null;
 
         return {
@@ -151,7 +151,7 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
       // Fetch only this token price
       const prices = await priceFetcher.getUsdPrices([token.ticker]);
       const priceUsd = prices[token.ticker.toUpperCase()];
-      const balanceWhole = Number(balance / 10n ** BigInt(token.decimals));
+      const balanceWhole = Number(formatUnits(balance, token.decimals));
       const valueUsd = priceUsd != null ? balanceWhole * priceUsd : null;
 
       const updated: TokenState = { ...token, balance, priceUsd, valueUsd };
