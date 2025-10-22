@@ -7,8 +7,8 @@ import ConfirmTransactionDialog from './ConfirmTransactionDialog';
 import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
 import { useAccountStore } from '../../stores/accountStore';
 import TokenSelect from './TokenSelect';
-import { useSend } from '../../temp/useSend';
-import { formatAmount } from '../../temp/parseAmount';
+import { useSend } from '../../hooks/temp/useSend';
+import { formatAmount } from '../../hooks/temp/parseAmount';
 import toast from 'react-hot-toast';
 
 interface SendModalProps {
@@ -143,7 +143,7 @@ const SendModal: React.FC<SendModalProps> = ({
     const totalRequired = amountBigInt + feeInAtomic;
 
     if (totalRequired > availableBalance) {
-      const errorMsg = `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals)} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`;
+      const errorMsg = `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals).preview} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`;
       setError(errorMsg);
       toast.error(errorMsg);
       return false;

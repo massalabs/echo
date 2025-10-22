@@ -13,7 +13,7 @@ interface UseHandleOperationResult {
   handleOperation: (
     operation: Operation,
     options?: HandleOperationOptions
-  ) => Promise<void>;
+  ) => Promise<OperationError | null>;
   reset: () => void;
 }
 
@@ -46,12 +46,11 @@ export function useHandleOperation(): UseHandleOperationResult {
     async (
       operation: Operation,
       options: HandleOperationOptions = {}
-    ): Promise<void> => {
+    ): Promise<OperationError | null> => {
       const { final = false } = options;
 
       if (state.isPending) {
-        // TODO: How to handle this case? throw error ?
-        return;
+        throw new Error('An operation is already pending');
       }
 
       reset();
@@ -70,7 +69,7 @@ export function useHandleOperation(): UseHandleOperationResult {
         if (status === OperationStatus.NotFound) {
           const error = { message: 'Operation not found', status };
           setState(prev => ({ ...prev, isPending: false, error }));
-          return;
+          return error;
         }
 
         if (
@@ -82,19 +81,22 @@ export function useHandleOperation(): UseHandleOperationResult {
             status,
           };
           setState(prev => ({ ...prev, isPending: false, error }));
-          return;
+          return error;
         }
 
         reset();
+        return null;
       } catch (err) {
         const error = {
           message: err instanceof Error ? err.message : 'Unexpected error',
         };
 
         setState(prev => ({ ...prev, isPending: false, error }));
+        return error;
       }
     },
-    [reset, state.isPending]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reset]
   );
 
   return useMemo(

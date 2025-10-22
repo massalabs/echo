@@ -10,17 +10,15 @@ export interface AllowanceParams {
   final: boolean;
 }
 
+export type AllowanceOperationType = 'increase' | 'decrease';
+
 export interface UseAllowanceOptions {
   provider: Provider | null;
 }
 
 export function useAllowance(options: UseAllowanceOptions) {
   const { provider } = options;
-  const {
-    handleOperation,
-    error: operationError,
-    operation,
-  } = useHandleOperation();
+  const { handleOperation, operation } = useHandleOperation();
 
   const [state, setState] = useState<{
     isPending: boolean;
@@ -34,12 +32,14 @@ export function useAllowance(options: UseAllowanceOptions) {
    * Executes an allowance operation (increase or decrease)
    * @param allowanceFn - The function to modify the allowance
    * @param params - Parameters for the allowance operation
+   * @param operationType - The type of operation being performed
    * @returns void
    */
   const execute = useCallback(
     async (
       allowanceFn: () => Promise<Operation>,
-      params: AllowanceParams
+      params: AllowanceParams,
+      operationType: AllowanceOperationType
     ): Promise<void> => {
       const { spender, amount, token, final } = params;
       setState(prev => ({ ...prev, isPending: true }));
@@ -72,10 +72,10 @@ export function useAllowance(options: UseAllowanceOptions) {
       }
 
       try {
-        await handleOperation(await allowanceFn(), { final });
+        const error = await handleOperation(await allowanceFn(), { final });
 
-        if (operationError) {
-          setState(prev => ({ ...prev, error: operationError }));
+        if (error) {
+          setState(prev => ({ ...prev, error }));
           return;
         }
 
@@ -84,14 +84,14 @@ export function useAllowance(options: UseAllowanceOptions) {
         setState(prev => ({
           ...prev,
           error: {
-            message: `Failed to ${params.amount > 0n ? 'increase' : 'decrease'} allowance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            message: `Failed to ${operationType} allowance: ${error instanceof Error ? error.message : 'Unknown error'}`,
           },
         }));
       } finally {
         setState(prev => ({ ...prev, isPending: false }));
       }
     },
-    [handleOperation, operationError]
+    [handleOperation]
   );
 
   /**
@@ -107,7 +107,11 @@ export function useAllowance(options: UseAllowanceOptions) {
       if (!token.address) throw new Error('Token address required');
 
       const mrc20 = new MRC20(provider, token.address);
-      await execute(() => mrc20.increaseAllowance(spender, amount), params);
+      await execute(
+        () => mrc20.increaseAllowance(spender, amount),
+        params,
+        'increase'
+      );
     },
     [provider, execute]
   );
@@ -125,7 +129,11 @@ export function useAllowance(options: UseAllowanceOptions) {
       if (!token.address) throw new Error('Token address required');
 
       const mrc20 = new MRC20(provider, token.address);
-      await execute(() => mrc20.decreaseAllowance(spender, amount), params);
+      await execute(
+        () => mrc20.decreaseAllowance(spender, amount),
+        params,
+        'decrease'
+      );
     },
     [provider, execute]
   );

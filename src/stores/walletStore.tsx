@@ -75,9 +75,11 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
             const tokenWrapper = new MRC20(provider, token.address);
             balance = await tokenWrapper.balanceOf(provider.address);
           }
-        } catch (_) {
+        } catch (error) {
           // TODO: Display error for User ?
-          addDebugLog(`Error getting balance for ${token.name}`);
+          addDebugLog(
+            `Error getting balance for ${token.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
         }
         return { ...token, balance };
       })

@@ -16,11 +16,7 @@ export interface UseSendOptions {
 
 export function useSend(options: UseSendOptions) {
   const { provider } = options;
-  const {
-    handleOperation,
-    error: operationError,
-    operation,
-  } = useHandleOperation();
+  const { handleOperation, operation } = useHandleOperation();
 
   const [state, setState] = useState<{
     isPending: boolean;
@@ -49,7 +45,11 @@ export function useSend(options: UseSendOptions) {
       try {
         Address.fromString(recipient);
       } catch {
-        setState(prev => ({ ...prev, isPending: false, error: { message: 'Invalid address' } }));
+        setState(prev => ({
+          ...prev,
+          isPending: false,
+          error: { message: 'Invalid address' },
+        }));
         return;
       }
 
@@ -65,12 +65,12 @@ export function useSend(options: UseSendOptions) {
       try {
         const op = await sendFn();
 
-        await handleOperation(op, {
+        const error = await handleOperation(op, {
           final,
         });
 
-        if (operationError) {
-          setState(prev => ({ ...prev, error: operationError }));
+        if (error) {
+          setState(prev => ({ ...prev, error }));
           return;
         }
 
@@ -79,7 +79,7 @@ export function useSend(options: UseSendOptions) {
         setState(prev => ({ ...prev, isPending: false }));
       }
     },
-    [handleOperation, operationError]
+    [handleOperation]
   );
 
   /**
