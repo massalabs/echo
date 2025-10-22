@@ -9,7 +9,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import TokenSelect from './TokenSelect';
 import { useSend } from '../../temp/useSend';
 import { formatAmount } from '../../temp/parseAmount';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 interface SendModalProps {
   isOpen: boolean;
@@ -56,17 +56,22 @@ const SendModal: React.FC<SendModalProps> = ({
       )
     : 0n;
 
+  const resetModalState = useCallback(() => {
+    setShowConfirmation(false);
+    setShowFeeConfig(false);
+    setRecipient('');
+    setAmount('');
+    setError(null);
+    setIsConfirming(false);
+    setIsValidRecipient(null);
+  }, []);
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setRecipient('');
-      setAmount('');
-      setError(null);
-      setIsConfirming(false);
-      setShowConfirmation(false);
-      setIsValidRecipient(null);
+      resetModalState();
     }
-  }, [isOpen]);
+  }, [isOpen, resetModalState]);
 
   // Handle address validation change
   const handleAddressValidationChange = useCallback(
@@ -165,14 +170,14 @@ const SendModal: React.FC<SendModalProps> = ({
     setIsConfirming(true);
     setError(null);
 
-    // Show loading toast
-    const loadingToast = toast.loading('Processing transaction...');
+    // Close all modals immediately - don't wait for transaction
+    resetModalState();
+    onSuccess();
+    onClose();
+
+    let loadingToast: string | null = null;
 
     try {
-      if (!selectedToken) {
-        throw new Error('No token selected');
-      }
-
       // Convert amount to bigint
       const amountBigInt = BigInt(
         Math.floor(parseFloat(amount) * 10 ** selectedToken.decimals)
@@ -187,7 +192,10 @@ const SendModal: React.FC<SendModalProps> = ({
         isNative: selectedToken.isNative,
       };
 
-      // Use ui-kit sendAsset function (handles validation and error handling)
+      loadingToast = toast.loading('Processing transaction...', {
+        duration: Infinity,
+      });
+
       await sendAsset({
         recipient: recipient.trim(),
         amount: amountBigInt,
@@ -195,37 +203,32 @@ const SendModal: React.FC<SendModalProps> = ({
         final: false,
       });
 
-      // Refresh balances after successful transaction
       await refreshBalances();
 
-      // Dismiss loading toast and show success
-      toast.dismiss(loadingToast);
+      // Dismiss loading toast and show error
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+
       toast.success(
         `Successfully sent ${formatAmount(amountBigInt, selectedToken.decimals).preview} ${selectedToken.ticker} to ${recipient.slice(0, 6)}...${recipient.slice(-4)}`
       );
-
-      onSuccess();
-      onClose();
     } catch (err) {
-      console.error('Transaction failed:', err);
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
       const errorMessage =
         err instanceof Error ? err.message : 'Transaction failed';
-
-      // Dismiss loading toast and show error
-      toast.dismiss(loadingToast);
       toast.error(`Transaction failed: ${errorMessage}`);
-
-      setError(errorMessage);
-    } finally {
-      setIsConfirming(false);
     }
   }, [
-    recipient,
-    amount,
-    selectedToken,
-    sendAsset,
+    resetModalState,
     onSuccess,
     onClose,
+    selectedToken,
+    amount,
+    sendAsset,
+    recipient,
     refreshBalances,
   ]);
 
@@ -414,32 +417,6 @@ const SendModal: React.FC<SendModalProps> = ({
         onClose={() => setShowFeeConfig(false)}
         onConfirm={handleFeeConfigChange}
         currentConfig={feeConfig}
-      />
-
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#4ade80',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
       />
     </BaseModal>
   );

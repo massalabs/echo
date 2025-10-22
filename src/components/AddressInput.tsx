@@ -49,7 +49,9 @@ const AddressInput: React.FC<AddressInputProps> = ({
       : isValid === false
         ? 'border-red-500 focus:ring-red-500'
         : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
-  } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`;
+  } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${
+    isValid !== null ? 'pr-10' : ''
+  } ${className}`;
 
   return (
     <div>
