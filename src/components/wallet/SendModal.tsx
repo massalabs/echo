@@ -102,13 +102,12 @@ const SendModal: React.FC<SendModalProps> = ({
 
   const handleMaxAmount = useCallback(() => {
     if (selectedToken) {
-      let maxAmount: bigint;
-      if (selectedToken.isNative) {
-        const feeInAtomic = getFeeAmountAtomic();
-        maxAmount = availableBalance - feeInAtomic;
-      } else {
-        maxAmount = availableBalance;
-      }
+      // For native tokens (MAS), subtract the fee from the balance
+      // For non-native tokens, use the full balance since fees are paid in MAS
+      const maxAmount = selectedToken.isNative
+        ? availableBalance - getFeeAmountAtomic()
+        : availableBalance;
+
       setAmount(formatAmount(maxAmount, selectedToken.decimals).preview);
     }
   }, [selectedToken, availableBalance, getFeeAmountAtomic]);
@@ -142,16 +141,28 @@ const SendModal: React.FC<SendModalProps> = ({
       return false;
     }
 
-    // Check if user has enough balance for amount + fees
-    const feeAmount = getFeeAmount();
-    const feeInAtomic = getFeeAmountAtomic();
-    const totalRequired = amountBigInt + feeInAtomic;
+    // Check if user has enough balance
+    // For native tokens (MAS), check amount + fees
+    // For non-native tokens, only check the amount (fees are paid in MAS)
+    if (selectedToken.isNative) {
+      const feeAmount = getFeeAmount();
+      const feeInAtomic = getFeeAmountAtomic();
+      const totalRequired = amountBigInt + feeInAtomic;
 
-    if (totalRequired > availableBalance) {
-      const errorMsg = `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals).preview} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`;
-      setError(errorMsg);
-      toast.error(errorMsg);
-      return false;
+      if (totalRequired > availableBalance) {
+        const errorMsg = `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals).preview} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`;
+        setError(errorMsg);
+        toast.error(errorMsg);
+        return false;
+      }
+    } else {
+      // For non-native tokens, only check if amount is available
+      if (amountBigInt > availableBalance) {
+        const errorMsg = `Insufficient balance. Need ${formatAmount(amountBigInt, selectedToken.decimals).preview} ${selectedToken.ticker}`;
+        setError(errorMsg);
+        toast.error(errorMsg);
+        return false;
+      }
     }
 
     setError(null);
@@ -363,10 +374,17 @@ const SendModal: React.FC<SendModalProps> = ({
                 const masToken = tokens.find(token => token.ticker === 'MAS');
                 const masPriceUsd = masToken?.priceUsd ?? 0;
                 const feeAmountUsd = getFeeAmount() * masPriceUsd;
-                return (
-                  parseFloat(amount) * (selectedToken.priceUsd ?? 0) +
-                  feeAmountUsd
-                ).toFixed(2);
+
+                // For native tokens, include the fee in USD calculation
+                // For non-native tokens, only show the token amount in USD
+                return selectedToken.isNative
+                  ? (
+                      parseFloat(amount) * (selectedToken.priceUsd ?? 0) +
+                      feeAmountUsd
+                    ).toFixed(2)
+                  : (
+                      parseFloat(amount) * (selectedToken.priceUsd ?? 0)
+                    ).toFixed(2);
               })()}
             </span>
           )}
@@ -411,13 +429,16 @@ const SendModal: React.FC<SendModalProps> = ({
         amount={amount}
         tokenName={selectedToken?.name || ''}
         tokenTicker={selectedToken?.ticker || ''}
-        estimatedFee={`${getFeeAmount()} ${selectedToken?.ticker || 'MAS'}`}
+        estimatedFee={`${getFeeAmount()} MAS`}
         totalCost={`${
-          formatAmount(
-            amountBigInt + getFeeAmountAtomic(),
-            selectedToken.decimals
-          ).preview
-        } ${selectedToken.ticker}`}
+          selectedToken.isNative
+            ? formatAmount(
+                amountBigInt + getFeeAmountAtomic(),
+                selectedToken.decimals
+              ).preview + ` ${selectedToken.ticker}`
+            : formatAmount(amountBigInt, selectedToken.decimals).preview +
+              ` ${selectedToken.ticker} + ${getFeeAmount()} MAS`
+        }`}
         isLoading={isConfirming}
       />
 
