@@ -5,7 +5,6 @@ import OnboardingFlow from './components/OnboardingFlow';
 import MainApp from './components/MainApp';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWABadge from './PWABadge.tsx';
-import { WasmTestComponent } from './wasm/WasmTestComponent';
 import './App.css';
 
 const AppContent: React.FC = () => {
@@ -40,8 +39,6 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
-
-  return <WasmTestComponent />;
 
   if (isLoading) {
     return (

@@ -13,13 +13,13 @@ A minimal Rust library providing cryptographically secure random number generati
 
 ## Platform Support
 
-| Platform | Random Source |
-|----------|--------------|
-| Linux/Android | `getrandom()` system call |
-| macOS/iOS | `getentropy()` or `SecRandomCopyBytes()` |
-| Windows | `BCryptGenRandom()` |
+| Platform       | Random Source                               |
+| -------------- | ------------------------------------------- |
+| Linux/Android  | `getrandom()` system call                   |
+| macOS/iOS      | `getentropy()` or `SecRandomCopyBytes()`    |
+| Windows        | `BCryptGenRandom()`                         |
 | WASM (Browser) | Web Crypto API (`crypto.getRandomValues()`) |
-| WASM (Node.js) | Node.js crypto module |
+| WASM (Node.js) | Node.js crypto module                       |
 
 ## Usage
 
@@ -98,6 +98,7 @@ This crate relies on the operating system or runtime environment to provide cryp
 ### No Predictability
 
 The random bytes generated are computationally infeasible to predict, making them suitable for:
+
 - Cryptographic keys
 - Initialization vectors (IVs)
 - Nonces
@@ -136,6 +137,7 @@ cargo test
 ```
 
 The tests verify:
+
 - Basic functionality
 - Non-determinism (different calls produce different results)
 - Distribution properties
@@ -163,4 +165,3 @@ This crate follows the workspace license configuration.
 ## Contributing
 
 This crate is designed to be minimal and focused. It provides a single, simple interface for cryptographically secure random number generation. Additional features should be carefully considered to maintain simplicity and security.
-

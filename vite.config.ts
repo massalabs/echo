@@ -24,15 +24,15 @@ export default defineConfig({
       generateBundle() {
         // Copy WASM file to build output
         const wasmSrc = resolve(process.cwd(), 'wasm/build/echo_wasm_bg.wasm');
-        
+
         if (existsSync(wasmSrc)) {
           this.emitFile({
             type: 'asset',
             fileName: 'echo_wasm_bg.wasm',
-            source: readFileSync(wasmSrc)
+            source: readFileSync(wasmSrc),
           });
         }
-      }
+      },
     },
     ViteImageOptimizer({
       // SVG optimization with SVGO
@@ -103,8 +103,8 @@ export default defineConfig({
   assetsInclude: ['**/*.wasm'],
   server: {
     fs: {
-      allow: ['..']
-    }
+      allow: ['..'],
+    },
   },
   build: {
     target: 'esnext',
