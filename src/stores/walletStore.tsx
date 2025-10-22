@@ -145,7 +145,7 @@ const useWalletStoreBase = create<WalletStoreState>((set, get) => ({
           balance = await tokenWrapper.balanceOf(provider.address);
         }
       } catch (e) {
-        console.error(`Error getting balance for ${token.name}:`, e);
+        addDebugLog(`Error getting balance for ${token.name}: ${e}`);
       }
 
       // Fetch only this token price
