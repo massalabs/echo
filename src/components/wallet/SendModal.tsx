@@ -205,7 +205,7 @@ const SendModal: React.FC<SendModalProps> = ({
 
       await refreshBalances();
 
-      // Dismiss loading toast and show error
+      // Dismiss loading toast and show success
       if (loadingToast) {
         toast.dismiss(loadingToast);
       }
