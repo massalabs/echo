@@ -25,7 +25,7 @@ export const WasmTestComponent: React.FC = () => {
       setTestResult({
         success: false,
         message: `Test failed: ${error}`,
-        details: { error: String(error) }
+        details: { error: String(error) },
       });
     } finally {
       setIsLoading(false);
@@ -45,7 +45,7 @@ export const WasmTestComponent: React.FC = () => {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">WebAssembly Integration Test</h2>
-      
+
       <div className="space-y-4">
         <div>
           <button
@@ -67,8 +67,12 @@ export const WasmTestComponent: React.FC = () => {
         </div>
 
         {testResult && (
-          <div className={`p-4 rounded ${testResult.success ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'} border`}>
-            <h3 className="font-bold">{testResult.success ? '✅ Test Passed' : '❌ Test Failed'}</h3>
+          <div
+            className={`p-4 rounded ${testResult.success ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'} border`}
+          >
+            <h3 className="font-bold">
+              {testResult.success ? '✅ Test Passed' : '❌ Test Failed'}
+            </h3>
             <p className="text-sm">{testResult.message}</p>
             {testResult.details && (
               <pre className="text-xs mt-2 bg-gray-100 p-2 rounded overflow-auto">
@@ -79,8 +83,14 @@ export const WasmTestComponent: React.FC = () => {
         )}
 
         {quickTestResult !== null && (
-          <div className={`p-4 rounded ${quickTestResult ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'} border`}>
-            <h3 className="font-bold">{quickTestResult ? '✅ Quick Test Passed' : '❌ Quick Test Failed'}</h3>
+          <div
+            className={`p-4 rounded ${quickTestResult ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'} border`}
+          >
+            <h3 className="font-bold">
+              {quickTestResult
+                ? '✅ Quick Test Passed'
+                : '❌ Quick Test Failed'}
+            </h3>
             <p className="text-sm">Quick WASM functionality test</p>
           </div>
         )}
@@ -88,4 +98,3 @@ export const WasmTestComponent: React.FC = () => {
     </div>
   );
 };
-

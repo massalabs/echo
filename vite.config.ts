@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -17,6 +19,21 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    {
+      name: 'copy-wasm-files',
+      generateBundle() {
+        // Copy WASM file to build output
+        const wasmSrc = resolve(process.cwd(), 'wasm/build/echo_wasm_bg.wasm');
+        
+        if (existsSync(wasmSrc)) {
+          this.emitFile({
+            type: 'asset',
+            fileName: 'echo_wasm_bg.wasm',
+            source: readFileSync(wasmSrc)
+          });
+        }
+      }
+    },
     ViteImageOptimizer({
       // SVG optimization with SVGO
       svg: {
@@ -72,7 +89,7 @@ export default defineConfig({
       },
 
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm}'],
       },
 
       devOptions: {
@@ -83,4 +100,13 @@ export default defineConfig({
       },
     }),
   ],
+  assetsInclude: ['**/*.wasm'],
+  server: {
+    fs: {
+      allow: ['..']
+    }
+  },
+  build: {
+    target: 'esnext',
+  },
 });
