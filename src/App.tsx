@@ -9,6 +9,7 @@ import DebugOverlay from './components/DebugOverlay';
 import { addDebugLog } from './components/debugLogs';
 import AccountImport from './components/AccountImport';
 import { backgroundSyncService } from './services/backgroundSync';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 const AppContent: React.FC = () => {
@@ -137,6 +138,31 @@ function App() {
       <div className="hidden">
         <PWABadge />
       </div>
+      {/* Toast Notifications - App level */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
     </ErrorBoundary>
   );
 }

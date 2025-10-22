@@ -6,7 +6,7 @@ import { db } from '../db';
 import { formatRelativeTime } from '../utils/timeUtils';
 import appLogo from '../assets/echo_face.svg';
 import Settings from './Settings';
-import Wallet from './Wallet';
+import Wallet from '../pages/Wallet';
 import BottomNavigation from './BottomNavigation';
 import WelcomeBack from './WelcomeBack';
 import AccountCreation from './AccountCreation';

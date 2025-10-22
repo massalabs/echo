@@ -1,11 +1,14 @@
 import React, { useCallback, useState } from 'react';
 import { useAccountStore } from '../stores/accountStore';
-import { formatBalance, useWalletStore } from '../stores/walletStore';
-import BottomNavigation from './BottomNavigation';
+import { useWalletStore } from '../stores/walletStore';
+import BottomNavigation from '../components/BottomNavigation';
+import SendModal from '../components/wallet/SendModal';
+import ReceiveModal from '../components/wallet/ReceiveModal';
 import sendIcon from '../assets/icons/send.svg';
 import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
 import { formatMassaAddress } from '../utils/addressUtils';
+import { formatAmount } from '../hooks/temp/parseAmount';
 
 interface WalletProps {
   onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
@@ -19,6 +22,8 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
   const totalValueUsd = tokens.reduce((sum, t) => sum + (t.valueUsd ?? 0), 0);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -28,6 +33,10 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
       setIsRefreshing(false);
     }
   }, [refreshBalances]);
+
+  const handleSendSuccess = useCallback(() => {
+    setIsSendModalOpen(false);
+  }, []);
 
   const fullAddress = userProfile?.wallet?.address ?? '';
   const displayAddress = formatMassaAddress(fullAddress);
@@ -90,34 +99,45 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
         <div className="px-6 py-4">
           <div className="flex justify-center gap-6">
             {/* Send Button */}
-            <div className="flex flex-col items-center">
+            <button
+              onClick={() => setIsSendModalOpen(true)}
+              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+            >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={sendIcon} alt="Send" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 send
               </span>
-            </div>
+            </button>
 
             {/* Receive Button */}
-            <div className="flex flex-col items-center">
+            <button
+              onClick={() => setIsReceiveModalOpen(true)}
+              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+            >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={receiveIcon} alt="Receive" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 receive
               </span>
-            </div>
+            </button>
 
             {/* Swap Button */}
-            <div className="flex flex-col items-center">
+            <button
+              onClick={() =>
+                alert('Swap functionality will be implemented soon!')
+              }
+              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+            >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
                 <img src={swapIcon} alt="Swap" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 swap
               </span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -144,7 +164,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
                     <div className="text-sm font-medium text-[#b2b2b2] dark:text-gray-400">
                       {isLoading
                         ? 'Loading...'
-                        : `${formatBalance(token.balance)} ${token.ticker}`}
+                        : `${formatAmount(token.balance ?? 0n, token.decimals).preview} ${token.ticker}`}
                     </div>
                   </div>
 
@@ -170,6 +190,19 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
         {/* Bottom Navigation */}
         <BottomNavigation activeTab="wallet" onTabChange={onTabChange} />
       </div>
+
+      {/* Send Modal */}
+      <SendModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onSuccess={handleSendSuccess}
+      />
+
+      {/* Receive Modal */}
+      <ReceiveModal
+        isOpen={isReceiveModalOpen}
+        onClose={() => setIsReceiveModalOpen(false)}
+      />
     </div>
   );
 };
