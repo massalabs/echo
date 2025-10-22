@@ -49,13 +49,14 @@ export function useSend(options: UseSendOptions) {
       try {
         Address.fromString(recipient);
       } catch {
-        setState(prev => ({ ...prev, error: { message: 'Invalid address' } }));
+        setState(prev => ({ ...prev, isPending: false, error: { message: 'Invalid address' } }));
         return;
       }
 
       if (amount > asset.balance) {
         setState(prev => ({
           ...prev,
+          isPending: false,
           error: { message: 'Insufficient balance' },
         }));
         return;
