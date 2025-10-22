@@ -186,7 +186,7 @@ function Select<T>({
         <div className="absolute top-full left-0 right-0 mt-1 z-10 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 shadow-lg max-h-80 flex flex-col">
           {/* Search Input */}
           {showSearch && (
-            <div className="p-3 border-b border-gray-200 dark:border-gray-600 flex-shrink-0">
+            <div className="p-3 border-b border-gray-200 dark:border-gray-600 shrink-0">
               <input
                 type="text"
                 placeholder={searchPlaceholder}
