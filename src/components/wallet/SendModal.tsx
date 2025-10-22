@@ -6,8 +6,10 @@ import BaseModal from '../ui/BaseModal';
 import ConfirmTransactionDialog from './ConfirmTransactionDialog';
 import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
 import { useAccountStore } from '../../stores/accountStore';
-import { formatAmount, useSend } from '@massalabs/react-ui-kit';
 import TokenSelect from './TokenSelect';
+import { useSend } from '../../temp/useSend';
+import { formatAmount } from '../../temp/parseAmount';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface SendModalProps {
   isOpen: boolean;
@@ -40,11 +42,12 @@ const SendModal: React.FC<SendModalProps> = ({
   const availableBalance = selectedToken?.balance || 0n;
 
   // Use the ui-kit send hook
-  const { sendAsset, isProcessing } = useSend({
-    // TODO - Fix when ui-kit new version
-    // @ts-expect-error - provider type mismatch
-    provider: provider,
-  });
+  const {
+    sendAsset,
+    isPending,
+    error: _sendError,
+    operation: _operation,
+  } = useSend({ provider });
 
   // Calculate amount in bigint for validation
   const amountBigInt = amount
@@ -100,22 +103,30 @@ const SendModal: React.FC<SendModalProps> = ({
 
   const validateForm = useCallback(() => {
     if (!recipient.trim()) {
-      setError('Recipient address is required');
+      const errorMsg = 'Recipient address is required';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return false;
     }
 
     if (isValidRecipient === false) {
-      setError('Invalid recipient address format');
+      const errorMsg = 'Invalid recipient address format';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return false;
     }
 
     if (!amount || parseFloat(amount) <= 0) {
-      setError('Amount must be greater than 0');
+      const errorMsg = 'Amount must be greater than 0';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return false;
     }
 
     if (!selectedToken) {
-      setError('Please select a token');
+      const errorMsg = 'Please select a token';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return false;
     }
 
@@ -127,9 +138,9 @@ const SendModal: React.FC<SendModalProps> = ({
     const totalRequired = amountBigInt + feeInAtomic;
 
     if (totalRequired > availableBalance) {
-      setError(
-        `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals)} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`
-      );
+      const errorMsg = `Insufficient balance. Need ${formatAmount(totalRequired, selectedToken.decimals)} ${selectedToken.ticker} (including ${feeAmount} ${selectedToken.ticker} fee)`;
+      setError(errorMsg);
+      toast.error(errorMsg);
       return false;
     }
 
@@ -153,6 +164,9 @@ const SendModal: React.FC<SendModalProps> = ({
   const handleConfirmTransaction = useCallback(async () => {
     setIsConfirming(true);
     setError(null);
+
+    // Show loading toast
+    const loadingToast = toast.loading('Processing transaction...');
 
     try {
       if (!selectedToken) {
@@ -178,16 +192,30 @@ const SendModal: React.FC<SendModalProps> = ({
         recipient: recipient.trim(),
         amount: amountBigInt,
         asset,
+        final: false,
       });
 
       // Refresh balances after successful transaction
       await refreshBalances();
 
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success(
+        `Successfully sent ${formatAmount(amountBigInt, selectedToken.decimals).preview} ${selectedToken.ticker} to ${recipient.slice(0, 6)}...${recipient.slice(-4)}`
+      );
+
       onSuccess();
       onClose();
     } catch (err) {
       console.error('Transaction failed:', err);
-      setError(err instanceof Error ? err.message : 'Transaction failed');
+      const errorMessage =
+        err instanceof Error ? err.message : 'Transaction failed';
+
+      // Dismiss loading toast and show error
+      toast.dismiss(loadingToast);
+      toast.error(`Transaction failed: ${errorMessage}`);
+
+      setError(errorMessage);
     } finally {
       setIsConfirming(false);
     }
@@ -319,7 +347,7 @@ const SendModal: React.FC<SendModalProps> = ({
             }{' '}
             {selectedToken?.ticker}
           </span>
-          {selectedToken?.valueUsd && amount && !isNaN(parseFloat(amount)) && (
+          {selectedToken?.priceUsd && amount && !isNaN(parseFloat(amount)) && (
             <span>
               ≈ $
               {(
@@ -350,13 +378,13 @@ const SendModal: React.FC<SendModalProps> = ({
             !amount ||
             isValidRecipient === false ||
             isConfirming ||
-            isProcessing
+            isPending
           }
-          loading={isConfirming || isProcessing}
+          loading={isConfirming || isPending}
           variant="primary"
           fullWidth
         >
-          {isProcessing ? 'Sending...' : 'Send'}
+          {isPending ? 'Sending...' : 'Send'}
         </Button>
       </div>
 
@@ -386,6 +414,32 @@ const SendModal: React.FC<SendModalProps> = ({
         onClose={() => setShowFeeConfig(false)}
         onConfirm={handleFeeConfigChange}
         currentConfig={feeConfig}
+      />
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
       />
     </BaseModal>
   );

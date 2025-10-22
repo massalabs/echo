@@ -1,14 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import { useAccountStore } from '../../stores/accountStore';
-import { useWalletStore } from '../../stores/walletStore';
-import BottomNavigation from '../BottomNavigation';
-import SendModal from './SendModal';
-import ReceiveModal from './ReceiveModal';
+import { useAccountStore } from '../stores/accountStore';
+import { useWalletStore } from '../stores/walletStore';
+import BottomNavigation from '../components/BottomNavigation';
+import SendModal from '../components/wallet/SendModal';
+import ReceiveModal from '../components/wallet/ReceiveModal';
 import sendIcon from '../../assets/icons/send.svg';
 import receiveIcon from '../../assets/icons/receive.svg';
 import swapIcon from '../../assets/icons/swap.svg';
-import { formatMassaAddress } from '../../utils/addressUtils';
-import { formatAmount } from '@massalabs/react-ui-kit';
+import { formatMassaAddress } from '../utils/addressUtils';
+import { formatAmount } from '../temp/parseAmount';
 
 interface WalletProps {
   onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
