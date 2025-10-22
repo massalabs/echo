@@ -102,9 +102,13 @@ const SendModal: React.FC<SendModalProps> = ({
 
   const handleMaxAmount = useCallback(() => {
     if (selectedToken) {
-      const feeInAtomic = getFeeAmountAtomic();
-      const maxAmount = availableBalance - feeInAtomic;
-
+      let maxAmount: bigint;
+      if (selectedToken.isNative) {
+        const feeInAtomic = getFeeAmountAtomic();
+        maxAmount = availableBalance - feeInAtomic;
+      } else {
+        maxAmount = availableBalance;
+      }
       setAmount(formatAmount(maxAmount, selectedToken.decimals).preview);
     }
   }, [selectedToken, availableBalance, getFeeAmountAtomic]);
