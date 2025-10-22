@@ -355,10 +355,15 @@ const SendModal: React.FC<SendModalProps> = ({
           {selectedToken?.priceUsd && amount && !isNaN(parseFloat(amount)) && (
             <span>
               ≈ $
-              {(
-                parseFloat(amount) * (selectedToken.priceUsd ?? 0) +
-                getFeeAmount()
-              ).toFixed(2)}
+              {(() => {
+                const masToken = tokens.find(token => token.ticker === 'MAS');
+                const masPriceUsd = masToken?.priceUsd ?? 0;
+                const feeAmountUsd = getFeeAmount() * masPriceUsd;
+                return (
+                  parseFloat(amount) * (selectedToken.priceUsd ?? 0) +
+                  feeAmountUsd
+                ).toFixed(2);
+              })()}
             </span>
           )}
         </div>
