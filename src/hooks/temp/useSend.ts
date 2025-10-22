@@ -74,7 +74,7 @@ export function useSend(options: UseSendOptions) {
           return;
         }
 
-        setState(prev => ({ ...prev, isPending: false, error: null }));
+        setState(prev => ({ ...prev, error: null }));
       } finally {
         setState(prev => ({ ...prev, isPending: false }));
       }
