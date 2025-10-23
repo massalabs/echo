@@ -27,6 +27,21 @@
     min-height: 100dvh; /* Use dynamic viewport height for mobile browsers */
     /* Fallback for browsers that don't support dvh */
     min-height: 100vh;
+    /* Disable pull-to-refresh on mobile */
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Disable pull-to-refresh for the entire app */
+  html,
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 
