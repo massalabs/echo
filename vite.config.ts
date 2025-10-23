@@ -4,8 +4,6 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -16,21 +14,6 @@ export default defineConfig({
       // Whether to polyfill `node:` protocol imports.
       protocolImports: true,
     }),
-    {
-      name: 'copy-wasm-files',
-      generateBundle() {
-        // Copy WASM file to build output
-        const wasmSrc = resolve(process.cwd(), 'wasm/build/echo_wasm_bg.wasm');
-
-        if (existsSync(wasmSrc)) {
-          this.emitFile({
-            type: 'asset',
-            fileName: 'echo_wasm_bg.wasm',
-            source: readFileSync(wasmSrc),
-          });
-        }
-      },
-    },
     ViteImageOptimizer({
       // SVG optimization with SVGO
       svg: {
