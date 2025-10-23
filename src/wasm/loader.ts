@@ -57,9 +57,9 @@ export class WasmModuleLoader {
   }
 
   async cleanup(): Promise<void> {
-    for (const module of this.modules.values()) {
+    this.modules.forEach(module => {
       module.cleanup();
-    }
+    });
     this.modules.clear();
     this.initialized = false;
   }
