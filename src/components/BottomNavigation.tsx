@@ -16,7 +16,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onTabChange,
 }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#fcfcfc] dark:bg-gray-800 border-t border-[#cacaca] dark:border-gray-700 h-[76px] flex items-center justify-center">
+    <div className="fixed bottom-0 left-0 right-0 bg-[#fcfcfc] dark:bg-gray-800 border-t border-[#cacaca] dark:border-gray-700 h-[76px] flex items-center justify-center pb-safe">
       <div className="flex items-center justify-center space-x-16">
         {/* Wallet Button */}
         <button

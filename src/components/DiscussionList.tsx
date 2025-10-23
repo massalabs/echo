@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
-import { UserProfile, DiscussionThread, Contact } from '../db';
-import { db } from '../db';
+import { UserProfile, DiscussionThread, Contact, db } from '../db';
 import { formatRelativeTime } from '../utils/timeUtils';
 import appLogo from '../assets/echo_face.svg';
 import Settings from './Settings';
@@ -273,12 +272,22 @@ const DiscussionList: React.FC = () => {
     loadContacts();
   }, [loadDiscussionThreads, loadContacts]);
 
-  const handleBackFromDiscussion = useCallback(() => {
+  const handleBackFromDiscussion = useCallback(async () => {
+    // Mark messages as read for the contact we just viewed
+    if (selectedContact) {
+      try {
+        await db.markMessagesAsRead(selectedContact.userId);
+      } catch (error) {
+        console.error('Failed to mark messages as read on back:', error);
+      }
+    }
+
     setSelectedContact(null);
-    // Reload discussion threads and contacts to show updated data
+
+    // Reload discussion threads and contacts to show updated data (including cleared unread counts)
     loadDiscussionThreads();
     loadContacts();
-  }, [loadDiscussionThreads, loadContacts]);
+  }, [loadDiscussionThreads, loadContacts, selectedContact]);
 
   const handleSelectDiscussionThread = useCallback(
     (discussionThread: DiscussionThread) => {
@@ -306,7 +315,7 @@ const DiscussionList: React.FC = () => {
   // Show loading state
   if (appState === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen-mobile bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">Loading...</p>
@@ -379,8 +388,8 @@ const DiscussionList: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#efefef] dark:bg-gray-900">
-      <div className="max-w-sm mx-auto">
+    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+      <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         {/* Header */}
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
@@ -398,7 +407,7 @@ const DiscussionList: React.FC = () => {
         </div>
 
         {/* Main content area */}
-        <div className="px-4 pb-20">
+        <div className="px-4 pb-20 flex-1 overflow-y-auto">
           <div className="bg-white dark:bg-gray-800 rounded-lg">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h2 className="text-lg font-medium text-black dark:text-white">

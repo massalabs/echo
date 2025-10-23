@@ -150,7 +150,7 @@ const Discussion: React.FC<DiscussionProps> = ({
   }, [messages, scrollToBottom]);
 
   return (
-    <div className="h-screen bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
+    <div className="h-screen-mobile bg-[#f5f5f5] dark:bg-gray-900 flex flex-col">
       <div className="max-w-sm mx-auto w-full h-full flex flex-col">
         {/* Header - modern mobile app style */}
         <div className="h-16 flex items-center bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
@@ -245,35 +245,12 @@ const Discussion: React.FC<DiscussionProps> = ({
                   </svg>
                 </button>
               )}
-
-              {/* Test button for simulating received message */}
-              {discussion && (
-                <button
-                  onClick={handleSimulateReceivedMessage}
-                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-full ml-2"
-                  title="Simulate received message (test)"
-                >
-                  <svg
-                    className="w-4 h-4 text-blue-600 dark:text-blue-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                </button>
-              )}
             </div>
           </div>
         </div>
 
         {/* Messages - modern chat layout */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 relative">
           {isLoading || isDiscussionLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -342,6 +319,29 @@ const Discussion: React.FC<DiscussionProps> = ({
           )}
           {/* Invisible element to scroll to */}
           <div ref={messagesEndRef} />
+
+          {/* Floating simulate message button */}
+          {discussion && (
+            <button
+              onClick={handleSimulateReceivedMessage}
+              className="fixed bottom-20 right-4 w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 z-40"
+              title="Simulate received message (test)"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Modern input composer */}

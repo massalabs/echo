@@ -99,7 +99,7 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen-mobile bg-white dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">
@@ -111,7 +111,7 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-white dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
