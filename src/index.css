@@ -24,7 +24,9 @@
   body {
     margin: 0;
     min-width: 20rem; /* min-w-80 */
-    min-height: 100vh; /* min-h-screen */
+    min-height: 100dvh; /* Use dynamic viewport height for mobile browsers */
+    /* Fallback for browsers that don't support dvh */
+    min-height: 100vh;
   }
 }
 
@@ -40,5 +42,48 @@
 
   .-animate-spin {
     animation: spin-reverse 1s linear infinite;
+  }
+
+  /* Mobile viewport utilities */
+  .min-h-screen-mobile {
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    /* Fallback for Firefox mobile */
+    min-height: calc(100vh - env(keyboard-inset-height, 0px));
+  }
+
+  .h-screen-mobile {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    /* Fallback for Firefox mobile */
+    height: calc(100vh - env(keyboard-inset-height, 0px));
+  }
+
+  /* Safe area support for mobile browsers */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Firefox mobile specific fixes */
+  @-moz-document url-prefix() {
+    .min-h-screen-mobile {
+      min-height: 100vh;
+    }
+
+    .h-screen-mobile {
+      height: 100vh;
+    }
   }
 }

@@ -143,10 +143,10 @@ export class EchoDatabase extends Dexie {
     super('EchoDatabase');
 
     // Define schema with userId as primary key for contacts and userProfile
-    this.version(1).stores({
+    this.version(2).stores({
       contacts: 'userId, name, isOnline, lastSeen, createdAt',
       messages:
-        '++id, contactUserId, type, direction, status, timestamp, encrypted',
+        '++id, contactUserId, type, direction, status, timestamp, encrypted, [contactUserId+status]',
       discussionThreads:
         '++id, &contactUserId, lastMessageTimestamp, unreadCount, isPinned, isArchived',
       userProfile: 'userId, username, status, lastSeen',

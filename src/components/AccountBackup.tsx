@@ -68,7 +68,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#efefef] dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
