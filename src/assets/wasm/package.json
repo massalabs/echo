@@ -1,0 +1,15 @@
+{
+  "name": "echo-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "echo_wasm_bg.wasm",
+    "echo_wasm.js",
+    "echo_wasm.d.ts"
+  ],
+  "main": "echo_wasm.js",
+  "types": "echo_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

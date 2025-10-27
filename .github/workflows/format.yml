@@ -20,10 +20,7 @@ jobs:
         run: npm ci
 
       - name: Run linter
-        run: npm run fmt:check
-
-      - name: Run WASM build
-        run: npm run wasm:build
+        run: npm run fmt:check  
 
       - name: Build application
         run: npm run build

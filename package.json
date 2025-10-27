@@ -14,7 +14,7 @@
     "preview": "vite preview",
     "preview:host": "vite preview --host",
     "prepare": "husky",
-    "wasm:build": "wasm-pack build --out-dir ./../../src/assets/wasm --target web ./wasm/main",
+    "wasm:build": "wasm-pack build --out-dir ./../../src/assets/wasm --target web ./wasm/main && rm -f ./../../src/assets/wasm/.gitignore",
     "wasm:clean": "rm -rf src/assets/wasm"
   },
   "dependencies": {
