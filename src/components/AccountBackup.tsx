@@ -8,14 +8,11 @@ interface AccountBackupProps {
 
 const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
   const { userProfile, showMnemonicBackup, showPrivateKey } = useAccountStore();
-  const [method, setMethod] = useState<'mnemonic' | 'privateKey'>(
-    userProfile?.security?.mnemonicBackup ? 'mnemonic' : 'privateKey'
-  );
+  const [method, setMethod] = useState<'mnemonic' | 'privateKey'>('mnemonic');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-
   const [mnemonicInfo, setMnemonicInfo] = useState<Bip39BackupDisplay | null>(
     null
   );
@@ -29,20 +26,17 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
       setError('');
       setPasswordError('');
 
+      if (requiresPassword && !password.trim()) {
+        setPasswordError('Password is required');
+        return;
+      }
+
       if (method === 'mnemonic') {
-        if (requiresPassword && !password.trim()) {
-          setPasswordError('Password is required');
-          return;
-        }
         const data = await showMnemonicBackup(
           requiresPassword ? password : undefined
         );
         setMnemonicInfo(data);
       } else {
-        if (requiresPassword && !password.trim()) {
-          setPasswordError('Password is required');
-          return;
-        }
         const pk = await showPrivateKey(
           requiresPassword ? password : undefined
         );
@@ -202,6 +196,10 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   {mnemonicInfo?.mnemonic}
                 </p>
               </div>
+              <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
+                Never share this mnemonic. Anyone with it can access your
+                account.
+              </p>
             </div>
           )}
 
@@ -236,8 +234,16 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   {privateKeyString}
                 </p>
               </div>
+              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-xs text-yellow-800 dark:text-yellow-300 leading-relaxed">
+                  <strong>⚠️ Warning:</strong> This Massa private key cannot be
+                  used to restore your Echo account. Use this only for external
+                  wallet compatibility. To restore your Echo account, you must
+                  use the 24-word mnemonic phrase.
+                </p>
+              </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
-                Never share this string. Anyone with it can access your funds.
+                Never share this key. Anyone with it can access your funds.
               </p>
             </div>
           )}

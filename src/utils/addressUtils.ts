@@ -3,6 +3,7 @@
  */
 
 import { Address, PublicKey } from '@massalabs/massa-web3';
+import bs58check from 'bs58check';
 
 /**
  * Shortens a wallet address by showing the first few and last few characters
@@ -81,40 +82,42 @@ export function formatMassaPublicKey(publicKey: string): string {
 }
 
 /**
- * Validates a 32-byte user ID (hex encoded).
- * @param userId - The user ID string to validate (should be 64 hex characters)
+ * Validates a 32-byte user ID (base58check encoded).
+ * @param userId - The user ID string to validate (should be base58check encoded 32 bytes)
  * @returns True if the user ID is valid, false otherwise.
  */
 export function isValidUserId(userId: string): boolean {
   if (!userId || typeof userId !== 'string') return false;
 
-  // Remove any whitespace and convert to lowercase
-  const cleanUserId = userId.trim().toLowerCase();
+  try {
+    // Decode the base58check string
+    const decoded = bs58check.decode(userId.trim());
 
-  // Check if it's exactly 64 hex characters (32 bytes)
-  if (!/^[0-9a-f]{64}$/.test(cleanUserId)) return false;
-
-  return true;
+    // Check if it decodes to exactly 32 bytes
+    return decoded.length === 32;
+  } catch (_error) {
+    return false;
+  }
 }
 
 /**
  * Formats a user ID for display
- * @param userId - The full user ID (64 hex characters)
+ * @param userId - The full user ID (base58check encoded)
  * @returns Formatted user ID string
  */
 export function formatUserId(userId: string): string {
   if (!userId) return '';
 
-  // User IDs are 64 hex characters, show first 8 and last 8 for readability
+  // User IDs are base58check encoded, show first 8 and last 8 for readability
   return shortenAddress(userId, 8, 8);
 }
 
 /**
- * Generates a random 32-byte user ID
- * @returns A 64-character hex string representing a 32-byte user ID
+ * Mock that Generates a random 32-byte user ID
+ * @returns Base58 string representing a 32-byte user ID
  */
 export function generateUserId(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  return bs58check.encode(bytes);
 }

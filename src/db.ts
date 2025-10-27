@@ -2,7 +2,7 @@ import Dexie, { Table } from 'dexie';
 
 // Define interfaces for your data models
 export interface Contact {
-  userId: string; // 32-byte user ID (hex encoded) - primary key
+  userId: string; // 32-byte user ID (base58 encoded) - primary key
   name: string;
   avatar?: string;
   isOnline: boolean;
@@ -36,7 +36,7 @@ export interface DiscussionThread {
 }
 
 export interface UserProfile {
-  userId: string; // 32-byte user ID (hex encoded) - primary key
+  userId: string; // 32-byte user ID (base58 encoded) - primary key
   username: string;
   avatar?: string;
   wallet: {

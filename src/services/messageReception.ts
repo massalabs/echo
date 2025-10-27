@@ -12,6 +12,7 @@ import {
 } from '../api/messageProtocol';
 import { wasmLoader, SessionModule } from '../wasm';
 import { notificationService } from './notifications';
+import bs58check from 'bs58check';
 
 export interface MessageReceptionResult {
   success: boolean;
@@ -520,9 +521,8 @@ export class MessageReceptionService {
     try {
       // In a real implementation, this would parse the announcement data
       // to extract the sender's user ID. For now, we'll generate a mock ID.
-      const mockUserId = Array.from(announcementData.slice(0, 32))
-        .map(byte => byte.toString(16).padStart(2, '0'))
-        .join('');
+      const mockUserIdBytes = new Uint8Array(announcementData.slice(0, 32));
+      const mockUserId = bs58check.encode(mockUserIdBytes);
       return mockUserId;
     } catch (error) {
       console.error(

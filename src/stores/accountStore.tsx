@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
-import { createUserId } from '../utils/userIdUtils';
+
 import {
   encryptPrivateKey,
   deriveKey,
@@ -32,10 +32,12 @@ import {
 import { useAppStore } from './appStore';
 import { useWalletStore } from './walletStore';
 import { createSelectors } from './utils/createSelectors';
-import { generate_user_keys } from '../assets/wasm/echo_wasm';
+import { generateUserKeys } from '../wasm';
+import bs58check from 'bs58check';
 
 async function createProfileFromAccount(
   username: string,
+  userId: string,
   account: Account,
   security: UserProfile['security']
 ): Promise<UserProfile> {
@@ -43,9 +45,6 @@ async function createProfileFromAccount(
     address: account.address.toString(),
     publicKey: account.publicKey.toString(),
   };
-
-  // Derive user ID from public key and username
-  const userId = await createUserId(walletInfos.publicKey, username);
 
   const newProfile: UserProfile = {
     userId,
@@ -64,6 +63,7 @@ async function createProfileFromAccount(
 
 async function provisionAccount(
   username: string,
+  userId: string,
   account: Account,
   mnemonic: string | undefined,
   opts: { useBiometrics: boolean; password?: string }
@@ -84,6 +84,7 @@ async function provisionAccount(
 
   const profile = await createProfileFromAccount(
     username,
+    userId,
     account,
     built.security
   );
@@ -206,11 +207,6 @@ interface AccountState {
     mnemonic: string,
     opts: { useBiometrics: boolean; password?: string }
   ) => Promise<void>;
-  restoreAccountFromPrivateKey: (
-    username: string,
-    privateKey: string,
-    opts: { useBiometrics: boolean; password?: string }
-  ) => Promise<void>;
   resetAccount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   checkPlatformAvailability: () => Promise<void>;
@@ -242,26 +238,19 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   // Actions
   initializeAccount: async (username: string, password: string) => {
     try {
-      console.log('Generating user keys WASM');
-      const keys = generate_user_keys(username, new Uint8Array(32));
-      const userPublicKeys = keys.public_keys();
-      const userId = userPublicKeys.derive_id();
-      console.log('userPublicKeys', userPublicKeys);
-      console.log('userId', userId);
-    } catch (error) {
-      console.error('Error generating user keys WASM:', error);
-      throw error;
-    }
-
-    try {
       set({ isLoading: true });
 
-      // Generate a BIP39 mnemonic and create account from it
       const mnemonic = generateMnemonic(256);
+      const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
+      const userPublicKeys = keys.public_keys();
+      const userIdBytes = userPublicKeys.derive_id();
+      const userId = bs58check.encode(userIdBytes);
+      // replace this with Account.fromPrivateKey when massa pkey is available
       const account = await accountFromMnemonic(mnemonic);
 
       const { profile, encryptionKey } = await provisionAccount(
         username,
+        userId,
         account,
         mnemonic,
         {
@@ -297,11 +286,17 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         throw new Error('Invalid mnemonic phrase');
       }
 
-      // Create account instance from mnemonic
+      const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
+      const userPublicKeys = keys.public_keys();
+      const userIdBytes = userPublicKeys.derive_id();
+      const userId = bs58check.encode(userIdBytes);
+
+      // replace this with Account.fromPrivateKey when massa pkey is available
       const account = await accountFromMnemonic(mnemonic);
 
       const { profile, encryptionKey } = await provisionAccount(
         username,
+        userId,
         account,
         mnemonic,
         opts
@@ -316,38 +311,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       });
     } catch (error) {
       console.error('Error restoring account from mnemonic:', error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  restoreAccountFromPrivateKey: async (
-    username: string,
-    privateKey: string,
-    opts: { useBiometrics: boolean; password?: string }
-  ) => {
-    try {
-      set({ isLoading: true });
-
-      const pkey = PrivateKey.fromString(privateKey);
-      const account = await Account.fromPrivateKey(pkey);
-
-      const { profile, encryptionKey } = await provisionAccount(
-        username,
-        account,
-        undefined, // no mnemonic available
-        opts
-      );
-
-      set({
-        account,
-        userProfile: profile,
-        encryptionKey,
-        isInitialized: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error('Error restoring account from private key:', error);
       set({ isLoading: false });
       throw error;
     }
@@ -475,10 +438,19 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
 
       // Generate a BIP39 mnemonic and create account from it
       const mnemonic = generateMnemonic(256);
+
+      const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
+      const userPublicKeys = keys.public_keys();
+      const userIdBytes = userPublicKeys.derive_id();
+      const userId = bs58check.encode(userIdBytes);
+
+      // replace this with Account.fromPrivateKey when massa pkey is available
       const account = await accountFromMnemonic(mnemonic);
 
       // Create WebAuthn credential
-      const webauthnKey = await createWebAuthnCredential(username);
+      const webauthnKey = await createWebAuthnCredential(
+        `Gossip-${username}-${userId}`
+      );
 
       // Encrypt the private key using WebAuthn-derived key
       const { encryptedPrivateKey, iv, credentialId } =
@@ -497,9 +469,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         address: account.address.toString(),
         publicKey: account.publicKey.toString(),
       };
-
-      // Derive user ID from public key and username
-      const userId = await createUserId(walletInfos.publicKey, username);
 
       const newProfile: UserProfile = {
         userId,
@@ -678,7 +647,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
     }
   },
 
-  // Private key export (string)
+  // Private key export (not for Echo account restoration)
   showPrivateKey: async (password?: string) => {
     try {
       const state = get();
