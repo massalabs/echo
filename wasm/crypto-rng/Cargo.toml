@@ -1,0 +1,15 @@
+[package]
+name = "crypto-rng"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Ensure WASM compatibility
+getrandom = { version = "0.2", features = ["js"] }
+

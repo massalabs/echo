@@ -98,7 +98,7 @@ export default defineConfig({
       },
 
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB (increased from default 2MB for crypto polyfills)
       },
 
@@ -110,4 +110,13 @@ export default defineConfig({
       },
     }),
   ],
+  assetsInclude: ['**/*.wasm'],
+  server: {
+    fs: {
+      allow: ['..'],
+    },
+  },
+  build: {
+    target: 'esnext',
+  },
 });

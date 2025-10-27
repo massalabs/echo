@@ -32,6 +32,7 @@ import {
 import { useAppStore } from './appStore';
 import { useWalletStore } from './walletStore';
 import { createSelectors } from './utils/createSelectors';
+import { generate_user_keys } from '../assets/wasm/echo_wasm';
 
 async function createProfileFromAccount(
   username: string,
@@ -240,6 +241,18 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   provider: null,
   // Actions
   initializeAccount: async (username: string, password: string) => {
+    try {
+      console.log('Generating user keys WASM');
+      const keys = generate_user_keys(username, new Uint8Array(32));
+      const userPublicKeys = keys.public_keys();
+      const userId = userPublicKeys.derive_id();
+      console.log('userPublicKeys', userPublicKeys);
+      console.log('userId', userId);
+    } catch (error) {
+      console.error('Error generating user keys WASM:', error);
+      throw error;
+    }
+
     try {
       set({ isLoading: true });
 

@@ -1,0 +1,19 @@
+[package]
+name = "auth"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+crypto-kem = { path = "../crypto-kem" }
+crypto-kdf = { path = "../crypto-kdf" }
+crypto-aead = { path = "../crypto-aead" }
+crypto-dsa = { path = "../crypto-dsa" }
+crypto-password-kdf = { path = "../crypto-password-kdf" }
+crypto-rng = { path = "../crypto-rng" }
+serde = { version = "1.0", features = ["derive"] }
+zeroize = { version = "1.8", features = ["derive"] }
+massa_signature = { git = "https://github.com/massalabs/massa.git", package = "massa_signature" }
+massa_hash = { git = "https://github.com/massalabs/massa.git", package = "massa_hash" }
