@@ -47,11 +47,9 @@ export function validateMnemonic(mnemonic: string): boolean {
  */
 export function mnemonicToSeed(
   mnemonic: string,
-  passphrase?: string
+  passphrase: string = ''
 ): Uint8Array {
-  const actualPassphrase = passphrase || '';
-  // @scure/bip39 returns Uint8Array directly
-  return mnemonicToSeedSync(mnemonic, actualPassphrase);
+  return mnemonicToSeedSync(mnemonic, passphrase);
 }
 
 export async function accountFromMnemonic(

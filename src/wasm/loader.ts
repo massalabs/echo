@@ -6,9 +6,8 @@
  * to load actual WASM modules when they become available.
  */
 
-import { WasmModule, SessionModule, UserIdModule } from './types';
+import { WasmModule, SessionModule } from './types';
 import { MockSessionModule } from './session';
-import { MockUserIdModule } from './userId';
 
 export class WasmModuleLoader {
   private modules: Map<string, WasmModule> = new Map();
@@ -20,14 +19,11 @@ export class WasmModuleLoader {
     try {
       // Load session and user ID modules
       const sessionModule = await this.loadSessionModule();
-      const userIdModule = await this.loadUserIdModule();
 
       this.modules.set('session', sessionModule);
-      this.modules.set('userId', userIdModule);
 
       // Initialize the modules
       await sessionModule.init();
-      await userIdModule.init();
 
       this.initialized = true;
     } catch (error) {
@@ -40,12 +36,6 @@ export class WasmModuleLoader {
     // In a real implementation, this would load the actual WASM module
     // For now, we'll return a mock implementation
     return new MockSessionModule();
-  }
-
-  private async loadUserIdModule(): Promise<UserIdModule> {
-    // In a real implementation, this would load the actual WASM module
-    // For now, we'll return a mock implementation
-    return new MockUserIdModule();
   }
 
   getModule<T extends WasmModule>(name: string): T {

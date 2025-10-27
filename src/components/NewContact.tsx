@@ -41,9 +41,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       return false;
     }
     if (!isValidUserId(value)) {
-      setUserIdError(
-        'Please enter a valid 32-byte user ID (64 hex characters)'
-      );
+      setUserIdError('Please enter a valid base58check encoded user ID');
       return false;
     }
     setUserIdError(null);
@@ -64,7 +62,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     try {
       const contact: Omit<Contact, 'id'> = {
         name: name.trim(),
-        userId: userId.trim().toLowerCase(),
+        userId: userId.trim(),
         avatar: undefined,
         isOnline: false,
         lastSeen: new Date(),
@@ -168,7 +166,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
                     validateUserId(e.target.value);
                   }}
                   onBlur={e => validateUserId(e.target.value)}
-                  placeholder="Enter 32-byte user ID (64 hex characters)"
+                  placeholder="Enter base58check encoded user ID"
                   className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
                     userIdError
                       ? 'border-red-500 dark:border-red-500'

@@ -11,7 +11,7 @@ export interface WasmModule {
   cleanup(): void;
 }
 
-// Session module interface
+// Session module interfaces
 export interface SessionModule extends WasmModule {
   // Session management
   createSession(sessionId: string): Promise<void>;
@@ -88,20 +88,4 @@ export interface SessionInitiationResult {
   };
   transactionHash: string;
   session: Session;
-}
-
-// User ID derivation module interface
-export interface UserIdModule extends WasmModule {
-  /**
-   * Derive a user ID from Massa public key and other parameters
-   * @param publicKey - The Massa public key (Uint8Array)
-   * @param username - The username string
-   * @param additionalParams - Additional parameters for derivation (optional)
-   * @returns The derived 32-byte user ID as hex string
-   */
-  deriveUserId(
-    publicKey: Uint8Array,
-    username: string,
-    additionalParams?: Uint8Array
-  ): Promise<string>;
 }

@@ -10,7 +10,16 @@ export * from './types';
 
 // Export modules
 export { MockSessionModule } from './session';
-export { MockUserIdModule } from './userId';
 
 // Export loader
 export { WasmModuleLoader, wasmLoader } from './loader';
+
+// Export initializer
+export {
+  initializeWasm,
+  ensureWasmInitialized,
+  generateUserKeys,
+  startWasmInitialization,
+  getInitializationStatus,
+  getInitializationPromise,
+} from './initializer';

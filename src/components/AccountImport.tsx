@@ -12,50 +12,30 @@ const AccountImport: React.FC<AccountImportProps> = ({
   onBack,
   onComplete,
 }) => {
-  const { restoreAccountFromMnemonic, restoreAccountFromPrivateKey } =
-    useAccountStore();
+  const { restoreAccountFromMnemonic } = useAccountStore();
   const [mnemonic, setMnemonic] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [useBiometrics, setUseBiometrics] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'mnemonic' | 'details'>('mnemonic');
-  const [importMethod, setImportMethod] = useState<'mnemonic' | 'privateKey'>(
-    'mnemonic'
-  );
-
-  const isPrivateKeyValid = (() => {
-    const raw = privateKey.trim();
-    if (!raw) return false;
-    // Massa private key string expected to start with 'S'
-    return raw.startsWith('S');
-  })();
 
   const handleMnemonicSubmit = () => {
     setError('');
-    if (importMethod === 'mnemonic') {
-      if (!mnemonic.trim()) {
-        setError('Please enter a mnemonic phrase');
-        return;
-      }
-      const trimmedMnemonic = mnemonic.trim().toLowerCase();
-      if (!validateMnemonic(trimmedMnemonic)) {
-        setError(
-          'Invalid mnemonic phrase. Please check your words and try again.'
-        );
-        return;
-      }
-      setMnemonic(trimmedMnemonic);
-      setStep('details');
-    } else {
-      if (!isPrivateKeyValid) {
-        setError('Please enter a private key string');
-        return;
-      }
-      setStep('details');
+    if (!mnemonic.trim()) {
+      setError('Please enter a mnemonic phrase');
+      return;
     }
+    const trimmedMnemonic = mnemonic.trim().toLowerCase();
+    if (!validateMnemonic(trimmedMnemonic)) {
+      setError(
+        'Invalid mnemonic phrase. Please check your words and try again.'
+      );
+      return;
+    }
+    setMnemonic(trimmedMnemonic);
+    setStep('details');
   };
 
   const handleImport = async () => {
@@ -87,33 +67,16 @@ const AccountImport: React.FC<AccountImportProps> = ({
         }
       }
 
-      // Restore account (do not create a new account)
-      if (importMethod === 'mnemonic') {
-        if (useBiometrics) {
-          await restoreAccountFromMnemonic(username, mnemonic, {
-            useBiometrics: true,
-          });
-        } else {
-          await restoreAccountFromMnemonic(username, mnemonic, {
-            useBiometrics: false,
-            password,
-          });
-        }
+      // Restore account from mnemonic
+      if (useBiometrics) {
+        await restoreAccountFromMnemonic(username, mnemonic, {
+          useBiometrics: true,
+        });
       } else {
-        if (!isPrivateKeyValid) {
-          setError('Invalid private key');
-          return;
-        }
-        if (useBiometrics) {
-          await restoreAccountFromPrivateKey(username, privateKey.trim(), {
-            useBiometrics: true,
-          });
-        } else {
-          await restoreAccountFromPrivateKey(username, privateKey.trim(), {
-            useBiometrics: false,
-            password,
-          });
-        }
+        await restoreAccountFromMnemonic(username, mnemonic, {
+          useBiometrics: false,
+          password,
+        });
       }
 
       onComplete();
@@ -133,90 +96,27 @@ const AccountImport: React.FC<AccountImportProps> = ({
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
-          Choose Import Method
+          Import with Mnemonic
         </h3>
-        <div className="w-full mb-4 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg relative h-10 flex items-center">
-          <div
-            className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow transition-transform duration-200 ease-out ${
-              importMethod === 'mnemonic' ? 'translate-x-0' : 'translate-x-full'
-            }`}
-            aria-hidden="true"
+        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+          Enter your 24-word mnemonic phrase to import your account. Make sure
+          to enter the words in the correct order.
+        </p>
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Mnemonic Phrase
+          </label>
+          <textarea
+            value={mnemonic}
+            onChange={e => setMnemonic(e.target.value)}
+            placeholder="Enter your mnemonic phrase here..."
+            className="w-full h-32 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
+            disabled={isImporting}
           />
-          <button
-            type="button"
-            onClick={() => setImportMethod('mnemonic')}
-            className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-              importMethod === 'mnemonic'
-                ? 'text-black dark:text-white'
-                : 'text-gray-600 dark:text-gray-300'
-            }`}
-            aria-pressed={importMethod === 'mnemonic'}
-          >
-            Mnemonic
-          </button>
-          <button
-            type="button"
-            onClick={() => setImportMethod('privateKey')}
-            className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-              importMethod === 'privateKey'
-                ? 'text-black dark:text-white'
-                : 'text-gray-600 dark:text-gray-300'
-            }`}
-            aria-pressed={importMethod === 'privateKey'}
-          >
-            Private Key
-          </button>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Separate words with spaces. The phrase is case-insensitive.
+          </p>
         </div>
-        {importMethod === 'mnemonic' ? (
-          <>
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              Enter your 24-word mnemonic phrase to import your account. Make
-              sure to enter the words in the correct order.
-            </p>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Mnemonic Phrase
-              </label>
-              <textarea
-                value={mnemonic}
-                onChange={e => setMnemonic(e.target.value)}
-                placeholder="Enter your mnemonic phrase here..."
-                className="w-full h-32 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
-                disabled={isImporting}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Separate words with spaces. The phrase is case-insensitive.
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              Paste your Massa private key string as exported by your source
-              wallet.
-            </p>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Private Key
-              </label>
-              <textarea
-                value={privateKey}
-                onChange={e => setPrivateKey(e.target.value)}
-                placeholder="e.g. S1..."
-                className="w-full h-28 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
-                disabled={isImporting}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                We'll never upload your key. It is encrypted locally.
-              </p>
-            </div>
-            {privateKey && !isPrivateKeyValid && (
-              <p className="text-red-500 dark:text-red-400 text-xs">
-                Invalid private key format.
-              </p>
-            )}
-          </>
-        )}
       </div>
 
       {error && (
@@ -228,12 +128,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
       <div className="space-y-3">
         <button
           onClick={handleMnemonicSubmit}
-          disabled={
-            isImporting ||
-            (importMethod === 'mnemonic'
-              ? !mnemonic.trim()
-              : !isPrivateKeyValid)
-          }
+          disabled={isImporting || !mnemonic.trim()}
           className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           Continue

@@ -15,6 +15,7 @@ import {
   SessionInitiationResult,
   Session,
 } from '../wasm';
+import bs58check from 'bs58check';
 
 /**
  * Initialize WASM modules
@@ -37,7 +38,7 @@ function getSessionModule(): SessionModule {
 /**
  * Initialize a discussion with a contact using SessionManager
  * @param contactUserId - The user ID of the contact to start a discussion with
- * @param recipientUserId - The recipient's 32-byte user ID (hex string)
+ * @param recipientUserId - The recipient's 32-byte user ID (base58check encoded)
  * @returns The discussion ID and session information
  */
 export async function initializeDiscussion(
@@ -57,10 +58,8 @@ export async function initializeDiscussion(
     // Ensure WASM modules are initialized
     await initializeWasmModules();
 
-    // Convert user ID (hex string) to Uint8Array for the session module
-    const recipientUserIdBytes = new Uint8Array(
-      recipientUserId.match(/.{2}/g)?.map(byte => parseInt(byte, 16)) || []
-    );
+    // Convert user ID (base58check encoded) to Uint8Array for the session module
+    const recipientUserIdBytes = bs58check.decode(recipientUserId);
 
     // Use SessionManager to create outgoing session
     const sessionModule = getSessionModule();

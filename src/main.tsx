@@ -6,10 +6,8 @@ import App from './App.tsx';
 // Polyfill for Buffer
 import { Buffer } from 'buffer';
 
-import init from './assets/wasm/echo_wasm';
-console.log('Initializing WASM');
-await init();
-console.log('WASDM Initialized');
+// WASM initialization service
+import { startWasmInitialization } from './wasm';
 
 // Setup SHA-512 for @noble/ed25519 (required for massa-web3)
 import { sha512 } from '@noble/hashes/sha2';
@@ -81,6 +79,9 @@ window.addEventListener('load', () => {
     }
   }
 });
+
+// Start WASM initialization in the background (non-blocking)
+startWasmInitialization();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
