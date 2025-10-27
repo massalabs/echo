@@ -236,7 +236,7 @@ impl Agraphon {
         let peer_msg = self.get_self_message_by_height(our_parent_height)?;
         let peer_msg_seeker = peer_msg.seeker;
 
-        // read randmoness
+        // read randomness
         let msg_randomness: [u8; 32] = message.get(..32)?.try_into().ok()?;
 
         // read ct
