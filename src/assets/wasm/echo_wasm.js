@@ -1018,6 +1018,46 @@ export class UserPublicKeys {
     return v1;
   }
   /**
+   * Gets the DSA verification key bytes.
+   * @returns {Uint8Array}
+   */
+  get dsa_verification_key() {
+    const ret = wasm.userpublickeys_dsa_verification_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
+   * Gets the KEM public key bytes.
+   * @returns {Uint8Array}
+   */
+  get kem_public_key() {
+    const ret = wasm.userpublickeys_kem_public_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
+   * Gets the Massa public key bytes.
+   * @returns {Uint8Array}
+   */
+  get massa_public_key() {
+    const ret = wasm.userpublickeys_massa_public_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
+   * Gets the secondary public key bytes.
+   * @returns {Uint8Array}
+   */
+  get secondary_public_key() {
+    const ret = wasm.userpublickeys_secondary_public_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
    * Serializes the public keys to bytes.
    * @returns {Uint8Array}
    */
@@ -1103,6 +1143,46 @@ export class UserSecretKeys {
       throw takeFromExternrefTable0(ret[1]);
     }
     return UserSecretKeys.__wrap(ret[0]);
+  }
+  /**
+   * Gets the DSA signing key bytes.
+   * @returns {Uint8Array}
+   */
+  get dsa_signing_key() {
+    const ret = wasm.usersecretkeys_dsa_signing_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
+   * Gets the KEM secret key bytes.
+   * @returns {Uint8Array}
+   */
+  get kem_secret_key() {
+    const ret = wasm.usersecretkeys_kem_secret_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
+   * Gets only the Massa secret key bytes
+   * @returns {Uint8Array}
+   */
+  get massa_secret_key() {
+    const ret = wasm.usersecretkeys_massa_secret_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
+  /**
+   * Gets the secondary secret key bytes.
+   * @returns {Uint8Array}
+   */
+  get secondary_secret_key() {
+    const ret = wasm.usersecretkeys_secondary_secret_key(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
   }
 }
 if (Symbol.dispose)

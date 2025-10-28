@@ -87,6 +87,30 @@ impl UserPublicKeys {
         self.inner.derive_id().as_bytes().to_vec()
     }
 
+    /// Gets the DSA verification key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn dsa_verification_key(&self) -> Vec<u8> {
+        self.inner.dsa_verification_key.as_bytes().to_vec()
+    }
+
+    /// Gets the KEM public key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn kem_public_key(&self) -> Vec<u8> {
+        self.inner.kem_public_key.as_bytes().to_vec()
+    }
+
+    /// Gets the Massa public key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn massa_public_key(&self) -> Vec<u8> {
+        self.inner.massa_public_key.to_bytes()
+    }
+
+    /// Gets the secondary public key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn secondary_public_key(&self) -> Vec<u8> {
+        self.inner.secondary_public_key.to_vec()
+    }
+
     /// Serializes the public keys to bytes.
     pub fn to_bytes(&self) -> Result<Vec<u8>, JsValue> {
         bincode::serialize(&self.inner)
@@ -120,6 +144,30 @@ impl UserSecretKeys {
         let inner = bincode::deserialize(bytes)
             .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?;
         Ok(UserSecretKeys { inner })
+    }
+
+    /// Gets the DSA signing key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn dsa_signing_key(&self) -> Vec<u8> {
+        self.inner.dsa_signing_key.as_bytes().to_vec()
+    }
+
+    /// Gets the KEM secret key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn kem_secret_key(&self) -> Vec<u8> {
+        self.inner.kem_secret_key.as_bytes().to_vec()
+    }
+
+    /// Gets only the Massa secret key bytes
+    #[wasm_bindgen(getter)]
+    pub fn massa_secret_key(&self) -> Vec<u8> {
+        self.inner.massa_keypair.to_bytes().to_vec()
+    }
+
+    /// Gets the secondary secret key bytes.
+    #[wasm_bindgen(getter)]
+    pub fn secondary_secret_key(&self) -> Vec<u8> {
+        self.inner.secondary_secret_key.to_vec()
     }
 }
 
