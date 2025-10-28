@@ -426,6 +426,7 @@ dependencies = [
  "crypto-aead",
  "crypto-rng",
  "js-sys",
+ "massa_signature",
  "serde",
  "serde-wasm-bindgen",
  "sessions",

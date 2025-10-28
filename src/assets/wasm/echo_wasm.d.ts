@@ -348,6 +348,7 @@ export class UserSecretKeys {
    * Deserializes secret keys from bytes.
    */
   static from_bytes(bytes: Uint8Array): UserSecretKeys;
+  get_massa_key_pair_bytes(): Uint8Array;
 }
 
 export type InitInput =
@@ -387,6 +388,9 @@ export interface InitOutput {
     a: number,
     b: number
   ) => [number, number, number];
+  readonly usersecretkeys_get_massa_key_pair_bytes: (
+    a: number
+  ) => [number, number];
   readonly __wbg_userkeys_free: (a: number, b: number) => void;
   readonly userkeys_public_keys: (a: number) => [number, number, number];
   readonly userkeys_secret_keys: (a: number) => [number, number, number];

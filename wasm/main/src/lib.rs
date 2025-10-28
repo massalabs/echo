@@ -121,6 +121,10 @@ impl UserSecretKeys {
             .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?;
         Ok(UserSecretKeys { inner })
     }
+
+    pub fn get_massa_key_pair_bytes(&self) -> Vec<u8> {
+        self.inner.massa_keypair.to_bytes()
+    }
 }
 
 /// User keypair containing both public and secret keys.

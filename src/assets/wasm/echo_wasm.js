@@ -1104,6 +1104,15 @@ export class UserSecretKeys {
     }
     return UserSecretKeys.__wrap(ret[0]);
   }
+  /**
+   * @returns {Uint8Array}
+   */
+  get_massa_key_pair_bytes() {
+    const ret = wasm.usersecretkeys_get_massa_key_pair_bytes(this.__wbg_ptr);
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+  }
 }
 if (Symbol.dispose)
   UserSecretKeys.prototype[Symbol.dispose] = UserSecretKeys.prototype.free;

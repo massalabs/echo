@@ -29,6 +29,9 @@ export const usersecretkeys_from_bytes: (
   a: number,
   b: number
 ) => [number, number, number];
+export const usersecretkeys_get_massa_key_pair_bytes: (
+  a: number
+) => [number, number];
 export const __wbg_userkeys_free: (a: number, b: number) => void;
 export const userkeys_public_keys: (a: number) => [number, number, number];
 export const userkeys_secret_keys: (a: number) => [number, number, number];
