@@ -332,6 +332,22 @@ export class UserPublicKeys {
    * Deserializes public keys from bytes.
    */
   static from_bytes(bytes: Uint8Array): UserPublicKeys;
+  /**
+   * Gets the DSA verification key bytes.
+   */
+  readonly dsa_verification_key: Uint8Array;
+  /**
+   * Gets the KEM public key bytes.
+   */
+  readonly kem_public_key: Uint8Array;
+  /**
+   * Gets the Massa public key bytes.
+   */
+  readonly massa_public_key: Uint8Array;
+  /**
+   * Gets the secondary public key bytes.
+   */
+  readonly secondary_public_key: Uint8Array;
 }
 /**
  * User secret keys for signing and decryption.
@@ -348,6 +364,22 @@ export class UserSecretKeys {
    * Deserializes secret keys from bytes.
    */
   static from_bytes(bytes: Uint8Array): UserSecretKeys;
+  /**
+   * Gets the DSA signing key bytes.
+   */
+  readonly dsa_signing_key: Uint8Array;
+  /**
+   * Gets the KEM secret key bytes.
+   */
+  readonly kem_secret_key: Uint8Array;
+  /**
+   * Gets only the Massa secret key bytes
+   */
+  readonly massa_secret_key: Uint8Array;
+  /**
+   * Gets the secondary secret key bytes.
+   */
+  readonly secondary_secret_key: Uint8Array;
 }
 
 export type InitInput =
@@ -372,6 +404,10 @@ export interface InitOutput {
   readonly sessionconfig_new_default: () => number;
   readonly __wbg_userpublickeys_free: (a: number, b: number) => void;
   readonly userpublickeys_derive_id: (a: number) => [number, number];
+  readonly userpublickeys_dsa_verification_key: (a: number) => [number, number];
+  readonly userpublickeys_kem_public_key: (a: number) => [number, number];
+  readonly userpublickeys_massa_public_key: (a: number) => [number, number];
+  readonly userpublickeys_secondary_public_key: (a: number) => [number, number];
   readonly userpublickeys_to_bytes: (
     a: number
   ) => [number, number, number, number];
@@ -387,6 +423,10 @@ export interface InitOutput {
     a: number,
     b: number
   ) => [number, number, number];
+  readonly usersecretkeys_dsa_signing_key: (a: number) => [number, number];
+  readonly usersecretkeys_kem_secret_key: (a: number) => [number, number];
+  readonly usersecretkeys_massa_secret_key: (a: number) => [number, number];
+  readonly usersecretkeys_secondary_secret_key: (a: number) => [number, number];
   readonly __wbg_userkeys_free: (a: number, b: number) => void;
   readonly userkeys_public_keys: (a: number) => [number, number, number];
   readonly userkeys_secret_keys: (a: number) => [number, number, number];

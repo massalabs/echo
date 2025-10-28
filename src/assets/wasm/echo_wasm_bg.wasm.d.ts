@@ -14,6 +14,14 @@ export const sessionconfig_new: (
 export const sessionconfig_new_default: () => number;
 export const __wbg_userpublickeys_free: (a: number, b: number) => void;
 export const userpublickeys_derive_id: (a: number) => [number, number];
+export const userpublickeys_dsa_verification_key: (
+  a: number
+) => [number, number];
+export const userpublickeys_kem_public_key: (a: number) => [number, number];
+export const userpublickeys_massa_public_key: (a: number) => [number, number];
+export const userpublickeys_secondary_public_key: (
+  a: number
+) => [number, number];
 export const userpublickeys_to_bytes: (
   a: number
 ) => [number, number, number, number];
@@ -29,6 +37,12 @@ export const usersecretkeys_from_bytes: (
   a: number,
   b: number
 ) => [number, number, number];
+export const usersecretkeys_dsa_signing_key: (a: number) => [number, number];
+export const usersecretkeys_kem_secret_key: (a: number) => [number, number];
+export const usersecretkeys_massa_secret_key: (a: number) => [number, number];
+export const usersecretkeys_secondary_secret_key: (
+  a: number
+) => [number, number];
 export const __wbg_userkeys_free: (a: number, b: number) => void;
 export const userkeys_public_keys: (a: number) => [number, number, number];
 export const userkeys_secret_keys: (a: number) => [number, number, number];
