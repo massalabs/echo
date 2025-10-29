@@ -21,14 +21,6 @@ export interface MessageProtocolResponse<T = unknown> {
   error?: string;
 }
 
-// Payload to broadcast announcements per API contract
-export interface AnnouncementPayload {
-  // Raw announcement bytes produced by WASM (agraphon)
-  announcement: Uint8Array;
-  // AuthBlob built client-side (opaque to the API)
-  authBlob: Record<string, unknown>;
-}
-
 /**
  * Abstract interface for message protocol operations
  */
@@ -46,12 +38,12 @@ export interface IMessageProtocol {
   /**
    * Broadcast an outgoing session announcement produced by WASM
    */
-  createOutgoingSession(payload: AnnouncementPayload): Promise<void>;
+  createOutgoingSession(announcement: Uint8Array): Promise<void>;
 
   /**
    * Broadcast an incoming session response produced by WASM
    */
-  feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void>;
+  feedIncomingAnnouncement(announcement: Uint8Array): Promise<void>;
 
   /**
    * Fetch incoming discussion announcements
