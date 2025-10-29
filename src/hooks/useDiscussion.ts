@@ -41,7 +41,7 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
       setIsInitializing(true);
 
       // Use the contact's user ID for discussion initialization
-      const result = await initializeDiscussion(contact.userId, contact.userId);
+      const result = await initializeDiscussion(contact.userId);
 
       // Reload discussions to get the new one
       await loadDiscussion();
@@ -59,21 +59,18 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
   const ensureDiscussionExists = useCallback(async (): Promise<boolean> => {
     if (discussion) return true;
 
-    // Check if a discussion thread already exists for this contact
-    const existingThread = await db.discussionThreads
+    // Check if a discussion already exists for this contact
+    const existingDiscussion = await db.discussions
       .where('contactUserId')
       .equals(contact.userId)
       .first();
 
-    if (existingThread) {
-      console.log(
-        'Discussion thread already exists for contact:',
-        contact.userId
-      );
+    if (existingDiscussion) {
+      console.log('Discussion already exists for contact:', contact.userId);
       return true;
     }
 
-    // If no discussion or thread exists, initialize one
+    // If no discussion exists, initialize one
     return await initializeNewDiscussion();
   }, [discussion, contact.userId, initializeNewDiscussion]);
 

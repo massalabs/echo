@@ -22,19 +22,6 @@ export interface Message {
   metadata?: Record<string, unknown>;
 }
 
-export interface DiscussionThread {
-  id?: number;
-  contactUserId: string; // Reference to Contact.userId
-  lastMessageId?: number;
-  lastMessageContent: string;
-  lastMessageTimestamp: Date;
-  unreadCount: number;
-  isPinned: boolean;
-  isArchived: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface UserProfile {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   username: string;
@@ -93,16 +80,23 @@ export interface Settings {
   updatedAt: Date;
 }
 
-// New interfaces for discussion initialization
+// Unified discussion interface combining protocol state and UI metadata
 export interface Discussion {
   id?: number;
-  contactUserId: string; // Reference to Contact.userId
+  contactUserId: string; // Reference to Contact.userId - unique per contact
+
+  // Protocol/Encryption fields
   direction: 'initiated' | 'received'; // Whether this user initiated or received the discussion
   status: 'pending' | 'active' | 'closed';
   nextSeeker?: Uint8Array; // The next seeker for sending messages (from SendMessageOutput)
-  version: number;
-  discussionKey: string; // Key for accessing messages in the key-value store
+  initiationAnnouncement?: Uint8Array; // Outgoing announcement bytes when we initiate
   lastSyncTimestamp?: Date; // Last time messages were synced from protocol
+
+  // UI/Display fields
+  lastMessageId?: number;
+  unreadCount: number;
+
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
@@ -135,7 +129,6 @@ export class EchoDatabase extends Dexie {
   // Define tables
   contacts!: Table<Contact>;
   messages!: Table<Message>;
-  discussionThreads!: Table<DiscussionThread>;
   userProfile!: Table<UserProfile>;
   settings!: Table<Settings>;
   discussions!: Table<Discussion>;
@@ -146,16 +139,14 @@ export class EchoDatabase extends Dexie {
     super('EchoDatabase');
 
     // Define schema with userId as primary key for contacts and userProfile
-    this.version(3).stores({
+    this.version(8).stores({
       contacts: 'userId, name, isOnline, lastSeen, createdAt',
       messages:
         '++id, contactUserId, type, direction, status, timestamp, encrypted, [contactUserId+status]',
-      discussionThreads:
-        '++id, &contactUserId, lastMessageTimestamp, unreadCount, isPinned, isArchived',
       userProfile: 'userId, username, status, lastSeen',
       settings: '++id, key, updatedAt',
       discussions:
-        '++id, contactUserId, direction, status, version, discussionKey, lastSyncTimestamp, createdAt, updatedAt',
+        '++id, &contactUserId, direction, status, lastSyncTimestamp, unreadCount, createdAt, updatedAt',
       discussionKeys: '++id, discussionId, isActive, createdAt',
       discussionMessages:
         '++id, discussionId, messageType, direction, status, timestamp',
@@ -165,18 +156,6 @@ export class EchoDatabase extends Dexie {
     this.contacts.hook('creating', function (_primKey, obj, _trans) {
       obj.createdAt = new Date();
     });
-
-    this.discussionThreads.hook('creating', function (_primKey, obj, _trans) {
-      obj.createdAt = new Date();
-      obj.updatedAt = new Date();
-    });
-
-    this.discussionThreads.hook(
-      'updating',
-      function (modifications, _primKey, _obj, _trans) {
-        (modifications as Record<string, unknown>).updatedAt = new Date();
-      }
-    );
 
     this.userProfile.hook('creating', function (_primKey, obj, _trans) {
       obj.createdAt = new Date();
@@ -239,17 +218,47 @@ export class EchoDatabase extends Dexie {
       .toArray();
   }
 
-  async getDiscussionThreads(): Promise<DiscussionThread[]> {
-    return await this.discussionThreads
-      .orderBy('lastMessageTimestamp')
-      .reverse()
-      .toArray();
+  async getDiscussions(): Promise<Discussion[]> {
+    // Get all discussions and sort by last message timestamp from messages table
+    const allDiscussions = await this.discussions.toArray();
+
+    // For each discussion, get the last message timestamp
+    const discussionsWithLastMessage = await Promise.all(
+      allDiscussions.map(async discussion => {
+        const messages = await this.messages
+          .where('contactUserId')
+          .equals(discussion.contactUserId)
+          .sortBy('timestamp');
+        const lastMessage =
+          messages.length > 0 ? messages[messages.length - 1] : undefined;
+        return {
+          discussion,
+          lastMessageTimestamp: lastMessage?.timestamp,
+        };
+      })
+    );
+
+    // Sort by last message timestamp (most recent first), then by created date
+    return discussionsWithLastMessage
+      .sort((a, b) => {
+        if (a.lastMessageTimestamp && b.lastMessageTimestamp) {
+          return (
+            b.lastMessageTimestamp.getTime() - a.lastMessageTimestamp.getTime()
+          );
+        }
+        if (a.lastMessageTimestamp) return -1;
+        if (b.lastMessageTimestamp) return 1;
+        return (
+          b.discussion.createdAt.getTime() - a.discussion.createdAt.getTime()
+        );
+      })
+      .map(item => item.discussion);
   }
 
   async getUnreadCount(): Promise<number> {
-    const discussionThreads = await this.discussionThreads.toArray();
-    return discussionThreads.reduce(
-      (total, thread) => total + thread.unreadCount,
+    const discussions = await this.discussions.toArray();
+    return discussions.reduce(
+      (total, discussion) => total + discussion.unreadCount,
       0
     );
   }
@@ -260,7 +269,7 @@ export class EchoDatabase extends Dexie {
       .equals([contactUserId, 'delivered'])
       .modify({ status: 'read' });
 
-    await this.discussionThreads
+    await this.discussions
       .where('contactUserId')
       .equals(contactUserId)
       .modify({ unreadCount: 0 });
@@ -270,45 +279,39 @@ export class EchoDatabase extends Dexie {
     console.log('Adding message for contact:', message.contactUserId);
     const messageId = await this.messages.add(message);
 
-    // Get existing discussion thread
-    const discussionThread = await this.discussionThreads
+    // Get existing discussion
+    const discussion = await this.discussions
       .where('contactUserId')
       .equals(message.contactUserId)
       .first();
 
-    if (discussionThread) {
-      console.log('Updating existing discussion thread:', discussionThread.id);
-      await this.discussionThreads.update(discussionThread.id!, {
+    if (discussion) {
+      console.log('Updating existing discussion:', discussion.id);
+      await this.discussions.update(discussion.id!, {
         lastMessageId: messageId,
-        lastMessageContent: message.content,
-        lastMessageTimestamp: message.timestamp,
         unreadCount:
           message.direction === 'incoming'
-            ? discussionThread.unreadCount + 1
-            : discussionThread.unreadCount,
+            ? discussion.unreadCount + 1
+            : discussion.unreadCount,
         updatedAt: new Date(),
       });
     } else {
-      // Create new discussion thread using put to handle unique constraint
+      // Note: For new messages, a discussion should already exist from the protocol
+      // If not, we'll create a minimal one (this shouldn't normally happen)
       console.log(
-        'Creating new discussion thread for contact:',
+        'Warning: Creating discussion for contact without protocol setup:',
         message.contactUserId
       );
-      await this.discussionThreads.put({
+      await this.discussions.put({
         contactUserId: message.contactUserId,
+        direction: 'initiated',
+        status: 'pending',
+        nextSeeker: undefined, // Will be set by protocol when available
         lastMessageId: messageId,
-        lastMessageContent: message.content,
-        lastMessageTimestamp: message.timestamp,
         unreadCount: message.direction === 'incoming' ? 1 : 0,
-        isPinned: false,
-        isArchived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log(
-        'Created/updated discussion thread for contact:',
-        message.contactUserId
-      );
     }
 
     return messageId;

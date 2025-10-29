@@ -91,16 +91,14 @@ export class MessageReceptionService {
             metadata: encryptedMsg.metadata,
           });
 
-          // Update the discussion thread
-          await db.discussionThreads
+          // Update the discussion with UI metadata
+          await db.discussions
             .where('contactUserId')
             .equals(discussion.contactUserId)
-            .modify(thread => {
-              thread.lastMessageId = messageId;
-              thread.lastMessageContent = content;
-              thread.lastMessageTimestamp = encryptedMsg.timestamp;
-              thread.unreadCount = thread.unreadCount + 1;
-              thread.updatedAt = new Date();
+            .modify(disc => {
+              disc.lastMessageId = messageId;
+              disc.unreadCount = disc.unreadCount + 1;
+              disc.updatedAt = new Date();
             });
 
           // Update discussion with new seeker from acknowledged_seekers
@@ -353,8 +351,7 @@ export class MessageReceptionService {
           // Create a regular message entry for the UI
           const messageId = await db.addMessage({
             contactUserId: discussion.contactUserId,
-            content:
-              'This is a simulated received message for testing purposes.',
+            content,
             type: 'text',
             direction: 'incoming',
             status: 'delivered',
@@ -369,16 +366,14 @@ export class MessageReceptionService {
             discussion.contactUserId
           );
 
-          // Update the discussion thread
-          await db.discussionThreads
+          // Update the discussion with UI metadata
+          await db.discussions
             .where('contactUserId')
             .equals(discussion.contactUserId)
-            .modify(thread => {
-              thread.lastMessageId = messageId;
-              thread.lastMessageContent = content;
-              thread.lastMessageTimestamp = mockMessage.timestamp;
-              thread.unreadCount = thread.unreadCount + 1;
-              thread.updatedAt = new Date();
+            .modify(disc => {
+              disc.lastMessageId = messageId;
+              disc.unreadCount = disc.unreadCount + 1;
+              disc.updatedAt = new Date();
             });
 
           // Update discussion with new seeker from acknowledged_seekers
@@ -416,17 +411,14 @@ export class MessageReceptionService {
           discussion.contactUserId
         );
 
-        // Update the discussion thread
-        await db.discussionThreads
+        // Update the discussion with UI metadata
+        await db.discussions
           .where('contactUserId')
           .equals(discussion.contactUserId)
-          .modify(thread => {
-            thread.lastMessageId = messageId;
-            thread.lastMessageContent =
-              'This is a simulated received message for testing purposes.';
-            thread.lastMessageTimestamp = mockMessage.timestamp;
-            thread.unreadCount = thread.unreadCount + 1;
-            thread.updatedAt = new Date();
+          .modify(disc => {
+            disc.lastMessageId = messageId;
+            disc.unreadCount = disc.unreadCount + 1;
+            disc.updatedAt = new Date();
           });
       }
 

@@ -108,14 +108,21 @@ export const useMessages = ({
         if (discussionId) {
           try {
             const service = await messageReceptionService.getInstance();
-            // Get the discussion to access the discussionKey
+            // Get the discussion to access the nextSeeker (used as routing key)
             const discussion = await db.discussions.get(discussionId);
             if (!discussion) {
               throw new Error('Discussion not found');
             }
+            // Derive a string key from nextSeeker (hex) or fallback to contact ID
+            const seekerBytes = discussion.nextSeeker;
+            const discussionKey = seekerBytes
+              ? Array.from(seekerBytes)
+                  .map(b => b.toString(16).padStart(2, '0'))
+                  .join('')
+              : contact.userId;
             // Create a mock encrypted message payload for protocol
             const messageProtocol = await service.getMessageProtocol();
-            await messageProtocol.sendMessage(discussion.discussionKey, {
+            await messageProtocol.sendMessage(discussionKey, {
               id: `out_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
               seeker: new Uint8Array(0),
               ciphertext: crypto.getRandomValues(new Uint8Array(128)),

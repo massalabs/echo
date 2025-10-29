@@ -12,10 +12,6 @@ export class MockMessageProtocol implements IMessageProtocol {
   private mockMessages: Map<string, EncryptedMessage[]> = new Map();
   private mockAnnouncements: Uint8Array[] = [];
 
-  constructor() {
-    console.log('Mock message protocol initialized');
-  }
-
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     console.log('Mock: Fetching messages for seekers:', seekers.length);
 
@@ -82,14 +78,6 @@ export class MockMessageProtocol implements IMessageProtocol {
     // simulate fetching from a global announcement channel
     return this.mockAnnouncements;
   }
-
-  // Keeping for future parity testing if needed
-  // private generateDiscussionKey(masterKey: Uint8Array): string {
-  //   const hexKey = Array.from(masterKey)
-  //     .map(byte => byte.toString(16).padStart(2, '0'))
-  //     .join('');
-  //   return `discussion_${hexKey.substring(0, 16)}`;
-  // }
 
   // Helper methods for testing
   addMockMessage(seekerHexKey: string, message: EncryptedMessage): void {
