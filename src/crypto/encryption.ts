@@ -40,29 +40,24 @@ export async function deriveKey(
 
 export async function encryptPrivateKey(
   privateKey: BufferSource,
-  password: string
+  key: CryptoKey
 ): Promise<{
   encryptedPrivateKey: ArrayBuffer;
   iv: Uint8Array;
-  salt: Uint8Array;
 }> {
   // Generate IV for encryption
   const iv = crypto.getRandomValues(new Uint8Array(ENCRYPTION.AES_GCM.ivBytes));
 
-  // Derive encryption key using your deriveKey function
-  const { key: encKey, salt } = await deriveKey(password);
-
   // Encrypt the private key
   const encryptedPrivateKey = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
-    encKey,
+    key,
     privateKey
   );
 
   return {
     encryptedPrivateKey,
     iv,
-    salt,
   };
 }
 

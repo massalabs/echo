@@ -6,8 +6,11 @@
  * Useful for development and testing when the backend is not available.
  */
 
-import { IMessageProtocol, EncryptedMessage } from './types';
-import { SessionInitiationResult } from '../../wasm/types';
+import {
+  IMessageProtocol,
+  EncryptedMessage,
+  AnnouncementPayload,
+} from './types';
 
 export class MockMessageProtocol implements IMessageProtocol {
   private mockMessages: Map<string, EncryptedMessage[]> = new Map();
@@ -17,17 +20,24 @@ export class MockMessageProtocol implements IMessageProtocol {
     console.log('Mock message protocol initialized');
   }
 
-  async fetchMessages(discussionKey: string): Promise<EncryptedMessage[]> {
-    console.log('Mock: Fetching messages for discussion key:', discussionKey);
+  async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
+    console.log('Mock: Fetching messages for seekers:', seekers.length);
 
-    // Return empty array for now - in a real implementation, this would
-    // simulate fetching from a key-value store
-    const messages = this.mockMessages.get(discussionKey) || [];
+    // For the mock, concatenate messages for all seeker hex strings
+    const collected: EncryptedMessage[] = [];
+    for (const seeker of seekers) {
+      const key = Array.from(seeker)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      const msgs = this.mockMessages.get(key) || [];
+      // attach seeker on returned messages
+      collected.push(...msgs.map(m => ({ ...m, seeker })));
+    }
 
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return messages;
+    return collected;
   }
 
   async sendMessage(
@@ -50,87 +60,20 @@ export class MockMessageProtocol implements IMessageProtocol {
     console.log('Mock: Message sent successfully');
   }
 
-  async createOutgoingSession(
-    contactId: string,
-    _recipientPublicKey: Uint8Array
-  ): Promise<SessionInitiationResult> {
-    console.log('Mock: Creating outgoing session for contact:', contactId);
-
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    // Generate mock session data
-    const masterKey = crypto.getRandomValues(new Uint8Array(32));
-    const discussionKey = this.generateDiscussionKey(masterKey);
-
-    const session = {
-      id: `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-      masterKey,
-      innerKey: crypto.getRandomValues(new Uint8Array(32)),
-      nextPublicKey: crypto.getRandomValues(new Uint8Array(1184)),
-      nextPrivateKey: crypto.getRandomValues(new Uint8Array(2400)),
-      version: 1,
-      status: 'pending' as const,
-      discussionKey,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    const postData = {
-      ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-      ct: crypto.getRandomValues(new Uint8Array(32)),
-      rand: crypto.getRandomValues(new Uint8Array(32)),
-    };
-
-    console.log('Mock: Outgoing session created successfully');
-
-    return {
-      sessionId: session.id,
-      session,
-      postData,
-      transactionHash: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-    };
+  // Broadcast an outgoing session announcement produced by WASM
+  async createOutgoingSession(payload: AnnouncementPayload): Promise<void> {
+    console.log('Mock: Broadcasting outgoing session announcement');
+    // For the mock, push to announcements so receivers can fetch it
+    this.mockAnnouncements.push(payload.announcement);
+    await new Promise(resolve => setTimeout(resolve, 150));
   }
 
-  async feedIncomingAnnouncement(
-    _announcementData: Uint8Array
-  ): Promise<SessionInitiationResult> {
-    console.log('Mock: Processing incoming announcement');
-
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 250));
-
-    // Generate mock session data for incoming announcement
-    const masterKey = crypto.getRandomValues(new Uint8Array(32));
-    const discussionKey = this.generateDiscussionKey(masterKey);
-
-    const session = {
-      id: `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-      masterKey,
-      innerKey: crypto.getRandomValues(new Uint8Array(32)),
-      nextPublicKey: crypto.getRandomValues(new Uint8Array(1184)),
-      nextPrivateKey: crypto.getRandomValues(new Uint8Array(2400)),
-      version: 1,
-      status: 'active' as const,
-      discussionKey,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    const postData = {
-      ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-      ct: crypto.getRandomValues(new Uint8Array(32)),
-      rand: crypto.getRandomValues(new Uint8Array(32)),
-    };
-
-    console.log('Mock: Incoming announcement processed successfully');
-
-    return {
-      sessionId: session.id,
-      session,
-      postData,
-      transactionHash: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-    };
+  // Broadcast an incoming session response produced by WASM
+  async feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void> {
+    console.log('Mock: Broadcasting incoming session response');
+    // For the mock, also push to announcements
+    this.mockAnnouncements.push(payload.announcement);
+    await new Promise(resolve => setTimeout(resolve, 150));
   }
 
   async fetchAnnouncements(): Promise<Uint8Array[]> {
@@ -144,19 +87,20 @@ export class MockMessageProtocol implements IMessageProtocol {
     return this.mockAnnouncements;
   }
 
-  private generateDiscussionKey(masterKey: Uint8Array): string {
-    const hexKey = Array.from(masterKey)
-      .map(byte => byte.toString(16).padStart(2, '0'))
-      .join('');
-    return `discussion_${hexKey.substring(0, 16)}`;
-  }
+  // Keeping for future parity testing if needed
+  // private generateDiscussionKey(masterKey: Uint8Array): string {
+  //   const hexKey = Array.from(masterKey)
+  //     .map(byte => byte.toString(16).padStart(2, '0'))
+  //     .join('');
+  //   return `discussion_${hexKey.substring(0, 16)}`;
+  // }
 
   // Helper methods for testing
-  addMockMessage(discussionKey: string, message: EncryptedMessage): void {
-    if (!this.mockMessages.has(discussionKey)) {
-      this.mockMessages.set(discussionKey, []);
+  addMockMessage(seekerHexKey: string, message: EncryptedMessage): void {
+    if (!this.mockMessages.has(seekerHexKey)) {
+      this.mockMessages.set(seekerHexKey, []);
     }
-    this.mockMessages.get(discussionKey)!.push(message);
+    this.mockMessages.get(seekerHexKey)!.push(message);
   }
 
   addMockAnnouncement(announcement: Uint8Array): void {

@@ -1,35 +1,12 @@
 /**
  * Discussion Initialization Module
  *
- * Implements the post-quantum secure discussion initialization protocol
- * using the high-level WASM SessionManager API.
- *
- * This module uses the SessionManager's createOutgoingSession and
- * feedIncomingAnnouncement methods for session management.
+ * Implements initialization using the new WASM SessionManager API.
  */
 
 import { db, Discussion, DiscussionMessage } from '../db';
-import {
-  wasmLoader,
-  SessionModule,
-  SessionInitiationResult,
-  Session,
-} from '../wasm';
-import bs58check from 'bs58check';
-
-/**
- * Initialize WASM modules
- */
-export async function initializeWasmModules(): Promise<void> {
-  await wasmLoader.loadModules();
-}
-
-/**
- * Get the session module
- */
-function getSessionModule(): SessionModule {
-  return wasmLoader.getModule<SessionModule>('session');
-}
+import { generateUserKeys, getSessionModule } from '../wasm';
+import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -46,56 +23,49 @@ export async function initializeDiscussion(
   recipientUserId: string
 ): Promise<{
   discussionId: number;
-  sessionId: string;
-  postData: {
-    ct: Uint8Array;
-    rand: Uint8Array;
-    ciphertext: Uint8Array;
-  };
-  transactionHash: string;
+  announcement: Uint8Array;
 }> {
   try {
-    // Ensure WASM modules are initialized
-    await initializeWasmModules();
+    const sessionModule = await getSessionModule();
 
-    // Convert user ID (base58check encoded) to Uint8Array for the session module
-    const recipientUserIdBytes = bs58check.decode(recipientUserId);
+    // Load our decrypted keys via shared helper
+    const { ourPk, ourSk } = await getDecryptedWasmKeys();
 
-    // Use SessionManager to create outgoing session
-    const sessionModule = getSessionModule();
-    const result: SessionInitiationResult =
-      await sessionModule.createOutgoingSession(
-        contactUserId,
-        recipientUserIdBytes
-      );
+    // Use mocked peer public keys
+    const mockUserKeys = await generateUserKeys(recipientUserId);
+    const peerPk = mockUserKeys.public_keys();
+
+    // use zeros for now
+    const seekerPrefix = new Uint8Array(32);
+
+    // Establish outgoing session and get announcement bytes
+    const announcement = await sessionModule.establishOutgoingSession(
+      peerPk,
+      ourPk,
+      ourSk,
+      seekerPrefix
+    );
 
     // Store discussion in database
     const discussionId = await db.discussions.add({
       contactUserId,
       direction: 'initiated',
       status: 'pending',
-      masterKey: result.session.masterKey,
-      innerKey: result.session.innerKey,
-      nextPublicKey: result.session.nextPublicKey,
-      nextPrivateKey: result.session.nextPrivateKey,
-      version: result.session.version,
-      discussionKey: result.session.discussionKey,
+      version: 1,
+      discussionKey: contactUserId,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    // Create session in session module with discussion ID as key
-    await sessionModule.createSession(discussionId.toString());
-
-    // Store the initiation message
+    // Optionally persist the announcement as an initiation message metadata (ciphertext only for now)
     await db.discussionMessages.add({
       discussionId,
       messageType: 'initiation',
       direction: 'outgoing',
-      ciphertext: result.postData.ciphertext,
-      ct: result.postData.ct,
-      rand: result.postData.rand,
-      nonce: new Uint8Array(12), // Mock nonce
+      ciphertext: announcement,
+      ct: new Uint8Array(0),
+      rand: new Uint8Array(0),
+      nonce: new Uint8Array(12),
       status: 'sent',
       timestamp: new Date(),
     });
@@ -127,12 +97,7 @@ export async function initializeDiscussion(
       );
     }
 
-    return {
-      discussionId,
-      sessionId: result.sessionId,
-      postData: result.postData,
-      transactionHash: result.transactionHash,
-    };
+    return { discussionId, announcement };
   } catch (error) {
     console.error('Failed to initialize discussion:', error);
     throw new Error('Discussion initialization failed');
@@ -150,45 +115,38 @@ export async function processIncomingInitiation(
   announcementData: Uint8Array
 ): Promise<{
   discussionId: number;
-  sessionId: string;
-  session: Session;
 }> {
   try {
-    // Ensure WASM modules are initialized
-    await initializeWasmModules();
+    const sessionModule = await getSessionModule();
 
-    // Use SessionManager to process incoming announcement
-    const sessionModule = getSessionModule();
-    const result: SessionInitiationResult =
-      await sessionModule.feedIncomingAnnouncement(announcementData);
+    const { ourPk, ourSk } = await getDecryptedWasmKeys();
+
+    await sessionModule.feedIncomingAnnouncement(
+      announcementData,
+      ourPk,
+      ourSk
+    );
 
     // Store discussion in database
     const discussionId = await db.discussions.add({
       contactUserId,
       direction: 'received',
       status: 'active',
-      masterKey: result.session.masterKey,
-      innerKey: result.session.innerKey,
-      nextPublicKey: result.session.nextPublicKey,
-      nextPrivateKey: new Uint8Array(0), // Recipient doesn't have the private key
-      version: result.session.version,
-      discussionKey: result.session.discussionKey,
+      version: 1,
+      discussionKey: contactUserId,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    // Create session in session module with discussion ID as key
-    await sessionModule.createSession(discussionId.toString());
-
-    // Store the initiation message
+    // Store the incoming announcement as initiation message
     await db.discussionMessages.add({
       discussionId,
       messageType: 'initiation',
       direction: 'incoming',
-      ciphertext: result.postData.ciphertext,
-      ct: result.postData.ct,
-      rand: result.postData.rand,
-      nonce: new Uint8Array(12), // Mock nonce
+      ciphertext: announcementData,
+      ct: new Uint8Array(0),
+      rand: new Uint8Array(0),
+      nonce: new Uint8Array(12),
       status: 'delivered',
       timestamp: new Date(),
     });
@@ -220,11 +178,7 @@ export async function processIncomingInitiation(
       );
     }
 
-    return {
-      discussionId,
-      sessionId: result.sessionId,
-      session: result.session,
-    };
+    return { discussionId };
   } catch (error) {
     console.error('Failed to process incoming initiation:', error);
     throw new Error('Failed to process incoming initiation');

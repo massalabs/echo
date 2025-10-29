@@ -5,21 +5,20 @@
  * and related functionality.
  */
 
-// Export types
-export * from './types';
-
 // Export modules
-export { MockSessionModule } from './session';
+export { SessionModule } from './session';
 
-// Export loader
-export { WasmModuleLoader, wasmLoader } from './loader';
-
-// Export initializer
+// Export initialization functions and session module
 export {
   initializeWasm,
   ensureWasmInitialized,
-  generateUserKeys,
   startWasmInitialization,
   getInitializationStatus,
   getInitializationPromise,
-} from './initializer';
+  getSessionModule,
+  cleanupWasmModules,
+} from './loader';
+
+// Export specialized WASM functionality
+export * from './encryption';
+export * from './userKeys';
