@@ -7,6 +7,7 @@
 import { db, Discussion, DiscussionMessage } from '../db';
 import { generateUserKeys, getSessionModule } from '../wasm';
 import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
+import { createMessageProtocol } from '../api/messageProtocol';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -18,10 +19,7 @@ import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
  * @param recipientUserId - The recipient's 32-byte user ID (base58check encoded)
  * @returns The discussion ID and session information
  */
-export async function initializeDiscussion(
-  contactUserId: string,
-  recipientUserId: string
-): Promise<{
+export async function initializeDiscussion(contactUserId: string): Promise<{
   discussionId: number;
   announcement: Uint8Array;
 }> {
@@ -32,7 +30,7 @@ export async function initializeDiscussion(
     const { ourPk, ourSk } = await getDecryptedWasmKeys();
 
     // Use mocked peer public keys
-    const mockUserKeys = await generateUserKeys(recipientUserId);
+    const mockUserKeys = await generateUserKeys(contactUserId);
     const peerPk = mockUserKeys.public_keys();
 
     // use zeros for now
@@ -46,55 +44,28 @@ export async function initializeDiscussion(
       seekerPrefix
     );
 
-    // Store discussion in database
+    // Store discussion in database with UI metadata and keep announcement on discussion
     const discussionId = await db.discussions.add({
       contactUserId,
       direction: 'initiated',
       status: 'pending',
-      version: 1,
-      discussionKey: contactUserId,
+      nextSeeker: undefined,
+      initiationAnnouncement: announcement,
+      unreadCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    // Optionally persist the announcement as an initiation message metadata (ciphertext only for now)
-    await db.discussionMessages.add({
-      discussionId,
-      messageType: 'initiation',
-      direction: 'outgoing',
-      ciphertext: announcement,
-      ct: new Uint8Array(0),
-      rand: new Uint8Array(0),
-      nonce: new Uint8Array(12),
-      status: 'sent',
-      timestamp: new Date(),
-    });
+    console.log('Created discussion for contact:', contactUserId);
 
-    // Check if discussion thread already exists
-    const existingThread = await db.discussionThreads
-      .where('contactUserId')
-      .equals(contactUserId)
-      .first();
-
-    if (!existingThread) {
-      // Create discussion thread for the UI only if it doesn't exist
-      await db.discussionThreads.add({
-        contactUserId,
-        lastMessageId: undefined,
-        lastMessageContent: 'Discussion started',
-        lastMessageTimestamp: new Date(),
-        unreadCount: 0,
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      console.log('Created discussion thread for contact:', contactUserId);
-    } else {
-      console.log(
-        'Discussion thread already exists for contact:',
-        contactUserId
-      );
+    // Send the announcement through the message protocol
+    try {
+      const messageProtocol = await createMessageProtocol();
+      await messageProtocol.createOutgoingSession(announcement);
+      console.log('Announcement sent through message protocol');
+    } catch (error) {
+      console.error('Failed to send announcement through protocol:', error);
+      // Don't throw - discussion is created, announcement sending can be retried
     }
 
     return { discussionId, announcement };
@@ -127,13 +98,13 @@ export async function processIncomingInitiation(
       ourSk
     );
 
-    // Store discussion in database
+    // Store discussion in database with UI metadata
     const discussionId = await db.discussions.add({
       contactUserId,
       direction: 'received',
       status: 'active',
-      version: 1,
-      discussionKey: contactUserId,
+      nextSeeker: undefined,
+      unreadCount: 1, // Incoming discussion has 1 unread
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -151,32 +122,7 @@ export async function processIncomingInitiation(
       timestamp: new Date(),
     });
 
-    // Check if discussion thread already exists
-    const existingThread = await db.discussionThreads
-      .where('contactUserId')
-      .equals(contactUserId)
-      .first();
-
-    if (!existingThread) {
-      // Create discussion thread for the UI only if it doesn't exist
-      await db.discussionThreads.add({
-        contactUserId,
-        lastMessageId: undefined,
-        lastMessageContent: 'Discussion started',
-        lastMessageTimestamp: new Date(),
-        unreadCount: 1, // Incoming discussion has 1 unread
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      console.log('Created discussion thread for contact:', contactUserId);
-    } else {
-      console.log(
-        'Discussion thread already exists for contact:',
-        contactUserId
-      );
-    }
+    console.log('Created discussion for contact:', contactUserId);
 
     return { discussionId };
   } catch (error) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
-import { UserProfile, DiscussionThread, Contact, db } from '../db';
+import { UserProfile, Discussion, Contact, db } from '../db';
 import { formatRelativeTime } from '../utils/timeUtils';
 import appLogo from '../assets/echo_face.svg';
 import Settings from './Settings';
@@ -11,7 +11,7 @@ import WelcomeBack from './WelcomeBack';
 import AccountCreation from './AccountCreation';
 import NewDiscussion from './NewDiscussion';
 import NewContact from './NewContact';
-import Discussion from './Discussion';
+import DiscussionView from './Discussion';
 import ContactAvatar from './avatar/ContactAvatar';
 import { messageReceptionService } from '../services/messageReception';
 
@@ -38,19 +38,43 @@ const DiscussionList: React.FC = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [existingAccountInfo, setExistingAccountInfo] =
     useState<UserProfile | null>(null);
-  const [discussionThreads, setDiscussionThreads] = useState<
-    DiscussionThread[]
-  >([]);
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [lastMessages, setLastMessages] = useState<
+    Map<string, { content: string; timestamp: Date }>
+  >(new Map());
   const hasCheckedExistingRef = useRef(false);
   const [, forceUpdate] = useState({});
 
-  const loadDiscussionThreads = useCallback(async () => {
+  const loadDiscussions = useCallback(async () => {
     try {
-      const discussionThreadsList = await db.getDiscussionThreads();
-      setDiscussionThreads(discussionThreadsList);
+      const discussionsList = await db.getDiscussions();
+      setDiscussions(discussionsList);
+
+      // Load last message for each discussion
+      const messagesMap = new Map<
+        string,
+        { content: string; timestamp: Date }
+      >();
+      await Promise.all(
+        discussionsList.map(async discussion => {
+          const messages = await db.messages
+            .where('contactUserId')
+            .equals(discussion.contactUserId)
+            .sortBy('timestamp');
+          const lastMessage =
+            messages.length > 0 ? messages[messages.length - 1] : undefined;
+          if (lastMessage) {
+            messagesMap.set(discussion.contactUserId, {
+              content: lastMessage.content,
+              timestamp: lastMessage.timestamp,
+            });
+          }
+        })
+      );
+      setLastMessages(messagesMap);
     } catch (error) {
-      console.error('Failed to load discussion threads:', error);
+      console.error('Failed to load discussions:', error);
     }
   }, []);
 
@@ -129,13 +153,13 @@ const DiscussionList: React.FC = () => {
     appState,
   ]);
 
-  // Load discussion threads and contacts when entering main app
+  // Load discussions and contacts when entering main app
   useEffect(() => {
     if (appState === 'main') {
-      loadDiscussionThreads();
+      loadDiscussions();
       loadContacts();
     }
-  }, [appState, loadDiscussionThreads, loadContacts]);
+  }, [appState, loadDiscussions, loadContacts]);
 
   const handleResetAccount = useCallback(async () => {
     try {
@@ -232,8 +256,8 @@ const DiscussionList: React.FC = () => {
 
       if (result.success && result.newMessagesCount > 0) {
         console.log('Successfully simulated incoming discussion!');
-        // Reload discussion threads and contacts to show the new discussion
-        await loadDiscussionThreads();
+        // Reload discussions and contacts to show the new discussion
+        await loadDiscussions();
         await loadContacts();
       } else {
         console.log(
@@ -244,7 +268,7 @@ const DiscussionList: React.FC = () => {
     } catch (error) {
       console.error('Failed to simulate incoming discussion:', error);
     }
-  }, [loadDiscussionThreads, loadContacts]);
+  }, [loadDiscussions, loadContacts]);
 
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
@@ -267,10 +291,10 @@ const DiscussionList: React.FC = () => {
   }, []);
 
   const handleNewDiscussionCreated = useCallback(() => {
-    // Reload discussion threads and contacts when a new discussion is created or message is sent
-    loadDiscussionThreads();
+    // Reload discussions and contacts when a new discussion is created or message is sent
+    loadDiscussions();
     loadContacts();
-  }, [loadDiscussionThreads, loadContacts]);
+  }, [loadDiscussions, loadContacts]);
 
   const handleBackFromDiscussion = useCallback(async () => {
     // Mark messages as read for the contact we just viewed
@@ -284,14 +308,14 @@ const DiscussionList: React.FC = () => {
 
     setSelectedContact(null);
 
-    // Reload discussion threads and contacts to show updated data (including cleared unread counts)
-    loadDiscussionThreads();
+    // Reload discussions and contacts to show updated data (including cleared unread counts)
+    loadDiscussions();
     loadContacts();
-  }, [loadDiscussionThreads, loadContacts, selectedContact]);
+  }, [loadDiscussions, loadContacts, selectedContact]);
 
-  const handleSelectDiscussionThread = useCallback(
-    (discussionThread: DiscussionThread) => {
-      const contact = getContactByUserId(discussionThread.contactUserId);
+  const handleSelectDiscussion = useCallback(
+    (discussion: Discussion) => {
+      const contact = getContactByUserId(discussion.contactUserId);
       if (contact) {
         setSelectedContact(contact);
       }
@@ -351,7 +375,7 @@ const DiscussionList: React.FC = () => {
   // Show new discussion screen
   if (selectedContact) {
     return (
-      <Discussion
+      <DiscussionView
         contact={selectedContact}
         onBack={handleBackFromDiscussion}
         onDiscussionCreated={handleNewDiscussionCreated}
@@ -414,16 +438,16 @@ const DiscussionList: React.FC = () => {
                 Discussions
               </h2>
               <button
-                onClick={loadDiscussionThreads}
+                onClick={loadDiscussions}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
               >
                 Refresh
               </button>
             </div>
 
-            {/* Discussion threads list */}
+            {/* Discussions list */}
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {discussionThreads.length === 0 ? (
+              {discussions.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                     <svg
@@ -448,18 +472,18 @@ const DiscussionList: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                discussionThreads.map(discussionThread => {
-                  const contact = getContactByUserId(
-                    discussionThread.contactUserId
-                  );
+                discussions.map(discussion => {
+                  const contact = getContactByUserId(discussion.contactUserId);
                   if (!contact) return null;
+
+                  const lastMessage = lastMessages.get(
+                    discussion.contactUserId
+                  );
 
                   return (
                     <button
-                      key={discussionThread.id}
-                      onClick={() =>
-                        handleSelectDiscussionThread(discussionThread)
-                      }
+                      key={discussion.id}
+                      onClick={() => handleSelectDiscussion(discussion)}
                       className="w-full px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="flex items-center space-x-3">
@@ -470,18 +494,17 @@ const DiscussionList: React.FC = () => {
                               {contact.name}
                             </h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {formatRelativeTime(
-                                discussionThread.lastMessageTimestamp
-                              )}
+                              {lastMessage &&
+                                formatRelativeTime(lastMessage.timestamp)}
                             </p>
                           </div>
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                              {discussionThread.lastMessageContent}
+                              {lastMessage?.content || ''}
                             </p>
-                            {discussionThread.unreadCount > 0 && (
+                            {discussion.unreadCount > 0 && (
                               <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
-                                {discussionThread.unreadCount}
+                                {discussion.unreadCount}
                               </span>
                             )}
                           </div>
