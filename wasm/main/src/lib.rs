@@ -379,8 +379,8 @@ impl Message {
     pub fn new(contents: &[u8]) -> Self {
         Self {
             inner: sessions::Message {
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
+                timestamp: web_time::SystemTime::now()
+                    .duration_since(web_time::UNIX_EPOCH)
                     .unwrap()
                     .as_millis(),
                 contents: contents.to_vec(),
