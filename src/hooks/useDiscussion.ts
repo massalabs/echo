@@ -21,12 +21,12 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
       setIsLoading(true);
       const discussions = await getDiscussionsForContact(contact.userId);
 
-      // Get the most recent active discussion
-      const activeDiscussion = discussions
-        .filter(d => d.status === 'active')
+      // Get the most recent discussion (active or pending)
+      const latestDiscussion = discussions
+        .filter(d => d.status === 'active' || d.status === 'pending')
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
 
-      setDiscussion(activeDiscussion || null);
+      setDiscussion(latestDiscussion || null);
     } catch (error) {
       console.error('Failed to load discussion:', error);
     } finally {
