@@ -1,8 +1,99 @@
-//! Manages all the sessions we have with peers
+//! High-level session manager for multi-peer secure messaging.
+//!
+//! This module provides `SessionManager`, the main interface for managing
+//! encrypted messaging sessions with multiple peers. It handles:
+//!
+//! - **Session lifecycle**: Creating, tracking, and expiring sessions
+//! - **Message board coordination**: Computing seekers for message lookup
+//! - **Keep-alive**: Automatically refreshing idle sessions
+//! - **State persistence**: Serialization for encrypted storage
+//!
+//! # Architecture
+//!
+//! The SessionManager sits on top of the `Session` layer and provides:
+//! - Multi-peer support (one session per peer)
+//! - Automatic seeker management for message board reads
+//! - Session health monitoring (inactive, lag length)
+//! - Announcement processing and validation
+//!
+//! # Example
+//!
+//! ```no_run
+//! use sessions::{SessionManager, SessionManagerConfig};
+//! use auth::{UserPublicKeys, UserSecretKeys, derive_keys_from_static_root_secret, StaticRootSecret};
+//!
+//! // Create a session manager
+//! let config = SessionManagerConfig {
+//!     max_incoming_announcement_age_millis: 60_000,
+//!     max_incoming_announcement_future_millis: 5_000,
+//!     max_incoming_message_age_millis: 300_000,
+//!     max_incoming_message_future_millis: 5_000,
+//!     max_session_inactivity_millis: 3_600_000,
+//!     keep_alive_interval_millis: 60_000,
+//!     max_session_lag_length: 100,
+//! };
+//! let mut manager = SessionManager::new(config);
+//!
+//! // Generate keys
+//! # let root_secret = StaticRootSecret::from_passphrase(b"secret");
+//! # let (our_pk, our_sk) = derive_keys_from_static_root_secret(&root_secret);
+//! # let root_secret2 = StaticRootSecret::from_passphrase(b"peer_secret");
+//! # let (peer_pk, _) = derive_keys_from_static_root_secret(&root_secret2);
+//!
+//! // Establish a session
+//! let announcement_bytes = manager.establish_outgoing_session(
+//!     &peer_pk,
+//!     &our_pk,
+//!     &our_sk
+//! );
+//! // Post announcement_bytes to the announcement board...
+//!
+//! // Send a message
+//! let peer_id = peer_pk.derive_id();
+//! if let Some(output) = manager.send_message(&peer_id, b"Hello!") {
+//!     // Post output.data to message board at seeker output.seeker
+//! }
+//!
+//! // Get seekers to monitor
+//! let seekers = manager.get_message_board_read_keys();
+//! // Use seekers to read from message board...
+//!
+//! // Process incoming message
+//! # let (seeker, data): (Vec<u8>, Vec<u8>) = (vec![], vec![]);
+//! if let Some(received) = manager.feed_incoming_message_board_read(
+//!     &seeker,
+//!     &data,
+//!     &our_sk
+//! ) {
+//!     println!("Received: {:?}", String::from_utf8_lossy(&received.message));
+//! }
+//! ```
+//!
+//! # Session States
+//!
+//! Sessions can be in one of these states:
+//! - **Active**: Session is established and ready for messaging
+//! - **Outgoing**: We initiated but haven't received peer's announcement yet
+//! - **Incoming**: Peer initiated but we haven't established the session yet
+//! - **Saturated**: Session is active but has too much unacknowledged lag
+//! - **Killed**: Session was terminated due to an error
+//!
+//! # Message Board Integration
+//!
+//! The SessionManager uses a "message board" abstraction where:
+//! 1. Announcements are posted to an announcement board (key-value store)
+//! 2. Messages are posted to a message board with seekers as keys
+//! 3. Recipients monitor specific seekers to find their messages
+//! 4. Seekers are hashes of ephemeral Massa public keys
+//!
+//! This design allows for:
+//! - Privacy: Seekers don't reveal sender/recipient
+//! - Efficiency: Recipients only scan their seekers, not all messages
+//! - Unlinkability: Each message uses a fresh seeker
 
 use crate::{
     session::{
-        FeedIncomingMessageOutput, IncomingInitiationRequest, Message, OutgoingInitiationRequest,
+        FeedIncomingMessageOutput, IncomingInitiationRequest, OutgoingInitiationRequest,
         SendOutgoingMessageOutput, Session,
     },
     utils::timestamp_millis,
@@ -148,7 +239,10 @@ impl SessionManager {
             Zeroizing::new(crypto_aead::decrypt(key, &nonce, encrypted_blob, b"")?);
 
         // deserialize
-        let session_manager: Self = bincode::deserialize(&decrypted_blob).ok()?;
+        let session_manager: Self =
+            bincode::serde::decode_from_slice(&decrypted_blob, bincode::config::standard())
+                .ok()?
+                .0;
 
         // return
         Some(session_manager)
@@ -163,7 +257,8 @@ impl SessionManager {
         };
 
         // serialize
-        let serialized_blob = Zeroizing::new(bincode::serialize(self).ok()?);
+        let serialized_blob =
+            Zeroizing::new(bincode::serde::encode_to_vec(self, bincode::config::standard()).ok()?);
 
         // encrypt
         let encrypted_blob =
@@ -286,17 +381,13 @@ impl SessionManager {
         peer_pk: &auth::UserPublicKeys,
         our_pk: &auth::UserPublicKeys,
         our_sk: &auth::UserSecretKeys,
-        seeker_prefix: &[u8],
     ) -> Vec<u8> {
         // get peer ID
         let peer_id = peer_pk.derive_id();
 
-        // get current timestamp
-        let cur_timestamp = timestamp_millis();
-
         // create outgoing initiation request
         let (announcement_bytes, outgoing_initiation_request) =
-            OutgoingInitiationRequest::new(our_pk, our_sk, peer_pk, seeker_prefix, cur_timestamp);
+            OutgoingInitiationRequest::new(our_pk, our_sk, peer_pk);
 
         // check if we already have an incoming announcement from this peer
         if let Some(peer_info) = self.peers.get_mut(&peer_id) {
@@ -368,6 +459,7 @@ impl SessionManager {
     fn inner_feed_incoming_msg(
         &mut self,
         peer_id: &UserId,
+        seeker: &[u8],
         bytes: &[u8],
         our_sk: &auth::UserSecretKeys,
     ) -> Option<FeedIncomingMessageOutput> {
@@ -377,19 +469,18 @@ impl SessionManager {
             if let Some(active_session) = &mut peer_info.active_session {
                 msg = active_session
                     .session
-                    .try_feed_incoming_message(our_sk, bytes);
+                    .try_feed_incoming_message(our_sk, seeker, bytes);
             }
         }
         let msg = msg?;
 
         // check message timestamp (past, future)
         let cur_timestamp = timestamp_millis();
-        if msg.message.timestamp
-            < cur_timestamp.saturating_sub(self.config.max_incoming_message_age_millis)
+        if msg.timestamp < cur_timestamp.saturating_sub(self.config.max_incoming_message_age_millis)
         {
             return None;
         }
-        if msg.message.timestamp
+        if msg.timestamp
             > cur_timestamp.saturating_add(self.config.max_incoming_message_future_millis)
         {
             return None;
@@ -399,10 +490,10 @@ impl SessionManager {
         // and update the last incoming message timestamp
         if let Some(peer_info) = self.peers.get_mut(peer_id) {
             if let Some(active_session) = &mut peer_info.active_session {
-                if msg.message.timestamp < active_session.last_incoming_message_timestamp {
+                if msg.timestamp < active_session.last_incoming_message_timestamp {
                     return None;
                 }
-                active_session.last_incoming_message_timestamp = msg.message.timestamp;
+                active_session.last_incoming_message_timestamp = msg.timestamp;
             }
         }
 
@@ -429,7 +520,7 @@ impl SessionManager {
         let peer_id = peer_id?;
 
         // feed the message into the session
-        let msg = self.inner_feed_incoming_msg(&peer_id, bytes, our_sk);
+        let msg = self.inner_feed_incoming_msg(&peer_id, seeker, bytes, our_sk);
 
         // if the message is None here, it means the session has a problem: close it
         if msg.is_none() {
@@ -456,7 +547,7 @@ impl SessionManager {
     pub fn send_message(
         &mut self,
         peer_id: &UserId,
-        message: &Message,
+        message: &[u8],
     ) -> Option<SendOutgoingMessageOutput> {
         // get the session and send
         if let Some(peer_info) = self.peers.get_mut(peer_id) {
@@ -465,7 +556,7 @@ impl SessionManager {
                     return None;
                 }
                 let send_result = active_session.session.send_outgoing_message(message);
-                active_session.last_outgoing_message_timestamp = message.timestamp;
+                active_session.last_outgoing_message_timestamp = send_result.timestamp;
                 return Some(send_result);
             }
         }
@@ -476,15 +567,13 @@ impl SessionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::Message;
 
     fn generate_test_keypair() -> (auth::UserPublicKeys, auth::UserSecretKeys) {
         // Generate a random passphrase for testing
         let mut passphrase = [0u8; 32];
         crypto_rng::fill_buffer(&mut passphrase);
         let root_secret = auth::StaticRootSecret::from_passphrase(&passphrase);
-        let secondary_pub_key = [0u8; auth::SECONDARY_PUBLIC_KEY_SIZE];
-        auth::derive_keys_from_static_root_secret(&root_secret, secondary_pub_key)
+        auth::derive_keys_from_static_root_secret(&root_secret)
     }
 
     fn create_test_config() -> SessionManagerConfig {
@@ -499,11 +588,9 @@ mod tests {
         }
     }
 
-    fn create_test_message(contents: &[u8]) -> Message {
-        Message {
-            timestamp: timestamp_millis(),
-            contents: contents.to_vec(),
-        }
+    // Helper to create raw message bytes for tests
+    fn create_test_message(contents: &[u8]) -> Vec<u8> {
+        contents.to_vec()
     }
 
     #[test]
@@ -523,16 +610,11 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Alice initiates session to Bob
-        let alice_announcement = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
+        let alice_announcement =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
 
         // Bob initiates session to Alice
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         // Feed announcements
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
@@ -562,8 +644,8 @@ mod tests {
         let (peer2_pk, _) = generate_test_keypair();
 
         // Establish sessions
-        manager.establish_outgoing_session(&peer1_pk, &our_pk, &our_sk, b"to_peer1");
-        manager.establish_outgoing_session(&peer2_pk, &our_pk, &our_sk, b"to_peer2");
+        manager.establish_outgoing_session(&peer1_pk, &our_pk, &our_sk);
+        manager.establish_outgoing_session(&peer2_pk, &our_pk, &our_sk);
 
         let peer_list = manager.peer_list();
         assert_eq!(peer_list.len(), 2);
@@ -581,7 +663,7 @@ mod tests {
         let peer_id = peer_pk.derive_id();
 
         // Establish session
-        manager.establish_outgoing_session(&peer_pk, &our_pk, &our_sk, b"to_peer");
+        manager.establish_outgoing_session(&peer_pk, &our_pk, &our_sk);
 
         assert_eq!(manager.peer_list().len(), 1);
         assert!(matches!(
@@ -609,7 +691,7 @@ mod tests {
         let peer_id = peer_pk.derive_id();
 
         // We initiate but peer doesn't respond yet
-        manager.establish_outgoing_session(&peer_pk, &our_pk, &our_sk, b"to_peer");
+        manager.establish_outgoing_session(&peer_pk, &our_pk, &our_sk);
 
         assert!(matches!(
             manager.peer_session_status(&peer_id),
@@ -629,7 +711,7 @@ mod tests {
         // Peer initiates
         let mut peer_manager = SessionManager::new(create_test_config());
         let peer_announcement =
-            peer_manager.establish_outgoing_session(&our_pk, &peer_pk, &peer_sk, b"peer_to_us");
+            peer_manager.establish_outgoing_session(&our_pk, &peer_pk, &peer_sk);
 
         // We receive peer's announcement
         manager.feed_incoming_announcement(&peer_announcement, &our_pk, &our_sk);
@@ -664,14 +746,9 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Establish sessions
-        let alice_announcement = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let alice_announcement =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
@@ -690,10 +767,10 @@ mod tests {
         assert!(bob_seekers.contains(&send_output.seeker));
 
         let received = bob_manager
-            .feed_incoming_message_board_read(&send_output.seeker, &send_output.ciphertext, &bob_sk)
+            .feed_incoming_message_board_read(&send_output.seeker, &send_output.data, &bob_sk)
             .expect("Failed to receive message");
 
-        assert_eq!(received.message.contents, b"Hello Bob!");
+        assert_eq!(received.message.as_slice(), b"Hello Bob!");
     }
 
     #[test]
@@ -708,28 +785,14 @@ mod tests {
         let (charlie_pk, charlie_sk) = generate_test_keypair();
 
         // Alice establishes sessions with Bob and Charlie
-        let alice_to_bob = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
-        let alice_to_charlie = alice_manager.establish_outgoing_session(
-            &charlie_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_charlie",
-        );
+        let alice_to_bob = alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let alice_to_charlie =
+            alice_manager.establish_outgoing_session(&charlie_pk, &alice_pk, &alice_sk);
 
         // Bob and Charlie establish sessions back
-        let bob_to_alice =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
-        let charlie_to_alice = charlie_manager.establish_outgoing_session(
-            &alice_pk,
-            &charlie_pk,
-            &charlie_sk,
-            b"charlie_to_alice",
-        );
+        let bob_to_alice = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
+        let charlie_to_alice =
+            charlie_manager.establish_outgoing_session(&alice_pk, &charlie_pk, &charlie_sk);
 
         // Complete handshakes
         bob_manager.feed_incoming_announcement(&alice_to_bob, &bob_pk, &bob_sk);
@@ -767,14 +830,9 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Establish sessions
-        let alice_announcement = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let alice_announcement =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
@@ -786,17 +844,17 @@ mod tests {
         let msg1 = create_test_message(b"Hello Bob!");
         let output1 = alice_manager.send_message(&bob_id, &msg1).unwrap();
         let received1 = bob_manager
-            .feed_incoming_message_board_read(&output1.seeker, &output1.ciphertext, &bob_sk)
+            .feed_incoming_message_board_read(&output1.seeker, &output1.data, &bob_sk)
             .unwrap();
-        assert_eq!(received1.message.contents, b"Hello Bob!");
+        assert_eq!(received1.message.as_slice(), b"Hello Bob!");
 
         // Bob -> Alice
         let msg2 = create_test_message(b"Hi Alice!");
         let output2 = bob_manager.send_message(&alice_id, &msg2).unwrap();
         let received2 = alice_manager
-            .feed_incoming_message_board_read(&output2.seeker, &output2.ciphertext, &alice_sk)
+            .feed_incoming_message_board_read(&output2.seeker, &output2.data, &alice_sk)
             .unwrap();
-        assert_eq!(received2.message.contents, b"Hi Alice!");
+        assert_eq!(received2.message.as_slice(), b"Hi Alice!");
     }
 
     #[test]
@@ -810,8 +868,7 @@ mod tests {
 
         // Create announcement for other_pk
         let mut peer_manager = SessionManager::new(create_test_config());
-        let announcement =
-            peer_manager.establish_outgoing_session(&other_pk, &peer_pk, &peer_sk, b"to_other");
+        let announcement = peer_manager.establish_outgoing_session(&other_pk, &peer_pk, &peer_sk);
 
         // Try to feed with our keys (should be ignored)
         manager.feed_incoming_announcement(&announcement, &our_pk, &our_sk);
@@ -846,8 +903,7 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Bob creates announcement
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         // Wait for announcement to become too old
         std::thread::sleep(std::time::Duration::from_millis(1100));
@@ -882,14 +938,9 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Establish sessions
-        let alice_announcement = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let alice_announcement =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
@@ -937,15 +988,13 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Bob sends first announcement
-        let bob_announcement1 =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice_v1");
+        let bob_announcement1 = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         // Small delay
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         // Bob sends second announcement (newer)
-        let bob_announcement2 =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice_v2");
+        let bob_announcement2 = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         // Alice receives both (newer should be kept)
         alice_manager.feed_incoming_announcement(&bob_announcement1, &alice_pk, &alice_sk);
@@ -972,13 +1021,11 @@ mod tests {
 
         // Bob sends newer announcement first
         std::thread::sleep(std::time::Duration::from_millis(10));
-        let bob_announcement2 =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice_v2");
+        let bob_announcement2 = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         // Simulate an older announcement (with older timestamp)
         // We need to manually create one or track the first one
-        let bob_announcement1 =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice_v1");
+        let bob_announcement1 = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         // Alice receives newer first
         alice_manager.feed_incoming_announcement(&bob_announcement2, &alice_pk, &alice_sk);
@@ -1002,9 +1049,8 @@ mod tests {
 
         // Use empty seeker prefix
         let alice_announcement =
-            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, b"");
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"");
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
@@ -1026,14 +1072,9 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Establish sessions
-        let alice_announcement = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let alice_announcement =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
@@ -1049,7 +1090,7 @@ mod tests {
 
         // Bob receives first message
         bob_manager
-            .feed_incoming_message_board_read(&output1.seeker, &output1.ciphertext, &bob_sk)
+            .feed_incoming_message_board_read(&output1.seeker, &output1.data, &bob_sk)
             .unwrap();
 
         // Bob sends reply (acknowledges Alice's messages)
@@ -1058,11 +1099,7 @@ mod tests {
 
         // Alice receives Bob's reply
         let received_reply = alice_manager
-            .feed_incoming_message_board_read(
-                &reply_output.seeker,
-                &reply_output.ciphertext,
-                &alice_sk,
-            )
+            .feed_incoming_message_board_read(&reply_output.seeker, &reply_output.data, &alice_sk)
             .unwrap();
 
         // Check for acknowledgments
@@ -1079,14 +1116,9 @@ mod tests {
         let (bob_pk, bob_sk) = generate_test_keypair();
 
         // Establish sessions
-        let alice_announcement = alice_manager.establish_outgoing_session(
-            &bob_pk,
-            &alice_pk,
-            &alice_sk,
-            b"alice_to_bob",
-        );
-        let bob_announcement =
-            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, b"bob_to_alice");
+        let alice_announcement =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        let bob_announcement = bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk);
 
         bob_manager.feed_incoming_announcement(&alice_announcement, &bob_pk, &bob_sk);
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
@@ -1116,16 +1148,12 @@ mod tests {
         let (charlie_pk, charlie_sk) = generate_test_keypair();
 
         // Alice initiates to Bob (SelfRequested)
-        alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, b"alice_to_bob");
+        alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
 
         // Charlie initiates to Alice (PeerRequested)
         let mut charlie_manager = SessionManager::new(create_test_config());
-        let charlie_announcement = charlie_manager.establish_outgoing_session(
-            &alice_pk,
-            &charlie_pk,
-            &charlie_sk,
-            b"charlie_to_alice",
-        );
+        let charlie_announcement =
+            charlie_manager.establish_outgoing_session(&alice_pk, &charlie_pk, &charlie_sk);
         alice_manager.feed_incoming_announcement(&charlie_announcement, &alice_pk, &alice_sk);
 
         // Alice should have 2 peers

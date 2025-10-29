@@ -33,10 +33,8 @@ use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 pub struct IncomingAnnouncementPrecursor {
     pk_next: kem::PublicKey,
     auth_payload: Vec<u8>,
-    seeker_next: [u8; 32],
     k_next: [u8; 32],
     auth_key: [u8; 32],
-    id: [u8; 32],
 }
 
 impl IncomingAnnouncementPrecursor {
@@ -133,11 +131,9 @@ impl IncomingAnnouncementPrecursor {
 
         Some(Self {
             pk_next,
-            seeker_next: root_kdf.seeker_next,
             k_next: root_kdf.k_next,
             auth_payload,
             auth_key: auth_kdf.auth_key,
-            id: root_kdf.id,
         })
     }
 
@@ -251,8 +247,6 @@ impl IncomingAnnouncementPrecursor {
             pk_peer,
             pk_next: self.pk_next.clone(),
             k_next: self.k_next,
-            seeker_next: self.seeker_next,
-            id: self.id,
         })
     }
 }
@@ -269,8 +263,6 @@ pub struct IncomingAnnouncement {
     pub(crate) pk_peer: kem::PublicKey,
     pub(crate) pk_next: kem::PublicKey,
     pub(crate) k_next: [u8; 32],
-    pub(crate) seeker_next: [u8; 32],
-    pub(crate) id: [u8; 32],
 }
 
 /// Intermediate state when creating an announcement.
@@ -291,10 +283,8 @@ pub struct OutgoingAnnouncementPrecursor {
     cipher_nonce: cipher::Nonce,
     auth_key: [u8; 32],
     k_next: [u8; 32],
-    seeker_next: [u8; 32],
     pk_next: kem::PublicKey,
     sk_next: kem::SecretKey,
-    id: [u8; 32],
 }
 
 impl OutgoingAnnouncementPrecursor {
@@ -367,8 +357,6 @@ impl OutgoingAnnouncementPrecursor {
             cipher_nonce,
             cipher_key,
             auth_key: announcement_auth_kdf.auth_key,
-            seeker_next: root_kdf.seeker_next,
-            id: root_kdf.id,
         }
     }
 
@@ -458,8 +446,6 @@ impl OutgoingAnnouncementPrecursor {
         let announcement = OutgoingAnnouncement {
             k_next: self.k_next,
             sk_next: self.sk_next.clone(),
-            seeker_next: self.seeker_next,
-            id: self.id,
         };
 
         (announcement_bytes, announcement)
@@ -476,8 +462,6 @@ impl OutgoingAnnouncementPrecursor {
 pub struct OutgoingAnnouncement {
     pub(crate) k_next: [u8; 32],
     pub(crate) sk_next: kem::SecretKey,
-    pub(crate) seeker_next: [u8; 32],
-    pub(crate) id: [u8; 32],
 }
 
 #[cfg(test)]
@@ -523,7 +507,6 @@ mod tests {
 
         // Verify session keys match
         assert_eq!(alice_announcement.k_next, bob_announcement.k_next);
-        assert_eq!(alice_announcement.seeker_next, bob_announcement.seeker_next);
     }
 
     #[test]

@@ -67,6 +67,8 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 name = "auth"
 version = "0.1.0"
 dependencies = [
+ "bincode",
+ "blake3",
  "crypto-aead",
  "crypto-dsa",
  "crypto-kdf",
@@ -93,11 +95,22 @@ checksum = "55248b47b0caf0546f7988906588779981c43bb1bc9d0c44087278f80cdb44ba"
 
 [[package]]
 name = "bincode"
-version = "1.3.3"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
 dependencies = [
+ "bincode_derive",
  "serde",
+ "unty",
+]
+
+[[package]]
+name = "bincode_derive"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf95709a440f45e986983918d0e8a1f30a9b1df04918fc828670606804ac3c09"
+dependencies = [
+ "virtue",
 ]
 
 [[package]]
@@ -237,6 +250,7 @@ name = "crypto-aead"
 version = "0.1.0"
 dependencies = [
  "aes-siv",
+ "getrandom 0.2.16",
  "zeroize",
 ]
 
@@ -426,6 +440,7 @@ dependencies = [
  "crypto-aead",
  "crypto-rng",
  "js-sys",
+ "massa_signature",
  "serde",
  "serde-wasm-bindgen",
  "sessions",
@@ -699,8 +714,8 @@ checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "massa_hash"
-version = "3.0.0"
-source = "git+https://github.com/massalabs/massa.git#9212c3fd1d7334fb232824a037cbb24d8b09a11e"
+version = "4.0.0"
+source = "git+https://github.com/massalabs/massa.git#28887a62a655757751f5de5c79c10ad841a770ae"
 dependencies = [
  "blake3",
  "bs58",
@@ -713,8 +728,8 @@ dependencies = [
 
 [[package]]
 name = "massa_serialization"
-version = "3.0.0"
-source = "git+https://github.com/massalabs/massa.git#9212c3fd1d7334fb232824a037cbb24d8b09a11e"
+version = "4.0.0"
+source = "git+https://github.com/massalabs/massa.git#28887a62a655757751f5de5c79c10ad841a770ae"
 dependencies = [
  "displaydoc",
  "nom",
@@ -725,8 +740,8 @@ dependencies = [
 
 [[package]]
 name = "massa_signature"
-version = "3.0.0"
-source = "git+https://github.com/massalabs/massa.git#9212c3fd1d7334fb232824a037cbb24d8b09a11e"
+version = "4.0.0"
+source = "git+https://github.com/massalabs/massa.git#28887a62a655757751f5de5c79c10ad841a770ae"
 dependencies = [
  "bs58",
  "displaydoc",
@@ -1084,6 +1099,8 @@ dependencies = [
  "crypto-aead",
  "crypto-agraphon",
  "crypto-rng",
+ "massa_hash",
+ "massa_signature",
  "serde",
  "web-time",
  "zeroize",
@@ -1244,6 +1261,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "unty"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
+
+[[package]]
 name = "uuid"
 version = "1.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1259,6 +1282,12 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "virtue"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "wasi"

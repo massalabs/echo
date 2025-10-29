@@ -315,8 +315,7 @@ mod tests {
     /// Helper function to create test keys from a passphrase
     fn create_test_keys(passphrase: &[u8]) -> (UserPublicKeys, UserSecretKeys) {
         let root_secret = StaticRootSecret::from_passphrase(passphrase);
-        let secondary_pub_key = [0u8; 32];
-        derive_keys_from_static_root_secret(&root_secret, secondary_pub_key)
+        derive_keys_from_static_root_secret(&root_secret)
     }
 
     #[test]

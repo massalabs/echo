@@ -12,7 +12,8 @@ crypto-agraphon = { path = "../crypto-agraphon" }
 crypto-rng = { path = "../crypto-rng" }
 crypto-aead = { path = "../crypto-aead" }
 serde = { version = "1.0", features = ["derive"] }
-bincode = "1.3"
+bincode = { version = "2.0", features = ["serde"] }
 zeroize = { version = "1.8", features = ["derive"] }
 web-time = "1.1"
-
+massa_signature = { git = "https://github.com/massalabs/massa.git", package = "massa_signature", default-features = false }
+massa_hash = { git = "https://github.com/massalabs/massa.git", package = "massa_hash", default-features = false }

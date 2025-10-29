@@ -151,8 +151,8 @@
 //! let mut bob_session = Agraphon::from_announcement_pair(&bob_announcement, &alice_incoming);
 //!
 //! // Now they can exchange messages
-//! let result = alice_session.send_outgoing_message(b"Hello, Bob!", &bob_pk);
-//! let decrypted = bob_session.try_feed_incoming_message(&bob_sk, &result.message_bytes)
+//! let result = alice_session.send_outgoing_message(b"seeker_alice", b"Hello, Bob!", &bob_pk);
+//! let decrypted = bob_session.try_feed_incoming_message(&bob_sk, &result)
 //!     .expect("Failed to decrypt message");
 //! assert_eq!(&decrypted.message_bytes, b"Hello, Bob!");
 //! ```

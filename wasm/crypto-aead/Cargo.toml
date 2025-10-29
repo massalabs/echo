@@ -8,4 +8,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 aes-siv = "0.7"
+getrandom = { version = "0.2", features = ["js"] }
 zeroize = { version = "1", features = ["derive"] }

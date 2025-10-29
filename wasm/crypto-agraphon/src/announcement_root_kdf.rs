@@ -49,12 +49,8 @@ pub struct AnnouncementRootKdf {
     pub(crate) cipher_key: cipher::Key,
     /// Key for next message reference
     pub(crate) k_next: [u8; 32],
-    /// Key for next message seeking
-    pub(crate) seeker_next: [u8; 32],
     /// Authentication pre-key
     pub(crate) auth_pre_key: [u8; 32],
-    /// Id of the announcement
-    pub(crate) id: [u8; 32],
 }
 
 impl AnnouncementRootKdf {
@@ -100,9 +96,7 @@ impl AnnouncementRootKdf {
         let mut cipher_nonce = [0u8; cipher::NONCE_SIZE];
         let mut cipher_key = [0u8; cipher::KEY_SIZE];
         let mut k_next = [0u8; 32];
-        let mut seeker_next = [0u8; 32];
         let mut auth_pre_key = [0u8; 32];
-        let mut id = [0u8; 32];
 
         let mut root_kdf = kdf::Extract::new("agraphon.announcement_root_kdf.V1".as_bytes());
         root_kdf.input_item(randomness.as_slice());
@@ -124,22 +118,15 @@ impl AnnouncementRootKdf {
             &mut k_next,
         );
         root_kdf.expand(
-            "agraphon.announcement_root_kdf.seeker_next".as_bytes(),
-            &mut seeker_next,
-        );
-        root_kdf.expand(
             "agraphon.announcement_root_kdf.auth_pre_key".as_bytes(),
             &mut auth_pre_key,
         );
-        root_kdf.expand("agraphon.announcement_root_kdf.id".as_bytes(), &mut id);
 
         Self {
             cipher_key: cipher_key.into(),
             cipher_nonce: cipher_nonce.into(),
             k_next,
-            seeker_next,
             auth_pre_key,
-            id,
         }
     }
 }
@@ -168,7 +155,6 @@ mod tests {
         assert_eq!(kdf1.cipher_key.as_bytes(), kdf2.cipher_key.as_bytes());
         assert_eq!(kdf1.cipher_nonce.as_bytes(), kdf2.cipher_nonce.as_bytes());
         assert_eq!(kdf1.k_next, kdf2.k_next);
-        assert_eq!(kdf1.seeker_next, kdf2.seeker_next);
         assert_eq!(kdf1.auth_pre_key, kdf2.auth_pre_key);
     }
 
@@ -235,7 +221,6 @@ mod tests {
         assert_eq!(kdf.cipher_key.as_bytes().len(), cipher::KEY_SIZE);
         assert_eq!(kdf.cipher_nonce.as_bytes().len(), cipher::NONCE_SIZE);
         assert_eq!(kdf.k_next.len(), 32);
-        assert_eq!(kdf.seeker_next.len(), 32);
         assert_eq!(kdf.auth_pre_key.len(), 32);
     }
 }
