@@ -14,7 +14,7 @@ import { notificationService } from './notifications';
 import bs58check from 'bs58check';
 import { processIncomingInitiation } from '../crypto/discussionInit';
 import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
-import { getSessionModule } from '../wasm';
+import { generateUserKeys, getSessionModule } from '../wasm';
 
 export interface MessageReceptionResult {
   success: boolean;
@@ -80,7 +80,7 @@ export class MessageReceptionService {
           const content = decoder.decode(out.message.contents);
 
           // Create a regular message entry for the UI
-          const messageId = await db.addMessage({
+          await db.addMessage({
             contactUserId: discussion.contactUserId,
             content,
             type: 'text',
@@ -91,15 +91,7 @@ export class MessageReceptionService {
             metadata: encryptedMsg.metadata,
           });
 
-          // Update the discussion with UI metadata
-          await db.discussions
-            .where('contactUserId')
-            .equals(discussion.contactUserId)
-            .modify(disc => {
-              disc.lastMessageId = messageId;
-              disc.unreadCount = disc.unreadCount + 1;
-              disc.updatedAt = new Date();
-            });
+          // Discussion metadata (last message, unread) is maintained by db.addMessage
 
           // Update discussion with new seeker from acknowledged_seekers
           if (out.acknowledged_seekers && out.acknowledged_seekers.length > 0) {
@@ -293,6 +285,28 @@ export class MessageReceptionService {
           error: 'Discussion not found',
         };
       }
+      console.log(discussion);
+      const contactUserId = discussion.contactUserId;
+
+      const contactIdentity = await generateUserKeys(contactUserId);
+      const sessionModule = await getSessionModule();
+
+      // if there is no message yet, respond to the anouncement
+      const messages = await db.messages
+        .where('contactUserId')
+        .equals(contactUserId)
+        .filter(m => m.direction === 'incoming')
+        .toArray();
+      if (messages.length === 0) {
+        if (!discussion.initiationAnnouncement) {
+          throw new Error('No initiation announcement found');
+        }
+        await sessionModule.feedIncomingAnnouncement(
+          discussion.initiationAnnouncement,
+          contactIdentity.public_keys(),
+          contactIdentity.secret_keys()
+        );
+      }
 
       // Create a mock encrypted message with seeker
       const mockSeeker = crypto.getRandomValues(new Uint8Array(32));
@@ -329,7 +343,6 @@ export class MessageReceptionService {
 
       // For simulation, directly process the message since getMessageBoardReadKeys()
       // returns empty when no outgoing sessions are established
-      const sessionModule = await getSessionModule();
       const { ourSk } = await getDecryptedWasmKeys();
 
       try {
@@ -366,15 +379,7 @@ export class MessageReceptionService {
             discussion.contactUserId
           );
 
-          // Update the discussion with UI metadata
-          await db.discussions
-            .where('contactUserId')
-            .equals(discussion.contactUserId)
-            .modify(disc => {
-              disc.lastMessageId = messageId;
-              disc.unreadCount = disc.unreadCount + 1;
-              disc.updatedAt = new Date();
-            });
+          // Discussion metadata (last message, unread) is maintained by db.addMessage
 
           // Update discussion with new seeker from acknowledged_seekers
           if (out.acknowledged_seekers && out.acknowledged_seekers.length > 0) {
@@ -411,15 +416,7 @@ export class MessageReceptionService {
           discussion.contactUserId
         );
 
-        // Update the discussion with UI metadata
-        await db.discussions
-          .where('contactUserId')
-          .equals(discussion.contactUserId)
-          .modify(disc => {
-            disc.lastMessageId = messageId;
-            disc.unreadCount = disc.unreadCount + 1;
-            disc.updatedAt = new Date();
-          });
+        // Discussion metadata (last message, unread) is maintained by db.addMessage
       }
 
       console.log(

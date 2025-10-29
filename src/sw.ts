@@ -77,6 +77,26 @@ class ServiceWorkerMessageProtocol {
       return [];
     }
   }
+
+  async fetchAnnouncements(): Promise<Uint8Array[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/announcements`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      // Handle both { announcements: number[][] } and number[][] formats
+      const announcementsArray = data.announcements
+        ? data.announcements
+        : Array.isArray(data)
+          ? data
+          : [];
+      return announcementsArray.map((arr: number[]) => new Uint8Array(arr));
+    } catch (error) {
+      console.error('Failed to fetch announcements in Service Worker:', error);
+      return [];
+    }
+  }
 }
 
 // Service Worker message reception logic
@@ -119,6 +139,30 @@ class ServiceWorkerMessageReception {
       return {
         success: false,
         newMessagesCount: 0,
+      };
+    }
+  }
+
+  async fetchAnnouncements(): Promise<{
+    success: boolean;
+    newAnnouncementsCount: number;
+  }> {
+    try {
+      const announcements = await this.protocol.fetchAnnouncements();
+      if (announcements.length > 0) {
+        // Store announcements in IndexedDB for the main app to process
+        // The main app will need to process them using WASM and user keys
+        await this.storePendingAnnouncements(announcements);
+      }
+      return {
+        success: true,
+        newAnnouncementsCount: announcements.length,
+      };
+    } catch (error) {
+      console.error('Failed to fetch announcements:', error);
+      return {
+        success: false,
+        newAnnouncementsCount: 0,
       };
     }
   }
@@ -223,6 +267,66 @@ class ServiceWorkerMessageReception {
       );
     }
   }
+
+  private async storePendingAnnouncements(
+    announcements: Uint8Array[]
+  ): Promise<void> {
+    if (!announcements.length) return;
+    try {
+      const db = await this.openEchoDB();
+      const tx = db.transaction('discussionMessages', 'readwrite');
+      const store = tx.objectStore('discussionMessages');
+
+      // Store announcements as pending initiation messages
+      // They'll be processed by the main app when it loads
+      // The main app will handle duplicate detection during processing
+      await Promise.all(
+        announcements.map(
+          announcement =>
+            new Promise<void>(resolve => {
+              // Store as a pending announcement (discussionId will be set when processed)
+              const addReq = store.add({
+                // discussionId omitted; will be set when processed by main app
+                messageType: 'initiation',
+                direction: 'incoming',
+                ciphertext: announcement,
+                ct: new Uint8Array(0),
+                rand: new Uint8Array(0),
+                nonce: new Uint8Array(12),
+                status: 'pending', // Mark as pending for main app processing
+                timestamp: new Date(),
+                metadata: { pendingAnnouncement: true },
+              });
+              addReq.onsuccess = () => resolve();
+              addReq.onerror = () => {
+                // Ignore duplicate key errors (some duplicates may slip through)
+                // The main app will handle proper duplicate detection
+                if (addReq.error?.name === 'ConstraintError') {
+                  resolve();
+                } else {
+                  console.warn(
+                    'Failed to store announcement (may be duplicate):',
+                    addReq.error
+                  );
+                  resolve(); // Continue even if one fails
+                }
+              };
+            })
+        )
+      );
+
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } catch (error) {
+      console.error(
+        'Service Worker: Failed to store pending announcements',
+        error
+      );
+    }
+  }
 }
 
 const messageReception = new ServiceWorkerMessageReception();
@@ -233,11 +337,29 @@ self.addEventListener('message', event => {
   // Handle manual sync requests
   if (event.data && event.data.type === 'SYNC_MESSAGES') {
     event.waitUntil(
-      messageReception.fetchAllDiscussions().then(result => {
-        if (result.success && result.newMessagesCount > 0) {
-          // Show notification for new messages
+      Promise.all([
+        messageReception.fetchAllDiscussions(),
+        messageReception.fetchAnnouncements(),
+      ]).then(([messageResult, announcementResult]) => {
+        const hasNewMessages =
+          messageResult.success && messageResult.newMessagesCount > 0;
+        const hasNewAnnouncements =
+          announcementResult.success &&
+          announcementResult.newAnnouncementsCount > 0;
+
+        if (hasNewMessages || hasNewAnnouncements) {
+          let body = '';
+          if (hasNewMessages && hasNewAnnouncements) {
+            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+          } else if (hasNewMessages) {
+            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
+          } else if (hasNewAnnouncements) {
+            body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+          }
+
+          // Show notification for new messages/announcements
           self.registration.showNotification('Echo Messenger', {
-            body: `You have ${result.newMessagesCount} new message${result.newMessagesCount > 1 ? 's' : ''}`,
+            body,
             icon: '/favicon-64.png',
             badge: '/favicon-64.png',
             tag: 'echo-new-messages',
@@ -257,14 +379,35 @@ self.addEventListener('sync', (event: Event) => {
   );
   if ((event as SyncEvent).tag === 'echo-message-sync') {
     (event as SyncEvent).waitUntil(
-      messageReception
-        .fetchAllDiscussions()
-        .then(result => {
-          console.log('Service Worker: Periodic sync completed', result);
-          if (result.success && result.newMessagesCount > 0) {
-            // Show notification for new messages
+      Promise.all([
+        messageReception.fetchAllDiscussions(),
+        messageReception.fetchAnnouncements(),
+      ])
+        .then(([messageResult, announcementResult]) => {
+          console.log('Service Worker: Periodic sync completed', {
+            messages: messageResult,
+            announcements: announcementResult,
+          });
+
+          const hasNewMessages =
+            messageResult.success && messageResult.newMessagesCount > 0;
+          const hasNewAnnouncements =
+            announcementResult.success &&
+            announcementResult.newAnnouncementsCount > 0;
+
+          if (hasNewMessages || hasNewAnnouncements) {
+            let body = '';
+            if (hasNewMessages && hasNewAnnouncements) {
+              body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+            } else if (hasNewMessages) {
+              body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
+            } else if (hasNewAnnouncements) {
+              body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+            }
+
+            // Show notification for new messages/announcements
             self.registration.showNotification('Echo Messenger', {
-              body: `You have ${result.newMessagesCount} new message${result.newMessagesCount > 1 ? 's' : ''}`,
+              body,
               icon: '/favicon-64.png',
               badge: '/favicon-64.png',
               tag: 'echo-new-messages',
@@ -292,12 +435,35 @@ function startFallbackSync() {
     async () => {
       console.log('Service Worker: Fallback sync timer triggered');
       try {
-        const result = await messageReception.fetchAllDiscussions();
-        console.log('Service Worker: Fallback sync completed', result);
-        if (result.success && result.newMessagesCount > 0) {
+        const [messageResult, announcementResult] = await Promise.all([
+          messageReception.fetchAllDiscussions(),
+          messageReception.fetchAnnouncements(),
+        ]);
+
+        console.log('Service Worker: Fallback sync completed', {
+          messages: messageResult,
+          announcements: announcementResult,
+        });
+
+        const hasNewMessages =
+          messageResult.success && messageResult.newMessagesCount > 0;
+        const hasNewAnnouncements =
+          announcementResult.success &&
+          announcementResult.newAnnouncementsCount > 0;
+
+        if (hasNewMessages || hasNewAnnouncements) {
+          let body = '';
+          if (hasNewMessages && hasNewAnnouncements) {
+            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+          } else if (hasNewMessages) {
+            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
+          } else if (hasNewAnnouncements) {
+            body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+          }
+
           // Show generic notification for new messages/discussions
           self.registration.showNotification('Echo Messenger', {
-            body: `You have ${result.newMessagesCount} new message${result.newMessagesCount > 1 ? 's' : ''}`,
+            body,
             icon: '/favicon-64.png',
             badge: '/favicon-64.png',
             tag: 'echo-new-messages',

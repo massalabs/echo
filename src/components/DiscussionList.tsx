@@ -51,27 +51,19 @@ const DiscussionList: React.FC = () => {
       const discussionsList = await db.getDiscussions();
       setDiscussions(discussionsList);
 
-      // Load last message for each discussion
+      // Extract last message for each discussion directly from discussionsList
       const messagesMap = new Map<
         string,
         { content: string; timestamp: Date }
       >();
-      await Promise.all(
-        discussionsList.map(async discussion => {
-          const messages = await db.messages
-            .where('contactUserId')
-            .equals(discussion.contactUserId)
-            .sortBy('timestamp');
-          const lastMessage =
-            messages.length > 0 ? messages[messages.length - 1] : undefined;
-          if (lastMessage) {
-            messagesMap.set(discussion.contactUserId, {
-              content: lastMessage.content,
-              timestamp: lastMessage.timestamp,
-            });
-          }
-        })
-      );
+      discussionsList.forEach(discussion => {
+        if (discussion.lastMessageContent && discussion.lastMessageTimestamp) {
+          messagesMap.set(discussion.contactUserId, {
+            content: discussion.lastMessageContent,
+            timestamp: discussion.lastMessageTimestamp,
+          });
+        }
+      });
       setLastMessages(messagesMap);
     } catch (error) {
       console.error('Failed to load discussions:', error);

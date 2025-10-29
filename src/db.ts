@@ -94,6 +94,8 @@ export interface Discussion {
 
   // UI/Display fields
   lastMessageId?: number;
+  lastMessageContent?: string;
+  lastMessageTimestamp?: Date;
   unreadCount: number;
 
   // Timestamps
@@ -112,7 +114,7 @@ export interface DiscussionKey {
 
 export interface DiscussionMessage {
   id?: number;
-  discussionId: number;
+  discussionId?: number; // Optional for pending announcements that haven't been processed yet
   messageType: 'initiation' | 'response' | 'regular';
   direction: 'incoming' | 'outgoing';
   ciphertext: Uint8Array; // Encrypted message content
@@ -146,7 +148,7 @@ export class EchoDatabase extends Dexie {
       userProfile: 'userId, username, status, lastSeen',
       settings: '++id, key, updatedAt',
       discussions:
-        '++id, &contactUserId, direction, status, lastSyncTimestamp, unreadCount, createdAt, updatedAt',
+        '++id, &contactUserId, direction, status, lastSyncTimestamp, unreadCount, lastMessageTimestamp, createdAt, updatedAt',
       discussionKeys: '++id, discussionId, isActive, createdAt',
       discussionMessages:
         '++id, discussionId, messageType, direction, status, timestamp',
@@ -219,40 +221,19 @@ export class EchoDatabase extends Dexie {
   }
 
   async getDiscussions(): Promise<Discussion[]> {
-    // Get all discussions and sort by last message timestamp from messages table
+    // Get all discussions and sort by last message timestamp stored on the discussion
     const allDiscussions = await this.discussions.toArray();
 
-    // For each discussion, get the last message timestamp
-    const discussionsWithLastMessage = await Promise.all(
-      allDiscussions.map(async discussion => {
-        const messages = await this.messages
-          .where('contactUserId')
-          .equals(discussion.contactUserId)
-          .sortBy('timestamp');
-        const lastMessage =
-          messages.length > 0 ? messages[messages.length - 1] : undefined;
-        return {
-          discussion,
-          lastMessageTimestamp: lastMessage?.timestamp,
-        };
-      })
-    );
-
-    // Sort by last message timestamp (most recent first), then by created date
-    return discussionsWithLastMessage
-      .sort((a, b) => {
-        if (a.lastMessageTimestamp && b.lastMessageTimestamp) {
-          return (
-            b.lastMessageTimestamp.getTime() - a.lastMessageTimestamp.getTime()
-          );
-        }
-        if (a.lastMessageTimestamp) return -1;
-        if (b.lastMessageTimestamp) return 1;
+    return allDiscussions.sort((a, b) => {
+      if (a.lastMessageTimestamp && b.lastMessageTimestamp) {
         return (
-          b.discussion.createdAt.getTime() - a.discussion.createdAt.getTime()
+          b.lastMessageTimestamp.getTime() - a.lastMessageTimestamp.getTime()
         );
-      })
-      .map(item => item.discussion);
+      }
+      if (a.lastMessageTimestamp) return -1;
+      if (b.lastMessageTimestamp) return 1;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
   }
 
   async getUnreadCount(): Promise<number> {
@@ -289,6 +270,8 @@ export class EchoDatabase extends Dexie {
       console.log('Updating existing discussion:', discussion.id);
       await this.discussions.update(discussion.id!, {
         lastMessageId: messageId,
+        lastMessageContent: message.content,
+        lastMessageTimestamp: message.timestamp,
         unreadCount:
           message.direction === 'incoming'
             ? discussion.unreadCount + 1
@@ -304,10 +287,12 @@ export class EchoDatabase extends Dexie {
       );
       await this.discussions.put({
         contactUserId: message.contactUserId,
-        direction: 'initiated',
+        direction: message.direction === 'incoming' ? 'received' : 'initiated',
         status: 'pending',
         nextSeeker: undefined, // Will be set by protocol when available
         lastMessageId: messageId,
+        lastMessageContent: message.content,
+        lastMessageTimestamp: message.timestamp,
         unreadCount: message.direction === 'incoming' ? 1 : 0,
         createdAt: new Date(),
         updatedAt: new Date(),
