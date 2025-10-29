@@ -6,7 +6,6 @@ import {
   EncryptedMessage,
   IMessageProtocol,
   MessageProtocolResponse,
-  AnnouncementPayload,
 } from './types';
 
 type EncryptedMessageWire = {
@@ -91,15 +90,14 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(payload: AnnouncementPayload): Promise<void> {
+  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
     const url = `${this.baseUrl}/sessions/outgoing`;
 
     const response = await this.makeRequest<void>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(payload.announcement),
-        auth_blob: payload.authBlob,
+        announcement: Array.from(announcement),
       }),
     });
 
@@ -109,15 +107,14 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void> {
+  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
     const url = `${this.baseUrl}/sessions/incoming`;
 
     const response = await this.makeRequest<void>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(payload.announcement),
-        auth_blob: payload.authBlob,
+        announcement: Array.from(announcement),
       }),
     });
 

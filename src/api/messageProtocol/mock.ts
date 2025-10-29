@@ -6,11 +6,7 @@
  * Useful for development and testing when the backend is not available.
  */
 
-import {
-  IMessageProtocol,
-  EncryptedMessage,
-  AnnouncementPayload,
-} from './types';
+import { IMessageProtocol, EncryptedMessage } from './types';
 
 export class MockMessageProtocol implements IMessageProtocol {
   private mockMessages: Map<string, EncryptedMessage[]> = new Map();
@@ -61,18 +57,18 @@ export class MockMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(payload: AnnouncementPayload): Promise<void> {
+  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
     console.log('Mock: Broadcasting outgoing session announcement');
     // For the mock, push to announcements so receivers can fetch it
-    this.mockAnnouncements.push(payload.announcement);
+    this.mockAnnouncements.push(announcement);
     await new Promise(resolve => setTimeout(resolve, 150));
   }
 
   // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void> {
+  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
     console.log('Mock: Broadcasting incoming session response');
     // For the mock, also push to announcements
-    this.mockAnnouncements.push(payload.announcement);
+    this.mockAnnouncements.push(announcement);
     await new Promise(resolve => setTimeout(resolve, 150));
   }
 
