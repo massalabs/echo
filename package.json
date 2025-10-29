@@ -14,8 +14,8 @@
     "preview": "vite preview",
     "preview:host": "vite preview --host",
     "prepare": "husky",
-    "wasm:build": "wasm-pack build --out-dir ./../../src/assets/wasm --target web ./wasm/main && rm -f ./../../src/assets/wasm/.gitignore",
-    "wasm:clean": "rm -rf src/assets/wasm"
+    "wasm:build": "wasm-pack build --out-dir ../../src/assets/generated/wasm --target web wasm/main && rm -f src/assets/generated/wasm/.gitignore",
+    "wasm:clean": "rm -rf src/assets/generated/wasm"
   },
   "dependencies": {
     "@massalabs/massa-web3": "^5.3.1-dev.20250925215116",

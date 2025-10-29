@@ -2,12 +2,24 @@
  * REST API implementation of the message protocol
  */
 
-import { SessionInitiationResult } from '../../wasm/types';
 import {
   EncryptedMessage,
   IMessageProtocol,
   MessageProtocolResponse,
+  AnnouncementPayload,
 } from './types';
+
+type EncryptedMessageWire = {
+  seeker: number[];
+  ciphertext: number[];
+  ct: number[];
+  rand: number[];
+  nonce: number[];
+  timestamp: string | number;
+} & Omit<
+  EncryptedMessage,
+  'seeker' | 'ciphertext' | 'ct' | 'rand' | 'nonce' | 'timestamp'
+>;
 
 export class RestMessageProtocol implements IMessageProtocol {
   constructor(
@@ -16,21 +28,30 @@ export class RestMessageProtocol implements IMessageProtocol {
     private retryAttempts: number = 3
   ) {}
 
-  async fetchMessages(discussionKey: string): Promise<EncryptedMessage[]> {
-    const url = `${this.baseUrl}/messages/${encodeURIComponent(discussionKey)}`;
+  async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
+    const url = `${this.baseUrl}/messages/query`;
 
     try {
-      const response = await this.makeRequest<EncryptedMessage[]>(url, {
-        method: 'GET',
+      const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seekers: seekers.map(s => Array.from(s)),
+        }),
       });
 
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch messages');
       }
 
-      // Convert timestamp strings back to Date objects
-      return response.data.map(msg => ({
+      // Convert timestamp strings back to Date objects and arrays to Uint8Array
+      return response.data.map<EncryptedMessage>(msg => ({
         ...msg,
+        seeker: new Uint8Array(msg.seeker),
+        ciphertext: new Uint8Array(msg.ciphertext),
+        ct: new Uint8Array(msg.ct),
+        rand: new Uint8Array(msg.rand),
+        nonce: new Uint8Array(msg.nonce),
         timestamp: new Date(msg.timestamp),
       }));
     } catch (error) {
@@ -69,97 +90,41 @@ export class RestMessageProtocol implements IMessageProtocol {
     }
   }
 
-  async createOutgoingSession(
-    contactId: string,
-    recipientPublicKey: Uint8Array
-  ): Promise<SessionInitiationResult> {
+  // Broadcast an outgoing session announcement produced by WASM
+  async createOutgoingSession(payload: AnnouncementPayload): Promise<void> {
     const url = `${this.baseUrl}/sessions/outgoing`;
 
-    try {
-      const response = await this.makeRequest<SessionInitiationResult>(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contactId,
-          recipientPublicKey: Array.from(recipientPublicKey),
-        }),
-      });
+    const response = await this.makeRequest<void>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        announcement: Array.from(payload.announcement),
+        auth_blob: payload.authBlob,
+      }),
+    });
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to create outgoing session');
-      }
-
-      // Convert arrays back to Uint8Array
-      const data = response.data;
-      return {
-        ...data,
-        postData: {
-          ct: new Uint8Array(data.postData.ct),
-          rand: new Uint8Array(data.postData.rand),
-          ciphertext: new Uint8Array(data.postData.ciphertext),
-        },
-        session: {
-          ...data.session,
-          masterKey: new Uint8Array(data.session.masterKey),
-          innerKey: new Uint8Array(data.session.innerKey),
-          nextPublicKey: new Uint8Array(data.session.nextPublicKey),
-          nextPrivateKey: new Uint8Array(data.session.nextPrivateKey),
-          createdAt: new Date(data.session.createdAt),
-          updatedAt: new Date(data.session.updatedAt),
-        },
-      };
-    } catch (error) {
-      console.error('Failed to create outgoing session:', error);
-      throw error;
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to broadcast outgoing session');
     }
   }
 
-  async feedIncomingAnnouncement(
-    announcementData: Uint8Array
-  ): Promise<SessionInitiationResult> {
+  // Broadcast an incoming session response produced by WASM
+  async feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void> {
     const url = `${this.baseUrl}/sessions/incoming`;
 
-    try {
-      const response = await this.makeRequest<SessionInitiationResult>(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          announcementData: Array.from(announcementData),
-        }),
-      });
+    const response = await this.makeRequest<void>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        announcement: Array.from(payload.announcement),
+        auth_blob: payload.authBlob,
+      }),
+    });
 
-      if (!response.success || !response.data) {
-        throw new Error(
-          response.error || 'Failed to process incoming announcement'
-        );
-      }
-
-      // Convert arrays back to Uint8Array
-      const data = response.data;
-      return {
-        ...data,
-        postData: {
-          ct: new Uint8Array(data.postData.ct),
-          rand: new Uint8Array(data.postData.rand),
-          ciphertext: new Uint8Array(data.postData.ciphertext),
-        },
-        session: {
-          ...data.session,
-          masterKey: new Uint8Array(data.session.masterKey),
-          innerKey: new Uint8Array(data.session.innerKey),
-          nextPublicKey: new Uint8Array(data.session.nextPublicKey),
-          nextPrivateKey: new Uint8Array(data.session.nextPrivateKey),
-          createdAt: new Date(data.session.createdAt),
-          updatedAt: new Date(data.session.updatedAt),
-        },
-      };
-    } catch (error) {
-      console.error('Failed to process incoming announcement:', error);
-      throw error;
+    if (!response.success) {
+      throw new Error(
+        response.error || 'Failed to broadcast incoming announcement'
+      );
     }
   }
 

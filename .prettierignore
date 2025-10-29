@@ -8,6 +8,7 @@ build/
 # Generated files
 *.min.js
 *.min.css
+src/assets/generated
 
 # Package manager files
 package-lock.json

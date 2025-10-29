@@ -2,10 +2,9 @@
  * Message Protocol Types and Interfaces
  */
 
-import { SessionInitiationResult } from '../../wasm/types';
-
 export interface EncryptedMessage {
   id: string;
+  seeker: Uint8Array;
   ciphertext: Uint8Array;
   ct: Uint8Array;
   rand: Uint8Array;
@@ -22,14 +21,22 @@ export interface MessageProtocolResponse<T = unknown> {
   error?: string;
 }
 
+// Payload to broadcast announcements per API contract
+export interface AnnouncementPayload {
+  // Raw announcement bytes produced by WASM (agraphon)
+  announcement: Uint8Array;
+  // AuthBlob built client-side (opaque to the API)
+  authBlob: Record<string, unknown>;
+}
+
 /**
  * Abstract interface for message protocol operations
  */
 export interface IMessageProtocol {
   /**
-   * Fetch encrypted messages from the key-value store for a discussion
+   * Fetch encrypted messages for the provided set of seeker read keys
    */
-  fetchMessages(discussionKey: string): Promise<EncryptedMessage[]>;
+  fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]>;
 
   /**
    * Send an encrypted message to the key-value store
@@ -37,19 +44,14 @@ export interface IMessageProtocol {
   sendMessage(discussionKey: string, message: EncryptedMessage): Promise<void>;
 
   /**
-   * Create an outgoing session with a contact
+   * Broadcast an outgoing session announcement produced by WASM
    */
-  createOutgoingSession(
-    contactId: string,
-    recipientPublicKey: Uint8Array
-  ): Promise<SessionInitiationResult>;
+  createOutgoingSession(payload: AnnouncementPayload): Promise<void>;
 
   /**
-   * Process an incoming session announcement
+   * Broadcast an incoming session response produced by WASM
    */
-  feedIncomingAnnouncement(
-    announcementData: Uint8Array
-  ): Promise<SessionInitiationResult>;
+  feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void>;
 
   /**
    * Fetch incoming discussion announcements

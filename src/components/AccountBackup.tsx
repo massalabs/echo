@@ -197,7 +197,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 </p>
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
-                Never share this mnemonic. Anyone with it can access your
+                Never share this information. Anyone with it can access your
                 account.
               </p>
             </div>
@@ -243,7 +243,8 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 </p>
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
-                Never share this key. Anyone with it can access your funds.
+                Never share this information. Anyone with it can access your
+                account.
               </p>
             </div>
           )}

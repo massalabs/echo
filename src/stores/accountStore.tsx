@@ -16,7 +16,6 @@ import {
 } from '../crypto/webauthn';
 import {
   generateMnemonic,
-  accountFromMnemonic,
   Bip39BackupDisplay,
   validateMnemonic,
 } from '../crypto/bip39';
@@ -34,12 +33,18 @@ import { useWalletStore } from './walletStore';
 import { createSelectors } from './utils/createSelectors';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
+import { getActiveOrFirstProfile } from './utils/getAccount';
 
 async function createProfileFromAccount(
   username: string,
   userId: string,
   account: Account,
-  security: UserProfile['security']
+  security: UserProfile['security'],
+  wasmKeys: {
+    publicKeys: Uint8Array;
+    encryptedSecretKeys: ArrayBuffer;
+    secretKeysIv: Uint8Array;
+  }
 ): Promise<UserProfile> {
   const walletInfos = {
     address: account.address.toString(),
@@ -50,6 +55,7 @@ async function createProfileFromAccount(
     userId,
     username,
     wallet: walletInfos,
+    wasmKeys,
     security,
     status: 'online',
     lastSeen: new Date(),
@@ -66,7 +72,8 @@ async function provisionAccount(
   userId: string,
   account: Account,
   mnemonic: string | undefined,
-  opts: { useBiometrics: boolean; password?: string }
+  opts: { useBiometrics: boolean; password?: string },
+  wasmKeys: { publicKeys: Uint8Array; secretKeys: Uint8Array }
 ): Promise<{ profile: UserProfile; encryptionKey: CryptoKey }> {
   let built:
     | { security: UserProfile['security']; encryptionKey: CryptoKey }
@@ -82,22 +89,25 @@ async function provisionAccount(
     built = await buildSecurityFromPassword(account, mnemonic, password);
   }
 
+  // Encrypt the raw secret keys bytes using the same encryptionKey
+  const { encryptedPrivateKey: encryptedSecretKeys, iv: secretKeysIv } =
+    await encryptPrivateKey(
+      wasmKeys.secretKeys as unknown as BufferSource,
+      built.encryptionKey
+    );
+
   const profile = await createProfileFromAccount(
     username,
     userId,
     account,
-    built.security
+    built.security,
+    {
+      publicKeys: wasmKeys.publicKeys,
+      encryptedSecretKeys,
+      secretKeysIv,
+    }
   );
   return { profile, encryptionKey: built.encryptionKey };
-}
-
-// Prefer the active profile in state; otherwise read the first from DB
-async function getActiveOrFirstProfile(
-  getState: () => AccountState
-): Promise<UserProfile | null> {
-  const state = getState();
-  if (state.userProfile) return state.userProfile;
-  return (await db.userProfile.toCollection().first()) || null;
 }
 
 // Helpers to build security blobs and in-memory keys
@@ -109,11 +119,11 @@ async function buildSecurityFromPassword(
   security: UserProfile['security'];
   encryptionKey: CryptoKey;
 }> {
-  const { encryptedPrivateKey, iv, salt } = await encryptPrivateKey(
+  const { key: encryptionKey, salt } = await deriveKey(password);
+  const { encryptedPrivateKey, iv } = await encryptPrivateKey(
     account.privateKey.toBytes() as BufferSource,
-    password
+    encryptionKey
   );
-  const { key: encryptionKey } = await deriveKey(password, salt);
 
   // Optionally encrypt mnemonic with WebCrypto AES-GCM using the same encryptionKey
   let mnemonicBackup: UserProfile['security']['mnemonicBackup'] | undefined;
@@ -241,12 +251,20 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       set({ isLoading: true });
 
       const mnemonic = generateMnemonic(256);
-      const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
+      const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
+      const userSecretKeys = keys.secret_keys();
       const userIdBytes = userPublicKeys.derive_id();
       const userId = bs58check.encode(userIdBytes);
-      // replace this with Account.fromPrivateKey when massa pkey is available
-      const account = await accountFromMnemonic(mnemonic);
+
+      const account = await Account.fromPrivateKey(
+        PrivateKey.fromBytes(userSecretKeys.massa_secret_key)
+      );
+
+      const wasmKeys = {
+        publicKeys: userPublicKeys.to_bytes(),
+        secretKeys: userSecretKeys.to_bytes(),
+      };
 
       const { profile, encryptionKey } = await provisionAccount(
         username,
@@ -256,7 +274,8 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         {
           useBiometrics: false,
           password,
-        }
+        },
+        wasmKeys
       );
 
       set({
@@ -288,18 +307,27 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
 
       const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
       const userPublicKeys = keys.public_keys();
+      const userSecretKeys = keys.secret_keys();
       const userIdBytes = userPublicKeys.derive_id();
       const userId = bs58check.encode(userIdBytes);
 
-      // replace this with Account.fromPrivateKey when massa pkey is available
-      const account = await accountFromMnemonic(mnemonic);
+      const massaSecretKey = keys.secret_keys().massa_secret_key;
+      const account = await Account.fromPrivateKey(
+        PrivateKey.fromBytes(massaSecretKey)
+      );
+
+      const wasmKeys = {
+        publicKeys: userPublicKeys.to_bytes(),
+        secretKeys: userSecretKeys.to_bytes(),
+      };
 
       const { profile, encryptionKey } = await provisionAccount(
         username,
         userId,
         account,
         mnemonic,
-        opts
+        opts,
+        wasmKeys
       );
 
       set({
@@ -325,7 +353,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       if (userId) {
         profile = (await db.userProfile.get(userId)) || null;
       } else {
-        profile = await getActiveOrFirstProfile(get);
+        profile = await getActiveOrFirstProfile();
       }
 
       if (!profile) {
@@ -377,7 +405,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
     try {
       set({ isLoading: true });
       // Delete only the current account, not all accounts
-      const currentProfile = await getActiveOrFirstProfile(get);
+      const currentProfile = await getActiveOrFirstProfile();
       if (currentProfile?.userId != null) {
         await db.userProfile.delete(currentProfile.userId);
       }
@@ -444,8 +472,10 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const userIdBytes = userPublicKeys.derive_id();
       const userId = bs58check.encode(userIdBytes);
 
-      // replace this with Account.fromPrivateKey when massa pkey is available
-      const account = await accountFromMnemonic(mnemonic);
+      const massaSecretKey = keys.secret_keys().massa_secret_key;
+      const account = await Account.fromPrivateKey(
+        PrivateKey.fromBytes(massaSecretKey)
+      );
 
       // Create WebAuthn credential
       const webauthnKey = await createWebAuthnCredential(
@@ -465,6 +495,14 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         webauthnKey.privateKey
       );
 
+      // Encrypt WASM secret keys using WebAuthn-derived key
+      const userSecretKeys = keys.secret_keys();
+      const { encryptedPrivateKey: encryptedSecretKeys, iv: secretKeysIv } =
+        await encryptPrivateKey(
+          userSecretKeys.to_bytes() as unknown as BufferSource,
+          webauthnKey.privateKey
+        );
+
       const walletInfos = {
         address: account.address.toString(),
         publicKey: account.publicKey.toString(),
@@ -474,6 +512,11 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         userId,
         username,
         wallet: walletInfos,
+        wasmKeys: {
+          publicKeys: userPublicKeys.to_bytes(),
+          encryptedSecretKeys,
+          secretKeysIv,
+        },
         security: {
           encryptedPrivateKey,
           iv,
@@ -524,7 +567,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         profile = (await db.userProfile.get(userId)) || null;
       } else {
         // Prefer currently authenticated user if present
-        profile = await getActiveOrFirstProfile(get);
+        profile = await getActiveOrFirstProfile();
       }
       if (!profile) {
         throw new Error('No user profile found');
@@ -631,8 +674,14 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         throw new Error('Failed to validate mnemonic');
       }
 
-      // Create account from the existing mnemonic to get the backup info
-      const account = await accountFromMnemonic(decryptedMnemonic);
+      const keys = await generateUserKeys(
+        decryptedMnemonic,
+        new Uint8Array(32)
+      );
+      const massaSecretKey = keys.secret_keys().massa_secret_key;
+      const account = await Account.fromPrivateKey(
+        PrivateKey.fromBytes(massaSecretKey)
+      );
 
       const backupInfo = {
         mnemonic: decryptedMnemonic,
@@ -786,7 +835,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
 
   getExistingAccountInfo: async () => {
     try {
-      return await getActiveOrFirstProfile(get);
+      return await getActiveOrFirstProfile();
     } catch (error) {
       console.error('Error getting existing account info:', error);
       return null;

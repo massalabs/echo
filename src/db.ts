@@ -43,9 +43,15 @@ export interface UserProfile {
     address: string;
     publicKey: string;
   };
+  // WASM user keys (serialized)
+  wasmKeys: {
+    publicKeys: Uint8Array; // bytes from UserPublicKeys.to_bytes()
+    encryptedSecretKeys: ArrayBuffer; // AES-GCM encrypted bytes from UserSecretKeys.to_bytes()
+    secretKeysIv: Uint8Array; // IV used for encryption of secret keys
+  };
   // Security-related fields (encryption and authentication)
   security: {
-    // Encrypted private key (AES-GCM)
+    // Encrypted Massa private key (AES-GCM)
     encryptedPrivateKey: ArrayBuffer;
     iv: Uint8Array;
 
@@ -93,10 +99,7 @@ export interface Discussion {
   contactUserId: string; // Reference to Contact.userId
   direction: 'initiated' | 'received'; // Whether this user initiated or received the discussion
   status: 'pending' | 'active' | 'closed';
-  masterKey: Uint8Array; // The master key for this discussion
-  innerKey: Uint8Array; // The integrity key
-  nextPublicKey: Uint8Array; // The next Kyber public key
-  nextPrivateKey: Uint8Array; // The next Kyber private key
+  nextSeeker?: Uint8Array; // The next seeker for sending messages (from SendMessageOutput)
   version: number;
   discussionKey: string; // Key for accessing messages in the key-value store
   lastSyncTimestamp?: Date; // Last time messages were synced from protocol
@@ -143,7 +146,7 @@ export class EchoDatabase extends Dexie {
     super('EchoDatabase');
 
     // Define schema with userId as primary key for contacts and userProfile
-    this.version(2).stores({
+    this.version(3).stores({
       contacts: 'userId, name, isOnline, lastSeen, createdAt',
       messages:
         '++id, contactUserId, type, direction, status, timestamp, encrypted, [contactUserId+status]',
