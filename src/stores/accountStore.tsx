@@ -305,7 +305,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         throw new Error('Invalid mnemonic phrase');
       }
 
-      const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
+      const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
       const userSecretKeys = keys.secret_keys();
       const userIdBytes = userPublicKeys.derive_id();
@@ -467,7 +467,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       // Generate a BIP39 mnemonic and create account from it
       const mnemonic = generateMnemonic(256);
 
-      const keys = await generateUserKeys(mnemonic, new Uint8Array(32));
+      const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
       const userIdBytes = userPublicKeys.derive_id();
       const userId = bs58check.encode(userIdBytes);
@@ -674,10 +674,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         throw new Error('Failed to validate mnemonic');
       }
 
-      const keys = await generateUserKeys(
-        decryptedMnemonic,
-        new Uint8Array(32)
-      );
+      const keys = await generateUserKeys(decryptedMnemonic);
       const massaSecretKey = keys.secret_keys().massa_secret_key;
       const account = await Account.fromPrivateKey(
         PrivateKey.fromBytes(massaSecretKey)

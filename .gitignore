@@ -1,4 +1,5 @@
 # rust stuff
+target/
 wasm/target
 
 # Logs
