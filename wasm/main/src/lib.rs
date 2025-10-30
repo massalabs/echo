@@ -458,9 +458,11 @@ impl SessionManagerWrapper {
         announcement_bytes: &[u8],
         our_pk: &UserPublicKeys,
         our_sk: &UserSecretKeys,
-    ) {
-        self.inner
-            .feed_incoming_announcement(announcement_bytes, &our_pk.inner, &our_sk.inner);
+    ) -> Option<UserPublicKeys> {
+        self
+            .inner
+            .feed_incoming_announcement(announcement_bytes, &our_pk.inner, &our_sk.inner)
+            .map(|pk| UserPublicKeys { inner: pk })
     }
 
     /// Gets the list of message board seekers to monitor.

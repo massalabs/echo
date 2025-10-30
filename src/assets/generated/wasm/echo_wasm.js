@@ -658,13 +658,15 @@ export class SessionManagerWrapper {
      * @param {Uint8Array} announcement_bytes
      * @param {UserPublicKeys} our_pk
      * @param {UserSecretKeys} our_sk
+     * @returns {UserPublicKeys | undefined}
      */
     feed_incoming_announcement(announcement_bytes, our_pk, our_sk) {
         const ptr0 = passArray8ToWasm0(announcement_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         _assertClass(our_pk, UserPublicKeys);
         _assertClass(our_sk, UserSecretKeys);
-        wasm.sessionmanagerwrapper_feed_incoming_announcement(this.__wbg_ptr, ptr0, len0, our_pk.__wbg_ptr, our_sk.__wbg_ptr);
+        const ret = wasm.sessionmanagerwrapper_feed_incoming_announcement(this.__wbg_ptr, ptr0, len0, our_pk.__wbg_ptr, our_sk.__wbg_ptr);
+        return ret === 0 ? undefined : UserPublicKeys.__wrap(ret);
     }
     /**
      * Gets the list of message board seekers to monitor.
