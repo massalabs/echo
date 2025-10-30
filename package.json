@@ -15,6 +15,7 @@
     "preview:host": "vite preview --host",
     "prepare": "husky",
     "wasm:build": "wasm-pack build --out-dir ../../src/assets/generated/wasm --target web wasm/main && rm -f src/assets/generated/wasm/.gitignore",
+    "wasm:test": "cargo test --workspace --manifest-path wasm/Cargo.toml --all-features --all-targets --verbose",
     "wasm:clean": "rm -rf src/assets/generated/wasm"
   },
   "dependencies": {
