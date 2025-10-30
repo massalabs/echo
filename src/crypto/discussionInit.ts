@@ -33,15 +33,11 @@ export async function initializeDiscussion(contactUserId: string): Promise<{
     const mockUserKeys = await generateUserKeys(contactUserId);
     const peerPk = mockUserKeys.public_keys();
 
-    // use zeros for now
-    const seekerPrefix = new Uint8Array(32);
-
     // Establish outgoing session and get announcement bytes
     const announcement = await sessionModule.establishOutgoingSession(
       peerPk,
       ourPk,
-      ourSk,
-      seekerPrefix
+      ourSk
     );
 
     // Store discussion in database with UI metadata and keep announcement on discussion

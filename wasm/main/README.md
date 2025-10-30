@@ -95,13 +95,10 @@ for (let i = 0; i < seekers.length; i++) {
     secretKeys
   );
   if (received) {
-    console.log(
-      'Received:',
-      new TextDecoder().decode(received.message())
-    );
-    console.log('Timestamp:', received.timestamp());
+    console.log('Received:', new TextDecoder().decode(received.message));
+    console.log('Timestamp:', received.timestamp);
     // Check acknowledged seekers
-    const acks = received.acknowledged_seekers();
+    const acks = received.acknowledged_seekers;
     for (let j = 0; j < acks.length; j++) {
       console.log('Acknowledged:', acks.get(j));
     }
@@ -237,6 +234,7 @@ The Echo system uses a multi-layer architecture:
 4. **Session Manager**: High-level API for multi-peer messaging with session lifecycle management
 
 Messages are identified by "seekers" - database keys derived from hashing ephemeral Massa public keys. This allows:
+
 - Efficient message lookup on public message boards
 - Privacy (seekers don't reveal sender/recipient identity)
 - Unlinkability (each message uses a fresh keypair)

@@ -77,7 +77,7 @@ export class MessageReceptionService {
           if (!out) continue;
 
           const decoder = new TextDecoder();
-          const content = decoder.decode(out.message.contents);
+          const content = decoder.decode(out.message);
 
           // Create a regular message entry for the UI
           await db.addMessage({
@@ -359,7 +359,7 @@ export class MessageReceptionService {
         if (out) {
           console.log('WASM decryption successful, creating message');
           const decoder = new TextDecoder();
-          const content = decoder.decode(out.message.contents);
+          const content = decoder.decode(out.message);
 
           // Create a regular message entry for the UI
           const messageId = await db.addMessage({

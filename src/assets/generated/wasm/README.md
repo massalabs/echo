@@ -8,6 +8,7 @@ This crate provides WebAssembly bindings for the Echo secure messaging system, e
 - **Authentication**: Generate and manage cryptographic keys from passphrases
 - **Post-Quantum Security**: Uses ML-KEM and ML-DSA for quantum-resistant cryptography
 - **Encrypted State**: Secure serialization and deserialization of session state
+- **Seeker-based Addressing**: Messages use hashed Massa public keys for efficient lookups
 
 ## Building
 
@@ -46,14 +47,13 @@ import init, {
   SessionConfig,
   generate_user_keys,
   EncryptionKey,
-  Message,
 } from './echo_wasm';
 
 // Initialize WASM
 await init();
 
 // Generate user keys from passphrase
-const keys = generate_user_keys('my secure passphrase', new Uint8Array(32));
+const keys = generate_user_keys('my secure passphrase');
 const publicKeys = keys.public_keys();
 const secretKeys = keys.secret_keys();
 const userId = publicKeys.derive_id();
@@ -63,24 +63,25 @@ const config = SessionConfig.new_default();
 const manager = new SessionManagerWrapper(config);
 
 // Establish session with peer
-const peerKeys = generate_user_keys('peer passphrase', new Uint8Array(32));
+const peerKeys = generate_user_keys('peer passphrase');
 const announcement = manager.establish_outgoing_session(
   peerKeys.public_keys(),
   publicKeys,
-  secretKeys,
-  new Uint8Array([1, 2, 3]) // seeker prefix
+  secretKeys
 );
 // Publish announcement to blockchain...
 
-// Feed incoming announcement
+// Feed incoming announcement from peer
 manager.feed_incoming_announcement(announcementBytes, publicKeys, secretKeys);
 
-// Send a message
-const message = new Message(new TextEncoder().encode('Hello!'));
+// Send a message (raw bytes)
+const messageBytes = new TextEncoder().encode('Hello!');
 const peerId = peerKeys.public_keys().derive_id();
-const sendOutput = manager.send_message(peerId, message);
+const sendOutput = manager.send_message(peerId, messageBytes);
 if (sendOutput) {
-  // Publish sendOutput.seeker and sendOutput.ciphertext to blockchain
+  // Publish sendOutput.seeker and sendOutput.data to blockchain
+  console.log('Seeker:', sendOutput.seeker);
+  console.log('Data length:', sendOutput.data.length);
 }
 
 // Check for incoming messages
@@ -90,14 +91,20 @@ for (let i = 0; i < seekers.length; i++) {
   // Read from blockchain using seeker...
   const received = manager.feed_incoming_message_board_read(
     seeker,
-    ciphertext,
+    data, // encrypted message data
     secretKeys
   );
   if (received) {
     console.log(
       'Received:',
-      new TextDecoder().decode(received.message.contents)
+      new TextDecoder().decode(received.message())
     );
+    console.log('Timestamp:', received.timestamp());
+    // Check acknowledged seekers
+    const acks = received.acknowledged_seekers();
+    for (let j = 0; j < acks.length; j++) {
+      console.log('Acknowledged:', acks.get(j));
+    }
   }
 }
 
@@ -173,19 +180,35 @@ Main class for managing messaging sessions.
 - `new(config: SessionConfig)`: Create new session manager
 - `from_encrypted_blob(blob: Uint8Array, key: EncryptionKey)`: Restore from encrypted state
 - `to_encrypted_blob(key: EncryptionKey)`: Serialize to encrypted blob
-- `establish_outgoing_session(...)`: Initiate session with peer
-- `feed_incoming_announcement(...)`: Process incoming announcements
-- `send_message(peer_id: Uint8Array, message: Message)`: Send message to peer
-- `feed_incoming_message_board_read(...)`: Process incoming messages
-- `get_message_board_read_keys()`: Get seekers to monitor
+- `establish_outgoing_session(peer_pk, our_pk, our_sk)`: Initiate session with peer (returns announcement bytes)
+- `feed_incoming_announcement(bytes, our_pk, our_sk)`: Process incoming announcement
+- `send_message(peer_id: Uint8Array, message_contents: Uint8Array)`: Send raw message bytes to peer
+- `feed_incoming_message_board_read(seeker, data, our_sk)`: Process incoming messages
+- `get_message_board_read_keys()`: Get seekers to monitor for incoming messages
 - `peer_list()`: Get all peer IDs
 - `peer_session_status(peer_id: Uint8Array)`: Get session status
 - `peer_discard(peer_id: Uint8Array)`: Remove peer
-- `refresh()`: Refresh sessions and get keep-alive list
+- `refresh()`: Refresh sessions and get keep-alive announcement list
+
+### SendMessageOutput
+
+Output from sending a message:
+
+- `seeker(): Uint8Array`: Database key for message lookup on message board
+- `data(): Uint8Array`: Encrypted message data to publish
+- `timestamp(): number`: Message timestamp (milliseconds since Unix epoch)
+
+### ReceiveMessageOutput
+
+Output from receiving a message:
+
+- `message(): Uint8Array`: Decrypted message contents
+- `timestamp(): number`: Message timestamp (milliseconds since Unix epoch)
+- `acknowledged_seekers()`: Array of seekers that were acknowledged
 
 ### Auth Functions
 
-- `generate_user_keys(passphrase: string, secondary_key: Uint8Array)`: Generate keys from passphrase
+- `generate_user_keys(passphrase: string)`: Generate keys from passphrase using password KDF
 
 ### Other Classes
 
@@ -198,7 +221,22 @@ Main class for managing messaging sessions.
   - `generate()`: Generate random nonce
   - `from_bytes(bytes: Uint8Array)`: Create from bytes
   - `to_bytes()`: Get raw bytes
-- `Message`: Message to send through sessions
 - `UserPublicKeys`: User's public keys
+  - `derive_id()`: Get user ID (32 bytes)
+  - `to_bytes()`: Serialize to bytes
 - `UserSecretKeys`: User's secret keys
-- `SessionStatus`: Enum for session states
+- `SessionStatus`: Enum for session states (Active, Inactive, etc.)
+
+## Architecture
+
+The Echo system uses a multi-layer architecture:
+
+1. **Crypto Primitives**: ML-KEM (post-quantum KEM), ML-DSA (post-quantum signatures), AES-SIV (AEAD)
+2. **Agraphon Protocol**: Double-ratchet encryption with forward secrecy and post-compromise security
+3. **Session Layer**: Manages Agraphon sessions with seeker-based addressing using hashed Massa public keys
+4. **Session Manager**: High-level API for multi-peer messaging with session lifecycle management
+
+Messages are identified by "seekers" - database keys derived from hashing ephemeral Massa public keys. This allows:
+- Efficient message lookup on public message boards
+- Privacy (seekers don't reveal sender/recipient identity)
+- Unlinkability (each message uses a fresh keypair)

@@ -40,8 +40,7 @@ export class SessionModule {
   async establishOutgoingSession(
     peerPk: UserPublicKeys,
     ourPk: UserPublicKeys,
-    ourSk: UserSecretKeys,
-    seekerPrefix: Uint8Array
+    ourSk: UserSecretKeys
   ): Promise<Uint8Array> {
     if (!this.sessionManager) {
       await this.init();
@@ -51,8 +50,7 @@ export class SessionModule {
     return this.sessionManager!.establish_outgoing_session(
       peerPk,
       ourPk,
-      ourSk,
-      seekerPrefix
+      ourSk
     );
   }
 
