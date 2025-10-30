@@ -309,6 +309,29 @@ export class EncryptionKey {
         return EncryptionKey.__wrap(ret);
     }
     /**
+     * Generates a deterministic encryption key (64 bytes) from a seed and salt.
+     *
+     * Uses Argon2id via `crypto_password_kdf` to derive a 64-byte key suitable for
+     * AES-256-SIV (which requires 64 bytes: 2×256-bit keys).
+     *
+     * - `seed`: application-provided seed string (treat like a password)
+     * - `salt`: unique, random salt (minimum 8 bytes, recommended 16+ bytes)
+     * @param {string} seed
+     * @param {Uint8Array} salt
+     * @returns {EncryptionKey}
+     */
+    static from_seed(seed, salt) {
+        const ptr0 = passStringToWasm0(seed, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(salt, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.encryptionkey_from_seed(ptr0, len0, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return EncryptionKey.__wrap(ret[0]);
+    }
+    /**
      * Creates an encryption key from raw bytes (must be 64 bytes).
      * @param {Uint8Array} bytes
      * @returns {EncryptionKey}

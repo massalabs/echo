@@ -23,6 +23,7 @@ export const userkeys_secret_keys: (a: number) => [number, number, number];
 export const generate_user_keys: (a: number, b: number) => [number, number, number];
 export const __wbg_encryptionkey_free: (a: number, b: number) => void;
 export const encryptionkey_generate: () => number;
+export const encryptionkey_from_seed: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const encryptionkey_from_bytes: (a: number, b: number) => [number, number, number];
 export const encryptionkey_to_bytes: (a: number) => [number, number];
 export const __wbg_nonce_free: (a: number, b: number) => void;

@@ -98,6 +98,16 @@ export class EncryptionKey {
    */
   static generate(): EncryptionKey;
   /**
+   * Generates a deterministic encryption key (64 bytes) from a seed and salt.
+   *
+   * Uses Argon2id via `crypto_password_kdf` to derive a 64-byte key suitable for
+   * AES-256-SIV (which requires 64 bytes: 2×256-bit keys).
+   *
+   * - `seed`: application-provided seed string (treat like a password)
+   * - `salt`: unique, random salt (minimum 8 bytes, recommended 16+ bytes)
+   */
+  static from_seed(seed: string, salt: Uint8Array): EncryptionKey;
+  /**
    * Creates an encryption key from raw bytes (must be 64 bytes).
    */
   static from_bytes(bytes: Uint8Array): EncryptionKey;
@@ -345,6 +355,7 @@ export interface InitOutput {
   readonly generate_user_keys: (a: number, b: number) => [number, number, number];
   readonly __wbg_encryptionkey_free: (a: number, b: number) => void;
   readonly encryptionkey_generate: () => number;
+  readonly encryptionkey_from_seed: (a: number, b: number, c: number, d: number) => [number, number, number];
   readonly encryptionkey_from_bytes: (a: number, b: number) => [number, number, number];
   readonly encryptionkey_to_bytes: (a: number) => [number, number];
   readonly __wbg_nonce_free: (a: number, b: number) => void;

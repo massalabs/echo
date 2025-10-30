@@ -11,6 +11,7 @@ sessions = { path = "../sessions" }
 auth = { path = "../auth" }
 crypto-aead = { path = "../crypto-aead" }
 crypto-rng = { path = "../crypto-rng" }
+crypto-password-kdf = { path = "../crypto-password-kdf" }
 
 wasm-bindgen = "0.2"
 serde = { version = "1.0", features = ["derive"] }
