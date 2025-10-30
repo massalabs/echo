@@ -212,7 +212,7 @@ export class SessionManagerWrapper {
   /**
    * Feeds an incoming announcement from the blockchain.
    */
-  feed_incoming_announcement(announcement_bytes: Uint8Array, our_pk: UserPublicKeys, our_sk: UserSecretKeys): void;
+  feed_incoming_announcement(announcement_bytes: Uint8Array, our_pk: UserPublicKeys, our_sk: UserSecretKeys): UserPublicKeys | undefined;
   /**
    * Gets the list of message board seekers to monitor.
    */
@@ -365,7 +365,7 @@ export interface InitOutput {
   readonly sessionmanagerwrapper_from_encrypted_blob: (a: number, b: number, c: number) => [number, number, number];
   readonly sessionmanagerwrapper_to_encrypted_blob: (a: number, b: number) => [number, number, number, number];
   readonly sessionmanagerwrapper_establish_outgoing_session: (a: number, b: number, c: number, d: number) => [number, number];
-  readonly sessionmanagerwrapper_feed_incoming_announcement: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly sessionmanagerwrapper_feed_incoming_announcement: (a: number, b: number, c: number, d: number, e: number) => number;
   readonly sessionmanagerwrapper_get_message_board_read_keys: (a: number) => any;
   readonly sessionmanagerwrapper_send_message: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
   readonly sessionmanagerwrapper_feed_incoming_message_board_read: (a: number, b: number, c: number, d: number, e: number, f: number) => number;

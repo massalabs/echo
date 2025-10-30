@@ -313,18 +313,18 @@ impl SessionManager {
         keep_alive_needed
     }
 
-    // returns true if the announcement was accepted
+    // returns the announcer public keys if the announcement was accepted
     pub fn feed_incoming_announcement(
         &mut self,
         announcement_bytes: &[u8],
         our_pk: &auth::UserPublicKeys,
         our_sk: &auth::UserSecretKeys,
-    ) {
+    ) -> Option<auth::UserPublicKeys> {
         // try to parse as incoming initiation request
         let Some(incoming_initiation_request) =
             IncomingInitiationRequest::try_from(announcement_bytes, our_pk, our_sk)
         else {
-            return;
+            return None;
         };
 
         // check if it is not too old or too much in the future
@@ -332,12 +332,12 @@ impl SessionManager {
         if incoming_initiation_request.timestamp_millis
             < cur_timestamp.saturating_sub(self.config.max_incoming_announcement_age_millis)
         {
-            return;
+            return None;
         }
         if incoming_initiation_request.timestamp_millis
             > cur_timestamp.saturating_add(self.config.max_incoming_announcement_future_millis)
         {
-            return;
+            return None;
         }
 
         // compute peer ID
@@ -349,7 +349,7 @@ impl SessionManager {
                 if incoming_initiation_request.timestamp_millis
                     <= latest_incoming_init_request.timestamp_millis
                 {
-                    return;
+                    return None;
                 }
             }
         }
@@ -371,8 +371,10 @@ impl SessionManager {
         }
 
         // update the latest incoming initiation request
+        let announcer_public_keys = incoming_initiation_request.origin_public_keys.clone();
         let peer_info = self.peers.entry(peer_id.clone()).or_default();
         peer_info.latest_incoming_init_request = Some(incoming_initiation_request);
+        Some(announcer_public_keys)
     }
 
     /// Returns the announcement bytes to send
