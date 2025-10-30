@@ -213,6 +213,25 @@ impl EncryptionKey {
         }
     }
 
+    /// Generates a deterministic encryption key (64 bytes) from a seed and salt.
+    ///
+    /// Uses Argon2id via `crypto_password_kdf` to derive a 64-byte key suitable for
+    /// AES-256-SIV (which requires 64 bytes: 2×256-bit keys).
+    ///
+    /// - `seed`: application-provided seed string (treat like a password)
+    /// - `salt`: unique, random salt (minimum 8 bytes, recommended 16+ bytes)
+    pub fn from_seed(seed: &str, salt: &[u8]) -> Result<EncryptionKey, JsValue> {
+        if salt.len() < 8 {
+            return Err(JsValue::from_str("Salt must be at least 8 bytes"));
+        }
+
+        let mut key_bytes = [0u8; 64];
+        crypto_password_kdf::derive(seed.as_bytes(), salt, &mut key_bytes);
+        Ok(Self {
+            inner: crypto_aead::Key::from(key_bytes),
+        })
+    }
+
     /// Creates an encryption key from raw bytes (must be 64 bytes).
     pub fn from_bytes(bytes: &[u8]) -> Result<EncryptionKey, JsValue> {
         if bytes.len() != 64 {

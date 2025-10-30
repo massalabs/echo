@@ -438,6 +438,7 @@ dependencies = [
  "bincode",
  "console_error_panic_hook",
  "crypto-aead",
+ "crypto-password-kdf",
  "crypto-rng",
  "js-sys",
  "massa_signature",
