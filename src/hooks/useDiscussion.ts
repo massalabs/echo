@@ -42,31 +42,33 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
       try {
         setIsInitializing(true);
 
-      // Guard: we cannot initialize a discussion without the contact's public keys
-      if (!contact.publicKeys || contact.publicKeys.length === 0) {
-        throw new Error(
-          'Contact is missing public keys. Cannot start a discussion yet.'
-        );
-      }
+        // Guard: we cannot initialize a discussion without the contact's public keys
+        if (!contact.publicKeys || contact.publicKeys.length === 0) {
+          throw new Error(
+            'Contact is missing public keys. Cannot start a discussion yet.'
+          );
+        }
 
-      // Use the contact's user ID for discussion initialization
-      const result = await initializeDiscussion(
-        contact.userId,
-        UserPublicKeys.from_bytes(contact.publicKeys)
-      );
+        // Use the contact's user ID for discussion initialization
+        const result = await initializeDiscussion(
+          contact.userId,
+          UserPublicKeys.from_bytes(contact.publicKeys)
+        );
 
         // Reload discussions to get the new one
         await loadDiscussion();
 
-      console.log('Discussion initialized:', result.discussionId);
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize discussion:', error);
-      return false;
-    } finally {
-      setIsInitializing(false);
-    }
-  }, [contact.userId, contact.publicKeys, isInitializing, loadDiscussion]);
+        console.log('Discussion initialized:', result.discussionId);
+        return true;
+      } catch (error) {
+        console.error('Failed to initialize discussion:', error);
+        return false;
+      } finally {
+        setIsInitializing(false);
+      }
+    },
+    [contact.userId, contact.publicKeys, isInitializing, loadDiscussion]
+  );
 
   const ensureDiscussionExists = useCallback(async (): Promise<boolean> => {
     if (discussion) return true;
