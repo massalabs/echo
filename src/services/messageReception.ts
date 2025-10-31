@@ -41,7 +41,7 @@ export class MessageReceptionService {
 
   async getMessageProtocol(): Promise<IMessageProtocol> {
     if (!this._messageProtocol) {
-      this._messageProtocol = await createMessageProtocol('mock');
+      this._messageProtocol = await createMessageProtocol();
     }
     return this._messageProtocol;
   }
@@ -53,14 +53,14 @@ export class MessageReceptionService {
   /**
    * Broadcast an outgoing announcement produced by WASM
    */
-  async broadcastAnnouncement(announcement: Uint8Array): Promise<{
+  async sendAnnouncement(announcement: Uint8Array): Promise<{
     success: boolean;
     counter?: string;
     error?: string;
   }> {
     try {
       const protocol = await this.getMessageProtocol();
-      const counter = await protocol.createOutgoingSession(announcement);
+      const counter = await protocol.sendAnnouncement(announcement);
       return { success: true, counter };
     } catch (error) {
       console.error('Failed to broadcast outgoing session:', error);
@@ -72,29 +72,8 @@ export class MessageReceptionService {
   }
 
   /**
-   * Broadcast an incoming announcement produced by WASM
-   * NOTE: Potentially unused for now; keep as future API.
-   */
-  // async broadcastIncomingAnnouncement(announcement: Uint8Array): Promise<{
-  //   success: boolean;
-  //   counter?: string;
-  //   error?: string;
-  // }> {
-  //   try {
-  //     const protocol = await this.getMessageProtocol();
-  //     const counter = await protocol.feedIncomingAnnouncement(announcement);
-  //     return { success: true, counter };
-  //   } catch (error) {
-  //     console.error('Failed to broadcast incoming announcement:', error);
-  //     return {
-  //       success: false,
-  //       error: error instanceof Error ? error.message : 'Unknown error',
-  //     };
-  //   }
-  // }
-
-  /**
-   * Fetch and process incoming announcements
+   * Check for incoming announcements
+   * @returns Result with count of new discussions created
    */
   async fetchAndProcessAnnouncements(): Promise<AnnouncementReceptionResult> {
     try {
@@ -262,7 +241,7 @@ export class MessageReceptionService {
       }
 
       // Also check for incoming session announcements
-      const announcementResult = await this.checkForIncomingAnnouncements();
+      const announcementResult = await this.fetchAndProcessAnnouncements();
       if (announcementResult.success) {
         totalNewMessages += announcementResult.newDiscussionsCount;
       } else if (announcementResult.error) {
@@ -283,50 +262,6 @@ export class MessageReceptionService {
       return {
         success: false,
         newMessagesCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
-   * Check for incoming announcements
-   * @returns Result with count of new discussions created
-   */
-  async checkForIncomingAnnouncements(): Promise<AnnouncementReceptionResult> {
-    try {
-      console.log('Checking for incoming announcements...');
-
-      // This would typically involve checking a global announcement channel
-      // For now, we'll simulate this by checking if there are any pending announcements
-      // In a real implementation, this would query a specific announcement endpoint
-      const announcements = await this._fetchAnnouncements();
-
-      let newDiscussionsCount = 0;
-
-      for (const announcement of announcements) {
-        try {
-          const result = await this._processIncomingAnnouncement(announcement);
-          if (result.success) {
-            newDiscussionsCount++;
-            console.log(
-              'Created new discussion from announcement:',
-              result.discussionId
-            );
-          }
-        } catch (error) {
-          console.error('Failed to process incoming announcement:', error);
-        }
-      }
-
-      return {
-        success: true,
-        newDiscussionsCount,
-      };
-    } catch (error) {
-      console.error('Failed to check for incoming discussions:', error);
-      return {
-        success: false,
-        newDiscussionsCount: 0,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
@@ -629,6 +564,7 @@ export class MessageReceptionService {
         ourPk,
         ourSk
       );
+      console.log('announcerPkeys', announcerPkeys);
       if (!announcerPkeys) {
         throw new Error(
           'Could not extract announcer public keys from announcement'

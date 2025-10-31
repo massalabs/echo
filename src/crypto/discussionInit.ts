@@ -44,11 +44,13 @@ export async function initializeDiscussion(
 
     // Store discussion in database with UI metadata and keep announcement on discussion
     // Broadcast announcement to bulletin and obtain counter
+
+    // TODO HAndle fail to broadcast announcement
     const annSvc = await messageReceptionService.getInstance();
-    const broadcast = await annSvc.broadcastAnnouncement(announcement);
-    if (!broadcast.success) {
+    const result = await annSvc.sendAnnouncement(announcement);
+    if (!result.success) {
       throw new Error(
-        `Failed to broadcast outgoing session: ${broadcast.error || 'unknown'}`
+        `Failed to broadcast outgoing session: ${result.error || 'Unknown error'}`
       );
     }
 
@@ -66,16 +68,6 @@ export async function initializeDiscussion(
     });
 
     console.log('Created discussion for contact:', contactUserId);
-
-    // Send the announcement through the message protocol
-    try {
-      const messageProtocol = await createMessageProtocol();
-      await messageProtocol.createOutgoingSession(announcement);
-      console.log('Announcement sent through message protocol');
-    } catch (error) {
-      console.error('Failed to send announcement through protocol:', error);
-      // Don't throw - discussion is created, announcement sending can be retried
-    }
 
     return { discussionId, announcement };
   } catch (error) {

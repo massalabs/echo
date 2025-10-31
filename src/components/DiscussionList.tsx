@@ -177,6 +177,35 @@ const DiscussionList: React.FC = () => {
     }
   }, [resetAccount]);
 
+  const handleResetAllDiscussionsAndMessages = useCallback(async () => {
+    try {
+      // Clear discussions-related data and contacts while keeping user profile
+      await db.transaction(
+        'rw',
+        [
+          db.contacts,
+          db.messages,
+          db.discussions,
+          db.discussionKeys,
+          db.discussionMessages,
+        ],
+        async () => {
+          await db.discussionMessages.clear();
+          await db.discussionKeys.clear();
+          await db.messages.clear();
+          await db.discussions.clear();
+          await db.contacts.clear();
+        }
+      );
+
+      // Reload UI lists
+      await loadDiscussions();
+      await loadContacts();
+    } catch (error) {
+      console.error('Failed to reset discussions and messages:', error);
+    }
+  }, [loadDiscussions, loadContacts]);
+
   const handleResetAllAccounts = useCallback(async () => {
     try {
       // Clear all local storage
@@ -365,8 +394,6 @@ const DiscussionList: React.FC = () => {
     async (contact: Contact) => {
       setShowNewContact(false);
       try {
-        // Ensure a discussion channel exists upon contact creation.
-        // For testing, recipient = sender (use contact.userId for both params)
         await initializeDiscussion(
           contact.userId,
           UserPublicKeys.from_bytes(contact.publicKeys)
@@ -591,6 +618,13 @@ const DiscussionList: React.FC = () => {
                 className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
               >
                 Reset All Accounts (wipe local storage)
+              </button>
+              <br />
+              <button
+                onClick={handleResetAllDiscussionsAndMessages}
+                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+              >
+                Reset Discussions, Messages & Contacts (DB only)
               </button>
               <br />
               <button

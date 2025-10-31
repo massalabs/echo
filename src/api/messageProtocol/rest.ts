@@ -7,6 +7,7 @@ import {
   IMessageProtocol,
   MessageProtocolResponse,
 } from './types';
+import { encodeToBase64, decodeFromBase64 } from '../../utils/base64';
 
 const BULLETIN_ENDPOINT = '/bulletin';
 
@@ -88,14 +89,14 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(announcement: Uint8Array): Promise<string> {
+  async sendAnnouncement(announcement: Uint8Array): Promise<string> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
     const response = await this.makeRequest<{ counter: string }>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        data: Array.from(announcement),
+        data: encodeToBase64(announcement),
       }),
     });
 
@@ -107,6 +108,7 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an incoming session response produced by WASM
+  // TODO Remove, same as sendAnnouncement
   async feedIncomingAnnouncement(announcement: Uint8Array): Promise<string> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
@@ -114,7 +116,7 @@ export class RestMessageProtocol implements IMessageProtocol {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        data: Array.from(announcement),
+        data: encodeToBase64(announcement),
       }),
     });
 
@@ -131,7 +133,7 @@ export class RestMessageProtocol implements IMessageProtocol {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
     try {
-      const response = await this.makeRequest<number[][]>(url, {
+      const response = await this.makeRequest<{ data: string[] }>(url, {
         method: 'GET',
       });
 
@@ -141,7 +143,7 @@ export class RestMessageProtocol implements IMessageProtocol {
 
       console.log('Debug API - announcements:', response);
 
-      return response.data.map(row => new Uint8Array(row));
+      return response.data.data.map(row => decodeFromBase64(row));
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
       throw error;
