@@ -10,10 +10,10 @@ interface ReceiveModalProps {
 }
 
 const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
-  const { userProfile } = useAccountStore();
+  const { account } = useAccountStore();
   const [copied, setCopied] = useState(false);
 
-  const fullAddress = userProfile?.wallet?.address ?? '';
+  const fullAddress = account?.address?.toString() ?? '';
   const displayAddress = formatMassaAddress(fullAddress);
 
   const handleCopyAddress = async () => {

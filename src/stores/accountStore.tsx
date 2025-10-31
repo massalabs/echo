@@ -38,7 +38,6 @@ import { getActiveOrFirstProfile } from './utils/getAccount';
 async function createProfileFromAccount(
   username: string,
   userId: string,
-  account: Account,
   security: UserProfile['security'],
   wasmKeys: {
     publicKeys: Uint8Array;
@@ -46,15 +45,9 @@ async function createProfileFromAccount(
     secretKeysIv: Uint8Array;
   }
 ): Promise<UserProfile> {
-  const walletInfos = {
-    address: account.address.toString(),
-    publicKey: account.publicKey.toString(),
-  };
-
   const newProfile: UserProfile = {
     userId,
     username,
-    wallet: walletInfos,
     wasmKeys,
     security,
     status: 'online',
@@ -99,7 +92,6 @@ async function provisionAccount(
   const profile = await createProfileFromAccount(
     username,
     userId,
-    account,
     built.security,
     {
       publicKeys: wasmKeys.publicKeys,
@@ -503,15 +495,9 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
           webauthnKey.privateKey
         );
 
-      const walletInfos = {
-        address: account.address.toString(),
-        publicKey: account.publicKey.toString(),
-      };
-
       const newProfile: UserProfile = {
         userId,
         username,
-        wallet: walletInfos,
         wasmKeys: {
           publicKeys: userPublicKeys.to_bytes(),
           encryptedSecretKeys,

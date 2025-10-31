@@ -27,10 +27,6 @@ export interface UserProfile {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   username: string;
   avatar?: string;
-  wallet: {
-    address: string;
-    publicKey: string;
-  };
   // WASM user keys (serialized)
   wasmKeys: {
     publicKeys: Uint8Array; // bytes from UserPublicKeys.to_bytes()
