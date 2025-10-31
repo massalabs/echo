@@ -54,8 +54,7 @@ export class MockMessageProtocol implements IMessageProtocol {
     console.log('Mock: Message sent successfully');
   }
 
-  // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(announcement: Uint8Array): Promise<string> {
+  async sendAnnouncement(announcement: Uint8Array): Promise<string> {
     console.log('Mock: Broadcasting outgoing session announcement');
     this.mockAnnouncements.push(announcement);
     this.bulletinCounter += 1;

@@ -32,7 +32,7 @@ export interface IMessageProtocol {
    * Broadcast an outgoing session announcement produced by WASM.
    * Returns the bulletin counter provided by the API.
    */
-  createOutgoingSession(announcement: Uint8Array): Promise<string>;
+  sendAnnouncement(announcement: Uint8Array): Promise<string>;
 
   /**
    * Broadcast an incoming session response produced by WASM.
