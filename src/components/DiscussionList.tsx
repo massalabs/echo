@@ -21,6 +21,7 @@ let globalLoginError: string | null = null;
 const DiscussionList: React.FC = () => {
   const {
     userProfile,
+    account,
     resetAccount,
     hasExistingAccount,
     getExistingAccountInfo,
@@ -514,9 +515,9 @@ const DiscussionList: React.FC = () => {
                 User: {userProfile?.username}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Address:{' '}
-                {userProfile?.wallet?.address
-                  ? formatMassaAddress(userProfile.wallet.address)
+                Address{' '}
+                {account?.address
+                  ? formatMassaAddress(account.address.toString())
                   : 'N/A'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
