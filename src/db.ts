@@ -27,17 +27,10 @@ export interface UserProfile {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   username: string;
   avatar?: string;
-  // WASM user keys (serialized)
-  wasmKeys: {
-    publicKeys: Uint8Array; // bytes from UserPublicKeys.to_bytes()
-    encryptedSecretKeys: ArrayBuffer; // AES-GCM encrypted bytes from UserSecretKeys.to_bytes()
-    secretKeysIv: Uint8Array; // IV used for encryption of secret keys
-  };
+  // WASM user keys are NOT persisted; kept in-memory in the account store
   // Security-related fields (encryption and authentication)
   security: {
-    // Encrypted Massa private key (AES-GCM)
-    encryptedPrivateKey: ArrayBuffer;
-    iv: Uint8Array;
+    // No Massa private key stored; only auth metadata and optional mnemonic backup
 
     // WebAuthn/FIDO2 (biometric) details when used
     webauthn?: {
@@ -52,13 +45,12 @@ export interface UserProfile {
     // Password-based KDF parameters when used
     password?: {
       salt: Uint8Array;
-      kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
     };
 
     // Mnemonic backup details
     mnemonicBackup?: {
-      encryptedMnemonic: ArrayBuffer;
-      iv: Uint8Array;
+      encryptedMnemonic: Uint8Array;
+      nonce: Uint8Array;
       createdAt: Date;
       backedUp: boolean;
     };

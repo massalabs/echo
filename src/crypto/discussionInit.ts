@@ -6,7 +6,7 @@
 
 import { db, Discussion, DiscussionMessage } from '../db';
 import { getSessionModule } from '../wasm';
-import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
+import { useAccountStore } from '../stores/accountStore';
 import { createMessageProtocol } from '../api/messageProtocol';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 
@@ -30,7 +30,8 @@ export async function initializeDiscussion(
   try {
     const sessionModule = await getSessionModule();
 
-    const { ourPk, ourSk } = await getDecryptedWasmKeys();
+    const { ourPk, ourSk } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
 
     // Establish outgoing session and get announcement bytes
     const announcement = await sessionModule.establishOutgoingSession(
@@ -85,7 +86,8 @@ export async function processIncomingInitiation(
   try {
     const sessionModule = await getSessionModule();
 
-    const { ourPk, ourSk } = await getDecryptedWasmKeys();
+    const { ourPk, ourSk } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
 
     await sessionModule.feedIncomingAnnouncement(
       announcementData,
