@@ -14,7 +14,7 @@ import {
 import { notificationService } from './notifications';
 import bs58check from 'bs58check';
 import { processIncomingInitiation } from '../crypto/discussionInit';
-import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
+import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, getSessionModule, SessionModule } from '../wasm';
 
 export interface MessageReceptionResult {
@@ -62,7 +62,8 @@ export class MessageReceptionService {
       const messageProtocol = await this.getMessageProtocol();
       const sessionModule = await getSessionModule();
       const seekers = await sessionModule.getMessageBoardReadKeys();
-      const { ourSk } = await getDecryptedWasmKeys();
+      const { ourSk } = useAccountStore.getState();
+      if (!ourSk) throw new Error('WASM secret keys unavailable');
 
       let storedCount = 0;
       // Fetch in one shot for all seekers
@@ -277,7 +278,8 @@ export class MessageReceptionService {
     try {
       console.log('Simulating received message for discussion:', discussionId);
 
-      const { ourPk } = await getDecryptedWasmKeys();
+      const { ourPk } = useAccountStore.getState();
+      if (!ourPk) throw new Error('WASM public keys unavailable');
       const ourUserId = ourPk.derive_id();
       console.log('ourUserId', bs58check.encode(ourUserId));
 
@@ -496,7 +498,8 @@ export class MessageReceptionService {
     contactUserId?: string;
     error?: string;
   }> {
-    const { ourPk, ourSk } = await getDecryptedWasmKeys();
+    const { ourPk, ourSk } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
     try {
       // Extract contact information from the announcement
       const sessionModule = await getSessionModule();

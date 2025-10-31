@@ -19,7 +19,7 @@ export class MockMessageProtocol implements IMessageProtocol {
     const collected: EncryptedMessage[] = [];
     for (const seeker of seekers) {
       // Convert seeker to base64 string for storage key
-      const key = btoa(String.fromCharCode(...seeker));
+      const key = Buffer.from(seeker).toString('base64');
       const msgs = this.mockMessages.get(key) || [];
       // attach seeker on returned messages
       collected.push(...msgs.map(m => ({ ...m, seeker })));

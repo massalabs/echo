@@ -515,7 +515,7 @@ const DiscussionList: React.FC = () => {
                 User: {userProfile?.username}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Address{' '}
+                Address:{' '}
                 {account?.address
                   ? formatMassaAddress(account.address.toString())
                   : 'N/A'}
