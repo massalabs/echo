@@ -12,6 +12,7 @@ import {
   UserPublicKeys,
   UserSecretKeys,
   ReceiveMessageOutput,
+  SendMessageOutput,
   SessionStatus,
 } from '../assets/generated/wasm/echo_wasm';
 
@@ -24,7 +25,6 @@ export class SessionModule {
     // Create session configuration with default settings
     this.sessionConfig = SessionConfig.new_default();
     this.sessionManager = new SessionManagerWrapper(this.sessionConfig);
-    console.log('WASM session module initialized');
   }
 
   cleanup(): void {
@@ -61,12 +61,12 @@ export class SessionModule {
     announcementBytes: Uint8Array,
     ourPk: UserPublicKeys,
     ourSk: UserSecretKeys
-  ): Promise<void> {
+  ): Promise<UserPublicKeys | undefined> {
     if (!this.sessionManager) {
       await this.init();
     }
 
-    this.sessionManager!.feed_incoming_announcement(
+    return this.sessionManager!.feed_incoming_announcement(
       announcementBytes,
       ourPk,
       ourSk
@@ -101,6 +101,20 @@ export class SessionModule {
       ciphertext,
       ourSk
     );
+  }
+
+  /**
+   * Send a message to a peer
+   */
+  async sendMessage(
+    peerId: Uint8Array,
+    message: Uint8Array
+  ): Promise<SendMessageOutput | undefined> {
+    if (!this.sessionManager) {
+      await this.init();
+    }
+
+    return this.sessionManager!.send_message(peerId, message);
   }
 
   /**

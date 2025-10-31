@@ -528,29 +528,6 @@ export class MessageReceptionService {
   }
 
   /**
-   * Extract contact user ID from announcement data
-   * @param announcementData - The announcement data
-   * @returns Contact user ID or null if not found
-   */
-  private _extractContactUserIdFromAnnouncement(
-    announcementData: Uint8Array
-  ): string | null {
-    try {
-      // In a real implementation, this would parse the announcement data
-      // to extract the sender's user ID. For now, we'll generate a mock ID.
-      const mockUserIdBytes = new Uint8Array(announcementData.slice(0, 32));
-      const mockUserId = bs58check.encode(mockUserIdBytes);
-      return mockUserId;
-    } catch (error) {
-      console.error(
-        'Failed to extract contact user ID from announcement:',
-        error
-      );
-      return null;
-    }
-  }
-
-  /**
    * Check if there are new encrypted messages for a discussion
    * @param discussionId - The discussion ID
    * @returns True if there are new encrypted messages

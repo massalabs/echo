@@ -113,24 +113,13 @@ export const useMessages = ({
             if (!discussion) {
               throw new Error('Discussion not found');
             }
-            // Derive a string key from nextSeeker (hex) or fallback to contact ID
-            const seekerBytes = discussion.nextSeeker;
-            const discussionKey = seekerBytes
-              ? Array.from(seekerBytes)
-                  .map(b => b.toString(16).padStart(2, '0'))
-                  .join('')
-              : contact.userId;
+            // Use nextSeeker directly, or create a placeholder if not available
+            const seeker = discussion.nextSeeker || new Uint8Array(32);
             // Create a mock encrypted message payload for protocol
             const messageProtocol = await service.getMessageProtocol();
-            await messageProtocol.sendMessage(discussionKey, {
-              id: `out_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-              seeker: new Uint8Array(0),
+            await messageProtocol.sendMessage(seeker, {
+              seeker,
               ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-              ct: crypto.getRandomValues(new Uint8Array(32)),
-              rand: crypto.getRandomValues(new Uint8Array(32)),
-              nonce: crypto.getRandomValues(new Uint8Array(12)),
-              messageType: 'regular',
-              direction: 'outgoing',
               timestamp: new Date(),
             });
 
