@@ -21,3 +21,7 @@ export const endpoints = {
   messages: '/messages',
   sessions: '/sessions',
 } as const;
+
+export type MessageProtocolType = 'rest' | 'mock';
+
+export const defaultMessageProtocol: MessageProtocolType = 'rest';

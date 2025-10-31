@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
-import { isValidUserId } from '../utils/addressUtils';
+import { formatUserId, isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
@@ -13,7 +13,8 @@ interface NewContactProps {
 
 const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   const [name, setName] = useState('');
-  const [userId, setUserId] = useState('');
+  // TODO: Remove this, test pupose
+  const [userId, setUserId] = useState(() => formatUserId(''));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);

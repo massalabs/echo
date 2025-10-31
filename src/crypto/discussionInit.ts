@@ -7,8 +7,8 @@
 import { db, Discussion, DiscussionMessage } from '../db';
 import { getSessionModule } from '../wasm';
 import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
-import { createMessageProtocol } from '../api/messageProtocol';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import { messageReceptionService } from '../services/messageReception';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -40,6 +40,18 @@ export async function initializeDiscussion(
     );
 
     // Store discussion in database with UI metadata and keep announcement on discussion
+    // Broadcast announcement to bulletin and obtain counter
+
+    // TODO HAndle fail to broadcast announcement
+    const annSvc = await messageReceptionService.getInstance();
+    const result = await annSvc.sendAnnouncement(announcement);
+    if (!result.success) {
+      throw new Error(
+        `Failed to broadcast outgoing session: ${result.error || 'Unknown error'}`
+      );
+    }
+
+    // Store discussion in database
     const discussionId = await db.discussions.add({
       contactUserId,
       direction: 'initiated',
@@ -52,16 +64,6 @@ export async function initializeDiscussion(
     });
 
     console.log('Created discussion for contact:', contactUserId);
-
-    // Send the announcement through the message protocol
-    try {
-      const messageProtocol = await createMessageProtocol();
-      await messageProtocol.createOutgoingSession(announcement);
-      console.log('Announcement sent through message protocol');
-    } catch (error) {
-      console.error('Failed to send announcement through protocol:', error);
-      // Don't throw - discussion is created, announcement sending can be retried
-    }
 
     return { discussionId, announcement };
   } catch (error) {

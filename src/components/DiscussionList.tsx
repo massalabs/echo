@@ -14,6 +14,9 @@ import NewContact from './NewContact';
 import DiscussionView from './Discussion';
 import ContactAvatar from './avatar/ContactAvatar';
 import { messageReceptionService } from '../services/messageReception';
+import { initializeDiscussion } from '../crypto/discussionInit';
+import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+// announcementReception merged into messageReception
 
 // Global error state (survives component remounts)
 let globalLoginError: string | null = null;
@@ -162,6 +165,35 @@ const DiscussionList: React.FC = () => {
     }
   }, [resetAccount]);
 
+  const handleResetAllDiscussionsAndMessages = useCallback(async () => {
+    try {
+      // Clear discussions-related data and contacts while keeping user profile
+      await db.transaction(
+        'rw',
+        [
+          db.contacts,
+          db.messages,
+          db.discussions,
+          db.discussionKeys,
+          db.discussionMessages,
+        ],
+        async () => {
+          await db.discussionMessages.clear();
+          await db.discussionKeys.clear();
+          await db.messages.clear();
+          await db.discussions.clear();
+          await db.contacts.clear();
+        }
+      );
+
+      // Reload UI lists
+      await loadDiscussions();
+      await loadContacts();
+    } catch (error) {
+      console.error('Failed to reset discussions and messages:', error);
+    }
+  }, [loadDiscussions, loadContacts]);
+
   const handleResetAllAccounts = useCallback(async () => {
     try {
       // Clear all local storage
@@ -262,6 +294,29 @@ const DiscussionList: React.FC = () => {
     }
   }, [loadDiscussions, loadContacts]);
 
+  const handleFetchAllAnnouncements = useCallback(async () => {
+    try {
+      const service = await messageReceptionService.getInstance();
+      const protocol = await service.getMessageProtocol();
+      const rawAnnouncements = await protocol.fetchAnnouncements();
+      console.log('Raw announcements (bytes):', rawAnnouncements);
+
+      const result = await service.fetchAndProcessAnnouncements();
+      if (result.success) {
+        console.log(
+          'Fetched announcements. New discussions:',
+          result.newDiscussionsCount
+        );
+        await loadDiscussions();
+        await loadContacts();
+      } else {
+        console.error('Failed to fetch announcements:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+    }
+  }, [loadDiscussions, loadContacts]);
+
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
       setActiveTab(tab);
@@ -323,10 +378,27 @@ const DiscussionList: React.FC = () => {
     setShowNewContact(false);
   }, []);
 
-  const handleCreatedNewContact = useCallback((_contact: Contact) => {
-    setShowNewContact(false);
-    // After creating, return to selector; optionally auto-select the new contact
-  }, []);
+  const handleCreatedNewContact = useCallback(
+    async (contact: Contact) => {
+      setShowNewContact(false);
+      try {
+        await initializeDiscussion(
+          contact.userId,
+          UserPublicKeys.from_bytes(contact.publicKeys)
+        );
+      } catch (e) {
+        console.error(
+          'Failed to initialize discussion after contact creation:',
+          e
+        );
+      } finally {
+        // Reload lists so the new discussion/thread shows up
+        await loadDiscussions();
+        await loadContacts();
+      }
+    },
+    [loadDiscussions, loadContacts]
+  );
 
   // Show loading state
   if (appState === 'loading' || isLoading) {
@@ -537,10 +609,24 @@ const DiscussionList: React.FC = () => {
               </button>
               <br />
               <button
+                onClick={handleResetAllDiscussionsAndMessages}
+                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+              >
+                Reset Discussions, Messages & Contacts (DB only)
+              </button>
+              <br />
+              <button
                 onClick={handleSimulateIncomingDiscussion}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
               >
                 Simulate Incoming Discussion (test)
+              </button>
+              <br />
+              <button
+                onClick={handleFetchAllAnnouncements}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+              >
+                Fetch All Announcements (test)
               </button>
             </div>
           </div>

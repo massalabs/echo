@@ -23,6 +23,13 @@ export interface MessageReceptionResult {
   error?: string;
 }
 
+// For announcement fetching results (discussions created)
+export interface AnnouncementReceptionResult {
+  success: boolean;
+  newDiscussionsCount: number;
+  error?: string;
+}
+
 export class MessageReceptionService {
   private _messageProtocol: IMessageProtocol | null = null;
 
@@ -34,10 +41,79 @@ export class MessageReceptionService {
 
   async getMessageProtocol(): Promise<IMessageProtocol> {
     if (!this._messageProtocol) {
-      this._messageProtocol = await createMessageProtocol('mock');
+      this._messageProtocol = await createMessageProtocol();
     }
     return this._messageProtocol;
   }
+
+  /* -------------------------------------------------------------------------- */
+  /*                                ANNOUNCEMENT                                */
+  /* -------------------------------------------------------------------------- */
+
+  /**
+   * Broadcast an outgoing announcement produced by WASM
+   */
+  async sendAnnouncement(announcement: Uint8Array): Promise<{
+    success: boolean;
+    counter?: string;
+    error?: string;
+  }> {
+    try {
+      const protocol = await this.getMessageProtocol();
+      const counter = await protocol.sendAnnouncement(announcement);
+      return { success: true, counter };
+    } catch (error) {
+      console.error('Failed to broadcast outgoing session:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Check for incoming announcements
+   * @returns Result with count of new discussions created
+   */
+  async fetchAndProcessAnnouncements(): Promise<AnnouncementReceptionResult> {
+    try {
+      const announcements = await this._fetchAnnouncements();
+
+      let newDiscussionsCount = 0;
+      let hasErrors = false;
+
+      for (const announcement of announcements) {
+        try {
+          const result = await this._processIncomingAnnouncement(announcement);
+          if (result.success) {
+            newDiscussionsCount++;
+          } else {
+            hasErrors = true;
+          }
+        } catch (error) {
+          console.error('Failed to process incoming announcement:', error);
+          hasErrors = true;
+        }
+      }
+
+      return {
+        success: !hasErrors || newDiscussionsCount > 0,
+        newDiscussionsCount,
+        error: hasErrors ? 'Some announcements failed to process' : undefined,
+      };
+    } catch (error) {
+      console.error('Failed to fetch/process incoming announcements:', error);
+      return {
+        success: false,
+        newDiscussionsCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                                MESSAGE API                                 */
+  /* -------------------------------------------------------------------------- */
 
   /**
    * Fetch new encrypted messages for a specific discussion
@@ -128,6 +204,10 @@ export class MessageReceptionService {
     }
   }
 
+  // =========================
+  // Announcement checks across discussions
+  // =========================
+
   /**
    * Fetch messages for all active discussions
    * @returns Result with total count of new messages fetched
@@ -153,14 +233,14 @@ export class MessageReceptionService {
         }
       }
 
-      // Also check for incoming discussion announcements
-      const announcementResult = await this.checkForIncomingDiscussions();
+      // Also check for incoming session announcements
+      const announcementResult = await this.fetchAndProcessAnnouncements();
       if (announcementResult.success) {
-        totalNewMessages += announcementResult.newMessagesCount;
+        totalNewMessages += announcementResult.newDiscussionsCount;
       } else if (announcementResult.error) {
         hasErrors = true;
         console.error(
-          'Failed to check for incoming discussions:',
+          'Failed to check for incoming session announcements:',
           announcementResult.error
         );
       }
@@ -180,49 +260,9 @@ export class MessageReceptionService {
     }
   }
 
-  /**
-   * Check for incoming discussion announcements
-   * @returns Result with count of new discussions created
-   */
-  async checkForIncomingDiscussions(): Promise<MessageReceptionResult> {
-    try {
-      console.log('Checking for incoming discussion announcements...');
-
-      // This would typically involve checking a global announcement channel
-      // For now, we'll simulate this by checking if there are any pending announcements
-      // In a real implementation, this would query a specific announcement endpoint
-      const announcements = await this._fetchIncomingAnnouncements();
-
-      let newDiscussionsCount = 0;
-
-      for (const announcement of announcements) {
-        try {
-          const result = await this._processIncomingAnnouncement(announcement);
-          if (result.success) {
-            newDiscussionsCount++;
-            console.log(
-              'Created new discussion from announcement:',
-              result.discussionId
-            );
-          }
-        } catch (error) {
-          console.error('Failed to process incoming announcement:', error);
-        }
-      }
-
-      return {
-        success: true,
-        newMessagesCount: newDiscussionsCount,
-      };
-    } catch (error) {
-      console.error('Failed to check for incoming discussions:', error);
-      return {
-        success: false,
-        newMessagesCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
+  // =========================
+  // Simulation helpers (test/dev)
+  // =========================
 
   /**
    * Simulate an incoming discussion announcement for testing
@@ -467,11 +507,15 @@ export class MessageReceptionService {
     }
   }
 
+  // =========================
+  // Private helpers
+  // =========================
+
   /**
-   * Fetch incoming discussion announcements from the protocol
+   * Fetch incoming announcements from the protocol
    * @returns Array of announcement data
    */
-  private async _fetchIncomingAnnouncements(): Promise<Uint8Array[]> {
+  private async _fetchAnnouncements(): Promise<Uint8Array[]> {
     try {
       const messageProtocol = await this.getMessageProtocol();
       const announcements = await messageProtocol.fetchAnnouncements();
@@ -484,7 +528,7 @@ export class MessageReceptionService {
   }
 
   /**
-   * Process an incoming discussion announcement
+   * Process an incoming announcement
    * @param announcementData - The announcement data
    * @returns Result with discussion ID if successful
    */
@@ -505,6 +549,7 @@ export class MessageReceptionService {
         ourPk,
         ourSk
       );
+      console.log('announcerPkeys', announcerPkeys);
       if (!announcerPkeys) {
         throw new Error(
           'Could not extract announcer public keys from announcement'
