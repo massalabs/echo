@@ -15,6 +15,7 @@ import DiscussionView from './Discussion';
 import ContactAvatar from './avatar/ContactAvatar';
 import { messageReceptionService } from '../services/messageReception';
 import { initializeDiscussion } from '../crypto/discussionInit';
+import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 // announcementReception merged into messageReception
 
 // Global error state (survives component remounts)
@@ -289,7 +290,7 @@ const DiscussionList: React.FC = () => {
           'Fetched announcements. New discussions:',
           result.newDiscussionsCount
         );
-        await loadDiscussionThreads();
+        await loadDiscussions();
         await loadContacts();
       } else {
         console.error('Failed to fetch announcements:', result.error);
@@ -297,7 +298,7 @@ const DiscussionList: React.FC = () => {
     } catch (error) {
       console.error('Error fetching announcements:', error);
     }
-  }, [loadDiscussionThreads, loadContacts]);
+  }, [loadDiscussions, loadContacts]);
 
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
@@ -366,7 +367,10 @@ const DiscussionList: React.FC = () => {
       try {
         // Ensure a discussion channel exists upon contact creation.
         // For testing, recipient = sender (use contact.userId for both params)
-        await initializeDiscussion(contact.userId, contact.userId);
+        await initializeDiscussion(
+          contact.userId,
+          UserPublicKeys.from_bytes(contact.publicKeys)
+        );
       } catch (e) {
         console.error(
           'Failed to initialize discussion after contact creation:',
@@ -374,11 +378,11 @@ const DiscussionList: React.FC = () => {
         );
       } finally {
         // Reload lists so the new discussion/thread shows up
-        await loadDiscussionThreads();
+        await loadDiscussions();
         await loadContacts();
       }
     },
-    [loadDiscussionThreads, loadContacts]
+    [loadDiscussions, loadContacts]
   );
 
   // Show loading state

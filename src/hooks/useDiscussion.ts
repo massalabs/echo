@@ -85,8 +85,8 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     }
 
     // If no discussion exists, initialize one
-    return await initializeNewDiscussion();
-  }, [discussion, contact.userId, initializeNewDiscussion]);
+    return await initializeNewDiscussion(contact);
+  }, [discussion, contact, initializeNewDiscussion]);
 
   useEffect(() => {
     loadDiscussion();
