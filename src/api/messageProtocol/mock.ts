@@ -11,6 +11,7 @@ import { IMessageProtocol, EncryptedMessage } from './types';
 export class MockMessageProtocol implements IMessageProtocol {
   private mockMessages: Map<string, EncryptedMessage[]> = new Map();
   private mockAnnouncements: Uint8Array[] = [];
+  private bulletinCounter = 0;
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     console.log('Mock: Fetching messages for seekers:', seekers.length);
@@ -54,19 +55,22 @@ export class MockMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
+  async createOutgoingSession(announcement: Uint8Array): Promise<string> {
     console.log('Mock: Broadcasting outgoing session announcement');
-    // For the mock, push to announcements so receivers can fetch it
     this.mockAnnouncements.push(announcement);
+    this.bulletinCounter += 1;
     await new Promise(resolve => setTimeout(resolve, 150));
+    return String(this.bulletinCounter);
   }
 
   // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
+  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<string> {
     console.log('Mock: Broadcasting incoming session response');
     // For the mock, also push to announcements
     this.mockAnnouncements.push(announcement);
+    this.bulletinCounter += 1;
     await new Promise(resolve => setTimeout(resolve, 150));
+    return String(this.bulletinCounter);
   }
 
   async fetchAnnouncements(): Promise<Uint8Array[]> {

@@ -29,17 +29,20 @@ export interface IMessageProtocol {
   sendMessage(seeker: Uint8Array, message: EncryptedMessage): Promise<void>;
 
   /**
-   * Broadcast an outgoing session announcement produced by WASM
+   * Broadcast an outgoing session announcement produced by WASM.
+   * Returns the bulletin counter provided by the API.
    */
-  createOutgoingSession(announcement: Uint8Array): Promise<void>;
+  createOutgoingSession(announcement: Uint8Array): Promise<string>;
 
   /**
-   * Broadcast an incoming session response produced by WASM
+   * Broadcast an incoming session response produced by WASM.
+   * Returns the bulletin counter provided by the API.
    */
-  feedIncomingAnnouncement(announcement: Uint8Array): Promise<void>;
+  feedIncomingAnnouncement(announcement: Uint8Array): Promise<string>;
 
   /**
-   * Fetch incoming discussion announcements
+   * Fetch incoming discussion announcements from the bulletin storage.
+   * Returns raw announcement bytes as provided by the API.
    */
   fetchAnnouncements(): Promise<Uint8Array[]>;
 }

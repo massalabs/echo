@@ -301,7 +301,7 @@ const Discussion: React.FC<DiscussionProps> = ({
                       : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-bl-md'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
                     {message.content}
                   </p>
                   <p

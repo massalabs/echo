@@ -14,6 +14,8 @@ import NewContact from './NewContact';
 import DiscussionView from './Discussion';
 import ContactAvatar from './avatar/ContactAvatar';
 import { messageReceptionService } from '../services/messageReception';
+import { initializeDiscussion } from '../crypto/discussionInit';
+// announcementReception merged into messageReception
 
 // Global error state (survives component remounts)
 let globalLoginError: string | null = null;
@@ -274,6 +276,29 @@ const DiscussionList: React.FC = () => {
     }
   }, [loadDiscussions, loadContacts]);
 
+  const handleFetchAllAnnouncements = useCallback(async () => {
+    try {
+      const service = await messageReceptionService.getInstance();
+      const protocol = await service.getMessageProtocol();
+      const rawAnnouncements = await protocol.fetchAnnouncements();
+      console.log('Raw announcements (bytes):', rawAnnouncements);
+
+      const result = await service.fetchAndProcessAnnouncements();
+      if (result.success) {
+        console.log(
+          'Fetched announcements. New discussions:',
+          result.newDiscussionsCount
+        );
+        await loadDiscussionThreads();
+        await loadContacts();
+      } else {
+        console.error('Failed to fetch announcements:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+    }
+  }, [loadDiscussionThreads, loadContacts]);
+
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
       setActiveTab(tab);
@@ -335,10 +360,26 @@ const DiscussionList: React.FC = () => {
     setShowNewContact(false);
   }, []);
 
-  const handleCreatedNewContact = useCallback((_contact: Contact) => {
-    setShowNewContact(false);
-    // After creating, return to selector; optionally auto-select the new contact
-  }, []);
+  const handleCreatedNewContact = useCallback(
+    async (contact: Contact) => {
+      setShowNewContact(false);
+      try {
+        // Ensure a discussion channel exists upon contact creation.
+        // For testing, recipient = sender (use contact.userId for both params)
+        await initializeDiscussion(contact.userId, contact.userId);
+      } catch (e) {
+        console.error(
+          'Failed to initialize discussion after contact creation:',
+          e
+        );
+      } finally {
+        // Reload lists so the new discussion/thread shows up
+        await loadDiscussionThreads();
+        await loadContacts();
+      }
+    },
+    [loadDiscussionThreads, loadContacts]
+  );
 
   // Show loading state
   if (appState === 'loading' || isLoading) {
@@ -553,6 +594,13 @@ const DiscussionList: React.FC = () => {
                 className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
               >
                 Simulate Incoming Discussion (test)
+              </button>
+              <br />
+              <button
+                onClick={handleFetchAllAnnouncements}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+              >
+                Fetch All Announcements (test)
               </button>
             </div>
           </div>
