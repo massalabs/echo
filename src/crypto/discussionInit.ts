@@ -9,6 +9,7 @@ import { getSessionModule } from '../wasm';
 import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
 import { createMessageProtocol } from '../api/messageProtocol';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import { messageReceptionService } from '../services/messageReception';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -40,6 +41,16 @@ export async function initializeDiscussion(
     );
 
     // Store discussion in database with UI metadata and keep announcement on discussion
+    // Broadcast announcement to bulletin and obtain counter
+    const annSvc = await messageReceptionService.getInstance();
+    const broadcast = await annSvc.broadcastAnnouncement(announcement);
+    if (!broadcast.success) {
+      throw new Error(
+        `Failed to broadcast outgoing session: ${broadcast.error || 'unknown'}`
+      );
+    }
+
+    // Store discussion in database
     const discussionId = await db.discussions.add({
       contactUserId,
       direction: 'initiated',

@@ -35,11 +35,12 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     }
   }, [contact.userId]);
 
-  const initializeNewDiscussion = useCallback(async (): Promise<boolean> => {
-    if (!contact.userId || isInitializing) return false;
+  const initializeNewDiscussion = useCallback(
+    async (recipient: Contact): Promise<boolean> => {
+      if (!contact.userId || !recipient.userId || isInitializing) return false;
 
-    try {
-      setIsInitializing(true);
+      try {
+        setIsInitializing(true);
 
       // Guard: we cannot initialize a discussion without the contact's public keys
       if (!contact.publicKeys || contact.publicKeys.length === 0) {
@@ -54,8 +55,8 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
         UserPublicKeys.from_bytes(contact.publicKeys)
       );
 
-      // Reload discussions to get the new one
-      await loadDiscussion();
+        // Reload discussions to get the new one
+        await loadDiscussion();
 
       console.log('Discussion initialized:', result.discussionId);
       return true;

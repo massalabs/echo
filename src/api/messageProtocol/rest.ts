@@ -8,6 +8,8 @@ import {
   MessageProtocolResponse,
 } from './types';
 
+const BULLETIN_ENDPOINT = '/bulletin';
+
 type EncryptedMessageWire = {
   seeker: number[];
   ciphertext: number[];
@@ -86,58 +88,60 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
-    const url = `${this.baseUrl}/sessions/outgoing`;
+  async createOutgoingSession(announcement: Uint8Array): Promise<string> {
+    const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
-    const response = await this.makeRequest<void>(url, {
+    const response = await this.makeRequest<{ counter: string }>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(announcement),
+        data: Array.from(announcement),
       }),
     });
 
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to broadcast outgoing session');
     }
+
+    return response.data.counter;
   }
 
   // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
-    const url = `${this.baseUrl}/sessions/incoming`;
+  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<string> {
+    const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
-    const response = await this.makeRequest<void>(url, {
+    const response = await this.makeRequest<{ counter: string }>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(announcement),
+        data: Array.from(announcement),
       }),
     });
 
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(
         response.error || 'Failed to broadcast incoming announcement'
       );
     }
+
+    return response.data.counter;
   }
 
   async fetchAnnouncements(): Promise<Uint8Array[]> {
-    const url = `${this.baseUrl}/announcements`;
+    const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
     try {
-      const response = await this.makeRequest<{ announcements: number[][] }>(
-        url,
-        {
-          method: 'GET',
-        }
-      );
+      const response = await this.makeRequest<number[][]>(url, {
+        method: 'GET',
+      });
 
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch announcements');
       }
 
-      // Convert number arrays back to Uint8Array
-      return response.data.announcements.map(arr => new Uint8Array(arr));
+      console.log('Debug API - announcements:', response);
+
+      return response.data.map(row => new Uint8Array(row));
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
       throw error;

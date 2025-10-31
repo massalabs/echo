@@ -13,7 +13,8 @@ interface NewContactProps {
 
 const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   const [name, setName] = useState('');
-  const [userId, setUserId] = useState('');
+  // TODO: Remove this, test pupose
+  const [userId, setUserId] = useState(() => formatUserId(generateUserId()));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
