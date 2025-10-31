@@ -5,6 +5,7 @@ export interface Contact {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   name: string;
   avatar?: string;
+  publicKeys: Uint8Array; // Serialized UserPublicKeys bytes (from UserPublicKeys.to_bytes())
   isOnline: boolean;
   lastSeen: Date;
   createdAt: Date;
@@ -141,7 +142,7 @@ export class EchoDatabase extends Dexie {
     super('EchoDatabase');
 
     // Define schema with userId as primary key for contacts and userProfile
-    this.version(8).stores({
+    this.version(9).stores({
       contacts: 'userId, name, isOnline, lastSeen, createdAt',
       messages:
         '++id, contactUserId, type, direction, status, timestamp, encrypted, [contactUserId+status]',

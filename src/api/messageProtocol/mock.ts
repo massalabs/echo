@@ -15,12 +15,11 @@ export class MockMessageProtocol implements IMessageProtocol {
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     console.log('Mock: Fetching messages for seekers:', seekers.length);
 
-    // For the mock, concatenate messages for all seeker hex strings
+    // For the mock, concatenate messages for all seeker base64 strings
     const collected: EncryptedMessage[] = [];
     for (const seeker of seekers) {
-      const key = Array.from(seeker)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      // Convert seeker to base64 string for storage key
+      const key = btoa(String.fromCharCode(...seeker));
       const msgs = this.mockMessages.get(key) || [];
       // attach seeker on returned messages
       collected.push(...msgs.map(m => ({ ...m, seeker })));
@@ -33,17 +32,19 @@ export class MockMessageProtocol implements IMessageProtocol {
   }
 
   async sendMessage(
-    discussionKey: string,
+    seeker: Uint8Array,
     message: EncryptedMessage
   ): Promise<void> {
-    console.log('Mock: Sending message to discussion key:', discussionKey);
+    // Convert seeker to base64 string for storage key
+    const seekerBase64 = btoa(String.fromCharCode(...seeker));
+    console.log('Mock: Sending message to seeker (b64):', seekerBase64);
 
     // Store the message in our mock storage
-    if (!this.mockMessages.has(discussionKey)) {
-      this.mockMessages.set(discussionKey, []);
+    if (!this.mockMessages.has(seekerBase64)) {
+      this.mockMessages.set(seekerBase64, []);
     }
 
-    const messages = this.mockMessages.get(discussionKey)!;
+    const messages = this.mockMessages.get(seekerBase64)!;
     messages.push(message);
 
     // Simulate network delay
@@ -80,11 +81,11 @@ export class MockMessageProtocol implements IMessageProtocol {
   }
 
   // Helper methods for testing
-  addMockMessage(seekerHexKey: string, message: EncryptedMessage): void {
-    if (!this.mockMessages.has(seekerHexKey)) {
-      this.mockMessages.set(seekerHexKey, []);
+  addMockMessage(seekerBase64Key: string, message: EncryptedMessage): void {
+    if (!this.mockMessages.has(seekerBase64Key)) {
+      this.mockMessages.set(seekerBase64Key, []);
     }
-    this.mockMessages.get(seekerHexKey)!.push(message);
+    this.mockMessages.get(seekerBase64Key)!.push(message);
   }
 
   addMockAnnouncement(announcement: Uint8Array): void {

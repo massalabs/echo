@@ -3,16 +3,9 @@
  */
 
 export interface EncryptedMessage {
-  id: string;
   seeker: Uint8Array;
   ciphertext: Uint8Array;
-  ct: Uint8Array;
-  rand: Uint8Array;
-  nonce: Uint8Array;
-  messageType: 'initiation' | 'response' | 'regular';
-  direction: 'incoming' | 'outgoing';
   timestamp: Date;
-  metadata?: Record<string, unknown>;
 }
 
 export interface MessageProtocolResponse<T = unknown> {
@@ -33,7 +26,7 @@ export interface IMessageProtocol {
   /**
    * Send an encrypted message to the key-value store
    */
-  sendMessage(discussionKey: string, message: EncryptedMessage): Promise<void>;
+  sendMessage(seeker: Uint8Array, message: EncryptedMessage): Promise<void>;
 
   /**
    * Broadcast an outgoing session announcement produced by WASM
