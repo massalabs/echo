@@ -4,6 +4,7 @@ import {
   initializeDiscussion,
   getDiscussionsForContact,
 } from '../crypto/discussionInit';
+import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 
 interface UseDiscussionProps {
   contact: Contact;
@@ -40,8 +41,18 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     try {
       setIsInitializing(true);
 
+      // Guard: we cannot initialize a discussion without the contact's public keys
+      if (!contact.publicKeys || contact.publicKeys.length === 0) {
+        throw new Error(
+          'Contact is missing public keys. Cannot start a discussion yet.'
+        );
+      }
+
       // Use the contact's user ID for discussion initialization
-      const result = await initializeDiscussion(contact.userId);
+      const result = await initializeDiscussion(
+        contact.userId,
+        UserPublicKeys.from_bytes(contact.publicKeys)
+      );
 
       // Reload discussions to get the new one
       await loadDiscussion();
@@ -54,7 +65,7 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     } finally {
       setIsInitializing(false);
     }
-  }, [contact.userId, isInitializing, loadDiscussion]);
+  }, [contact.userId, contact.publicKeys, isInitializing, loadDiscussion]);
 
   const ensureDiscussionExists = useCallback(async (): Promise<boolean> => {
     if (discussion) return true;

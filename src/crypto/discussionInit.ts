@@ -5,9 +5,10 @@
  */
 
 import { db, Discussion, DiscussionMessage } from '../db';
-import { generateUserKeys, getSessionModule } from '../wasm';
+import { getSessionModule } from '../wasm';
 import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
 import { createMessageProtocol } from '../api/messageProtocol';
+import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -19,23 +20,21 @@ import { createMessageProtocol } from '../api/messageProtocol';
  * @param recipientUserId - The recipient's 32-byte user ID (base58check encoded)
  * @returns The discussion ID and session information
  */
-export async function initializeDiscussion(contactUserId: string): Promise<{
+export async function initializeDiscussion(
+  contactUserId: string,
+  contactPublicKeys: UserPublicKeys
+): Promise<{
   discussionId: number;
   announcement: Uint8Array;
 }> {
   try {
     const sessionModule = await getSessionModule();
 
-    // Load our decrypted keys via shared helper
     const { ourPk, ourSk } = await getDecryptedWasmKeys();
-
-    // Use mocked peer public keys
-    const mockUserKeys = await generateUserKeys(contactUserId);
-    const peerPk = mockUserKeys.public_keys();
 
     // Establish outgoing session and get announcement bytes
     const announcement = await sessionModule.establishOutgoingSession(
-      peerPk,
+      contactPublicKeys,
       ourPk,
       ourSk
     );
