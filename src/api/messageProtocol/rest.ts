@@ -7,6 +7,9 @@ import {
   IMessageProtocol,
   MessageProtocolResponse,
 } from './types';
+import { encodeToBase64, decodeFromBase64 } from '../../utils/base64';
+
+const BULLETIN_ENDPOINT = '/bulletin';
 
 type EncryptedMessageWire = {
   seeker: number[];
@@ -86,58 +89,37 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
-    const url = `${this.baseUrl}/sessions/outgoing`;
+  async sendAnnouncement(announcement: Uint8Array): Promise<string> {
+    const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
-    const response = await this.makeRequest<void>(url, {
+    const response = await this.makeRequest<{ counter: string }>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(announcement),
+        data: encodeToBase64(announcement),
       }),
     });
 
-    if (!response.success) {
+    if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to broadcast outgoing session');
     }
-  }
 
-  // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
-    const url = `${this.baseUrl}/sessions/incoming`;
-
-    const response = await this.makeRequest<void>(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        announcement: Array.from(announcement),
-      }),
-    });
-
-    if (!response.success) {
-      throw new Error(
-        response.error || 'Failed to broadcast incoming announcement'
-      );
-    }
+    return response.data.counter;
   }
 
   async fetchAnnouncements(): Promise<Uint8Array[]> {
-    const url = `${this.baseUrl}/announcements`;
+    const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
     try {
-      const response = await this.makeRequest<{ announcements: number[][] }>(
-        url,
-        {
-          method: 'GET',
-        }
-      );
+      const response = await this.makeRequest<{ data: string[] }>(url, {
+        method: 'GET',
+      });
 
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch announcements');
       }
 
-      // Convert number arrays back to Uint8Array
-      return response.data.announcements.map(arr => new Uint8Array(arr));
+      return response.data.data.map(row => decodeFromBase64(row));
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
       throw error;

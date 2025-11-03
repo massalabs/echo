@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAccountStore } from '../stores/accountStore';
-import { useFileShareContact } from '../hooks/useFileShareContact';
+import { useAccountStore } from '../../stores/accountStore';
+import { useFileShareContact } from '../../hooks/useFileShareContact';
 
 interface ShareContactProps {
   onBack: () => void;

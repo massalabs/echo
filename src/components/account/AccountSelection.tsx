@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAccountStore } from '../stores/accountStore';
-import { UserProfile } from '../db';
-import { formatDate } from '../utils/timeUtils';
+import { useAccountStore } from '../../stores/accountStore';
+import { UserProfile } from '../../db';
+import { formatDate } from '../../utils/timeUtils';
 
 interface AccountSelectionProps {
   onBack: () => void;

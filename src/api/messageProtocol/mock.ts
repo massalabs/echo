@@ -6,11 +6,13 @@
  * Useful for development and testing when the backend is not available.
  */
 
+import { encodeToBase64 } from '../../utils/base64';
 import { IMessageProtocol, EncryptedMessage } from './types';
 
 export class MockMessageProtocol implements IMessageProtocol {
   private mockMessages: Map<string, EncryptedMessage[]> = new Map();
   private mockAnnouncements: Uint8Array[] = [];
+  private bulletinCounter = 0;
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     console.log('Mock: Fetching messages for seekers:', seekers.length);
@@ -19,7 +21,7 @@ export class MockMessageProtocol implements IMessageProtocol {
     const collected: EncryptedMessage[] = [];
     for (const seeker of seekers) {
       // Convert seeker to base64 string for storage key
-      const key = Buffer.from(seeker).toString('base64');
+      const key = encodeToBase64(seeker);
       const msgs = this.mockMessages.get(key) || [];
       // attach seeker on returned messages
       collected.push(...msgs.map(m => ({ ...m, seeker })));
@@ -36,7 +38,7 @@ export class MockMessageProtocol implements IMessageProtocol {
     message: EncryptedMessage
   ): Promise<void> {
     // Convert seeker to base64 string for storage key
-    const seekerBase64 = btoa(String.fromCharCode(...seeker));
+    const seekerBase64 = encodeToBase64(seeker);
     console.log('Mock: Sending message to seeker (b64):', seekerBase64);
 
     // Store the message in our mock storage
@@ -53,20 +55,12 @@ export class MockMessageProtocol implements IMessageProtocol {
     console.log('Mock: Message sent successfully');
   }
 
-  // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
+  async sendAnnouncement(announcement: Uint8Array): Promise<string> {
     console.log('Mock: Broadcasting outgoing session announcement');
-    // For the mock, push to announcements so receivers can fetch it
     this.mockAnnouncements.push(announcement);
+    this.bulletinCounter += 1;
     await new Promise(resolve => setTimeout(resolve, 150));
-  }
-
-  // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
-    console.log('Mock: Broadcasting incoming session response');
-    // For the mock, also push to announcements
-    this.mockAnnouncements.push(announcement);
-    await new Promise(resolve => setTimeout(resolve, 150));
+    return String(this.bulletinCounter);
   }
 
   async fetchAnnouncements(): Promise<Uint8Array[]> {

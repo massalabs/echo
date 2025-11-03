@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useWalletStore } from '../../stores/walletStore';
-import AddressInput from '../AddressInput';
+import AddressInput from '../ui/AddressInput';
 import Button from '../ui/Button';
 import BaseModal from '../ui/BaseModal';
 import ConfirmTransactionDialog from './ConfirmTransactionDialog';

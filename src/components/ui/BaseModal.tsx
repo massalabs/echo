@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -27,8 +28,8 @@ const BaseModal: React.FC<BaseModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-6">
+  const modalContent = (
+    <div className="fixed inset-0 z-1000 flex items-end md:items-center justify-center md:p-6 pb-[76px] pb-safe">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 dark:bg-black/60 transition-opacity"
@@ -70,6 +71,8 @@ const BaseModal: React.FC<BaseModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default BaseModal;

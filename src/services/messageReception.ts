@@ -11,11 +11,10 @@ import {
   IMessageProtocol,
   createMessageProtocol,
 } from '../api/messageProtocol';
-import { notificationService } from './notifications';
 import bs58check from 'bs58check';
-import { processIncomingInitiation } from '../crypto/discussionInit';
 import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, getSessionModule, SessionModule } from '../wasm';
+import { announcementService } from './announcement';
 
 export interface MessageReceptionResult {
   success: boolean;
@@ -34,7 +33,7 @@ export class MessageReceptionService {
 
   async getMessageProtocol(): Promise<IMessageProtocol> {
     if (!this._messageProtocol) {
-      this._messageProtocol = await createMessageProtocol('mock');
+      this._messageProtocol = await createMessageProtocol();
     }
     return this._messageProtocol;
   }
@@ -160,14 +159,16 @@ export class MessageReceptionService {
         }
       }
 
-      // Also check for incoming discussion announcements
-      const announcementResult = await this.checkForIncomingDiscussions();
+      // Also check for incoming session announcements
+      const announcementSvc = await announcementService.getInstance();
+      const announcementResult =
+        await announcementSvc.fetchAndProcessAnnouncements();
       if (announcementResult.success) {
-        totalNewMessages += announcementResult.newMessagesCount;
+        totalNewMessages += announcementResult.newDiscussionsCount;
       } else if (announcementResult.error) {
         hasErrors = true;
         console.error(
-          'Failed to check for incoming discussions:',
+          'Failed to check for incoming session announcements:',
           announcementResult.error
         );
       }
@@ -187,91 +188,11 @@ export class MessageReceptionService {
     }
   }
 
-  /**
-   * Check for incoming discussion announcements
-   * @returns Result with count of new discussions created
-   */
-  async checkForIncomingDiscussions(): Promise<MessageReceptionResult> {
-    try {
-      console.log('Checking for incoming discussion announcements...');
+  // =========================
+  // Simulation helpers (test/dev)
+  // =========================
 
-      // This would typically involve checking a global announcement channel
-      // For now, we'll simulate this by checking if there are any pending announcements
-      // In a real implementation, this would query a specific announcement endpoint
-      const announcements = await this._fetchIncomingAnnouncements();
-
-      let newDiscussionsCount = 0;
-
-      for (const announcement of announcements) {
-        try {
-          const result = await this._processIncomingAnnouncement(announcement);
-          if (result.success) {
-            newDiscussionsCount++;
-            console.log(
-              'Created new discussion from announcement:',
-              result.discussionId
-            );
-          }
-        } catch (error) {
-          console.error('Failed to process incoming announcement:', error);
-        }
-      }
-
-      return {
-        success: true,
-        newMessagesCount: newDiscussionsCount,
-      };
-    } catch (error) {
-      console.error('Failed to check for incoming discussions:', error);
-      return {
-        success: false,
-        newMessagesCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
-   * Simulate an incoming discussion announcement for testing
-   * @returns Result with count of new discussions created
-   */
-  async simulateIncomingDiscussion(): Promise<MessageReceptionResult> {
-    try {
-      console.log('Simulating incoming discussion announcement...');
-
-      // Create a mock announcement with more realistic data
-      const mockAnnouncement = new Uint8Array(64);
-      crypto.getRandomValues(mockAnnouncement);
-
-      // Process the mock announcement
-      const result = await this._processIncomingAnnouncement(mockAnnouncement);
-
-      if (result.success) {
-        console.log(
-          'Successfully simulated incoming discussion:',
-          result.discussionId
-        );
-        return {
-          success: true,
-          newMessagesCount: 1,
-        };
-      } else {
-        console.error('Failed to simulate incoming discussion:', result.error);
-        return {
-          success: false,
-          newMessagesCount: 0,
-          error: result.error,
-        };
-      }
-    } catch (error) {
-      console.error('Failed to simulate incoming discussion:', error);
-      return {
-        success: false,
-        newMessagesCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
+  // simulateIncomingDiscussion moved to AnnouncementService
 
   /**
    * Simulate receiving a message for an existing discussion
@@ -335,7 +256,7 @@ export class MessageReceptionService {
         if (!discussion.initiationAnnouncement) {
           throw new Error('No initiation announcement found');
         }
-        console.log('feedIncomingAnnouncement');
+
         await sessionModule.feedIncomingAnnouncement(
           discussion.initiationAnnouncement,
           contactPublicKeys,
@@ -481,109 +402,11 @@ export class MessageReceptionService {
     }
   }
 
-  /**
-   * Fetch incoming discussion announcements from the protocol
-   * @returns Array of announcement data
-   */
-  private async _fetchIncomingAnnouncements(): Promise<Uint8Array[]> {
-    try {
-      const messageProtocol = await this.getMessageProtocol();
-      const announcements = await messageProtocol.fetchAnnouncements();
-      return announcements;
-    } catch (error) {
-      console.error('Failed to fetch incoming announcements:', error);
-      // Return empty array to let caller handle the failure appropriately
-      return [];
-    }
-  }
+  // =========================
+  // Private helpers
+  // =========================
 
-  /**
-   * Process an incoming discussion announcement
-   * @param announcementData - The announcement data
-   * @returns Result with discussion ID if successful
-   */
-  private async _processIncomingAnnouncement(
-    announcementData: Uint8Array
-  ): Promise<{
-    success: boolean;
-    discussionId?: number;
-    contactUserId?: string;
-    error?: string;
-  }> {
-    const { ourPk, ourSk } = useAccountStore.getState();
-    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
-    try {
-      // Extract contact information from the announcement
-      const sessionModule = await getSessionModule();
-      const announcerPkeys = await sessionModule.feedIncomingAnnouncement(
-        announcementData,
-        ourPk,
-        ourSk
-      );
-      if (!announcerPkeys) {
-        throw new Error(
-          'Could not extract announcer public keys from announcement'
-        );
-      }
-      const contactUserId = announcerPkeys.derive_id();
-      const contactUserIdString = bs58check.encode(contactUserId);
-
-      // Create contact if it doesn't exist (for simulation/testing)
-      const ownerUserId = useAccountStore.getState().userProfile?.userId;
-      if (!ownerUserId) throw new Error('No authenticated user');
-      let contact = await db.getContactByOwnerAndUserId(
-        ownerUserId,
-        contactUserIdString
-      );
-      if (!contact) {
-        // Create a mock contact for simulation
-        await db.contacts.add({
-          ownerUserId,
-          userId: contactUserIdString,
-          name: `User ${contactUserIdString.substring(0, 8)}`,
-          publicKeys: announcerPkeys.to_bytes(),
-          avatar: undefined,
-          isOnline: false,
-          lastSeen: new Date(),
-          createdAt: new Date(),
-        });
-        contact = await db.getContactByOwnerAndUserId(
-          ownerUserId,
-          contactUserIdString
-        );
-      }
-
-      // Delegate to the new WASM-based initiation processor
-      const { discussionId } = await processIncomingInitiation(
-        contactUserIdString,
-        announcementData
-      );
-
-      // Show notification for new discussion
-      try {
-        await notificationService.showNewDiscussionNotification(
-          contact?.name || `User ${contactUserIdString.substring(0, 8)}`
-        );
-      } catch (notificationError) {
-        console.error(
-          'Failed to show new discussion notification:',
-          notificationError
-        );
-      }
-
-      return {
-        success: true,
-        discussionId,
-        contactUserId: contactUserIdString,
-      };
-    } catch (error) {
-      console.error('Failed to process incoming announcement:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
+  // Announcement processing moved to AnnouncementService
 
   /**
    * Check if there are new encrypted messages for a discussion

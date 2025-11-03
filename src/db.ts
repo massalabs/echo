@@ -240,6 +240,16 @@ export class EchoDatabase extends Dexie {
     return discussions.reduce((total, d) => total + d.unreadCount, 0);
   }
 
+  async getDiscussionByOwnerAndContact(
+    ownerUserId: string,
+    contactUserId: string
+  ): Promise<Discussion | undefined> {
+    return await this.discussions
+      .where('[ownerUserId+contactUserId]')
+      .equals([ownerUserId, contactUserId])
+      .first();
+  }
+
   async markMessagesAsRead(
     ownerUserId: string,
     contactUserId: string

@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
+import BaseModal from '../components/ui/BaseModal';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
-import BottomNavigation from './BottomNavigation';
-import AccountBackup from './AccountBackup';
-import ShareContact from './ShareContact';
-
-interface SettingsProps {
-  onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
-}
+import AccountBackup from '../components/account/AccountBackup';
+import ShareContact from '../components/settings/ShareContact';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
   SHARE_CONTACT = 'SHARE_CONTACT',
 }
 
-const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
+const Settings = (): React.ReactElement => {
   const {
     userProfile,
     account,
@@ -25,6 +21,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   } = useAccountStore();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const handleCopyAddress = async () => {
     if (!account?.address) return;
@@ -39,17 +36,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   };
 
   const handleResetAccount = async () => {
-    if (
-      window.confirm(
-        'Are you sure you want to reset your account? This will delete all your data and cannot be undone.'
-      )
-    ) {
-      try {
-        await resetAccount();
-      } catch (error) {
-        console.error('Failed to reset account:', error);
-      }
-    }
+    setIsResetModalOpen(true);
   };
 
   const mnemonicBackupInfo = getMnemonicBackupInfo();
@@ -270,10 +257,39 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
             </span>
           </button>
         </div>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation activeTab="settings" onTabChange={onTabChange} />
       </div>
+      <BaseModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        title="Reset account?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            This will delete all your data and cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                setIsResetModalOpen(false);
+                try {
+                  await resetAccount();
+                } catch (error) {
+                  console.error('Failed to reset account:', error);
+                }
+              }}
+              className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              Reset
+            </button>
+            <button
+              onClick={() => setIsResetModalOpen(false)}
+              className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };

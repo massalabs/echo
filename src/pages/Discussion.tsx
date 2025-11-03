@@ -1,23 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Contact } from '../db';
 import { formatUserId } from '../utils/addressUtils';
 import { formatTime } from '../utils/timeUtils';
-import ContactAvatar from './avatar/ContactAvatar';
+import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useMessages } from '../hooks/useMessages';
 import { useDiscussion } from '../hooks/useDiscussion';
+import { useDiscussionList } from '../hooks/useDiscussionList';
 import { messageReceptionService } from '../services/messageReception';
 
-interface DiscussionProps {
-  contact: Contact;
-  onBack: () => void;
-  onDiscussionCreated?: () => void;
-}
-
-const Discussion: React.FC<DiscussionProps> = ({
-  contact,
-  onBack,
-  onDiscussionCreated,
-}) => {
+const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
+  const navigate = useNavigate();
+  const onBack = () => navigate('/');
+  const onDiscussionCreated: (() => void) | undefined = undefined;
   const [newMessage, setNewMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,13 +54,6 @@ const Discussion: React.FC<DiscussionProps> = ({
       scrollToBottom();
     }
   }, [isLoading, messages.length, scrollToBottom]);
-
-  // Notify parent when discussion is created
-  useEffect(() => {
-    if (discussion && onDiscussionCreated) {
-      onDiscussionCreated();
-    }
-  }, [discussion, onDiscussionCreated]);
 
   const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim()) return;
@@ -301,7 +289,7 @@ const Discussion: React.FC<DiscussionProps> = ({
                       : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-bl-md'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
                     {message.content}
                   </p>
                   <p
@@ -399,6 +387,28 @@ const Discussion: React.FC<DiscussionProps> = ({
       </div>
     </div>
   );
+};
+
+const Discussion: React.FC = () => {
+  const { userId } = useParams();
+  const { selectors } = useDiscussionList();
+
+  const contact = userId ? selectors.getContactByUserId(userId) : undefined;
+
+  if (!contact) {
+    return (
+      <div className="min-h-screen-mobile bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Loading discussion…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <DiscussionContent contact={contact} />;
 };
 
 export default Discussion;

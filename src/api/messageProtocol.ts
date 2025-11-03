@@ -6,12 +6,16 @@ export type {
 export { RestMessageProtocol } from './messageProtocol/rest';
 export { MockMessageProtocol } from './messageProtocol/mock';
 import type { IMessageProtocol } from './messageProtocol/types';
+import {
+  defaultMessageProtocol,
+  type MessageProtocolType,
+} from '../config/protocol';
 
 /**
  * Factory function to create message protocol instances
  */
 export async function createMessageProtocol(
-  type: 'rest' | 'mock' = 'mock',
+  type: MessageProtocolType = defaultMessageProtocol,
   config?: Partial<{ baseUrl: string; timeout: number; retryAttempts: number }>
 ): Promise<IMessageProtocol> {
   switch (type) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useAccountStore } from '../stores/accountStore';
-import { Bip39BackupDisplay } from '../crypto/bip39';
+import { useAccountStore } from '../../stores/accountStore';
+import { Bip39BackupDisplay } from '../../crypto/bip39';
 
 interface AccountBackupProps {
   onBack: () => void;

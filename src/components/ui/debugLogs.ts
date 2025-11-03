@@ -1,4 +1,4 @@
-import { createTimestamp } from '../utils/timeUtils';
+import { createTimestamp } from '../../utils/timeUtils';
 
 export interface DebugLog {
   timestamp: string;

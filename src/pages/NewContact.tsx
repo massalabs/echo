@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
@@ -12,16 +13,15 @@ import { isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
-import Popover from './Popover';
+import Popover from '../components/ui/Popover';
+import BaseModal from '../components/ui/BaseModal';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
+import { useDiscussionList } from '../hooks/useDiscussionList';
 
-interface NewContactProps {
-  onCancel: () => void;
-  onCreated: (contact: Contact) => void;
-}
-
-const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
+const NewContact: React.FC = () => {
+  const navigate = useNavigate();
+  const { handlers } = useDiscussionList();
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
   const [publicKeys, setPublicKeys] = useState<UserPublicKeys | null>(null);
@@ -70,12 +70,14 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     return true;
   }, []);
 
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
   const handleBack = useCallback(() => {
     if (name || userId) {
-      if (!window.confirm('Discard this contact?')) return;
+      setIsDiscardModalOpen(true);
+      return;
     }
-    onCancel();
-  }, [name, userId, onCancel]);
+    navigate('/');
+  }, [name, userId, navigate]);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,6 +159,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
         userProfile.userId,
         contact.userId
       );
+
       if (existing) {
         setError('This user ID already exists in your contacts.');
         setIsSubmitting(false);
@@ -164,14 +167,23 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       }
 
       await db.contacts.add(contact);
-      onCreated(contact);
+      await handlers.handleCreatedNewContact(contact);
+      navigate(`/`);
     } catch (e) {
       console.error(e);
       setError('Failed to create contact. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, name, userId, onCreated, userProfile?.userId, publicKeys]);
+  }, [
+    isValid,
+    publicKeys,
+    userProfile?.userId,
+    name,
+    userId,
+    handlers,
+    navigate,
+  ]);
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
@@ -383,6 +395,35 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
           </div>
         </div>
       </div>
+      {/* Discard confirm modal */}
+      <BaseModal
+        isOpen={isDiscardModalOpen}
+        onClose={() => setIsDiscardModalOpen(false)}
+        title="Discard new contact?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Your changes will be lost.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setIsDiscardModalOpen(false);
+                navigate('/');
+              }}
+              className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              Discard
+            </button>
+            <button
+              onClick={() => setIsDiscardModalOpen(false)}
+              className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };

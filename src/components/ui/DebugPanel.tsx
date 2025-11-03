@@ -1,0 +1,143 @@
+import React, { useCallback } from 'react';
+import { db } from '../../db';
+import { useAccountStore } from '../../stores/accountStore';
+import { announcementService } from '../../services/announcement';
+import { formatMassaAddress } from '../../utils/addressUtils';
+import { useDiscussionList } from '../../hooks/useDiscussionList';
+
+const DebugPanel: React.FC = () => {
+  const { userProfile, account, resetAccount } = useAccountStore();
+  const { handlers } = useDiscussionList();
+
+  const handleResetAccount = useCallback(async () => {
+    try {
+      await resetAccount();
+    } catch (error) {
+      console.error('Failed to reset account:', error);
+    }
+  }, [resetAccount]);
+
+  const handleResetAllDiscussionsAndMessages = useCallback(async () => {
+    try {
+      await db.transaction(
+        'rw',
+        [
+          db.contacts,
+          db.messages,
+          db.discussions,
+          db.discussionKeys,
+          db.discussionMessages,
+        ],
+        async () => {
+          await db.discussionMessages.clear();
+          await db.discussionKeys.clear();
+          await db.messages.clear();
+          await db.discussions.clear();
+          await db.contacts.clear();
+        }
+      );
+    } catch (error) {
+      console.error('Failed to reset discussions and messages:', error);
+    } finally {
+      await handlers.handleRefresh();
+    }
+  }, [handlers]);
+
+  const handleResetAllAccounts = useCallback(async () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+
+      db.close();
+      await db.delete();
+      try {
+        await db.delete();
+      } catch (_e) {
+        console.debug('DB already deleted');
+      }
+
+      try {
+        const databases = await indexedDB.databases();
+        for (const database of databases) {
+          if (database.name?.includes('EchoDatabase')) {
+            indexedDB.deleteDatabase(database.name);
+          }
+        }
+      } catch (_e) {
+        console.log('Could not enumerate databases');
+      }
+
+      await resetAccount();
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to reset all accounts:', error);
+      window.location.reload();
+    }
+  }, [resetAccount]);
+
+  const handleSimulateIncomingDiscussion = useCallback(async () => {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      const ann = await announcementService.getInstance();
+      const result = await ann.simulateIncomingDiscussion();
+      if (result.success) {
+        console.log(
+          'Simulated incoming discussion. New messages:',
+          result.newMessagesCount
+        );
+      } else {
+        console.error('Simulation failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to simulate incoming discussion:', error);
+    }
+  }, []);
+
+  return (
+    <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-left">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+        User: {userProfile?.username}
+      </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+        Address:{' '}
+        {account?.address
+          ? formatMassaAddress(account.address.toString())
+          : 'N/A'}
+      </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+        Status: {userProfile?.status}
+      </p>
+      <button
+        onClick={handleResetAccount}
+        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+      >
+        Reset Account (for testing)
+      </button>
+      <br />
+      <button
+        onClick={handleResetAllAccounts}
+        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+      >
+        Reset All Accounts (wipe local storage)
+      </button>
+      <br />
+      <button
+        onClick={handleResetAllDiscussionsAndMessages}
+        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+      >
+        Reset Discussions, Messages & Contacts (DB only)
+      </button>
+      <br />
+      <button
+        onClick={handleSimulateIncomingDiscussion}
+        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+      >
+        Simulate Incoming Discussion (test)
+      </button>
+    </div>
+  );
+};
+
+export default DebugPanel;
