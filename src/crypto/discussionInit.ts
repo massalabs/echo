@@ -40,7 +40,7 @@ export async function initializeDiscussion(contact: Contact): Promise<{
     // Store discussion in database with UI metadata and keep announcement on discussion
     // Broadcast announcement to bulletin and obtain counter
 
-    // TODO HAndle fail to broadcast announcement
+    // TODO Handle fail to broadcast announcement
     const annSvc = await announcementService.getInstance();
     const result = await annSvc.sendAnnouncement(announcement);
     if (!result.success) {
