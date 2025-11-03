@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
-import { formatMassaAddress } from '../utils/addressUtils';
 import { UserProfile, Discussion, Contact, db } from '../db';
-import { formatRelativeTime } from '../utils/timeUtils';
-import appLogo from '../assets/echo_face.svg';
+import AppHeader from './AppHeader';
+import EmptyDiscussions from './EmptyDiscussions';
+import DiscussionListItem from './DiscussionListItem';
+import DebugPanel from './DebugPanel';
 import Settings from './Settings';
 import Wallet from '../pages/Wallet';
 import BottomNavigation from './BottomNavigation';
@@ -12,7 +13,6 @@ import AccountCreation from './AccountCreation';
 import NewDiscussion from './NewDiscussion';
 import NewContact from './NewContact';
 import DiscussionView from './Discussion';
-import ContactAvatar from './avatar/ContactAvatar';
 import { messageReceptionService } from '../services/messageReception';
 import { initializeDiscussion } from '../crypto/discussionInit';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
@@ -315,10 +315,6 @@ const DiscussionList: React.FC = () => {
 
       const result = await service.fetchAndProcessAnnouncements();
       if (result.success) {
-        console.log(
-          'Fetched announcements. New discussions:',
-          result.newDiscussionsCount
-        );
         await loadDiscussions();
         await loadContacts();
       } else {
@@ -528,20 +524,7 @@ const DiscussionList: React.FC = () => {
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img
-                src={appLogo}
-                className="w-9 h-9 rounded object-cover"
-                alt="Echo logo"
-              />
-              <h1 className="text-xl font-semibold text-black dark:text-white">
-                Echo
-              </h1>
-            </div>
-          </div>
-        </div>
+        <AppHeader />
 
         {/* Main content area */}
         <div className="px-4 pb-20 flex-1 overflow-y-auto">
@@ -561,29 +544,7 @@ const DiscussionList: React.FC = () => {
             {/* Discussions list */}
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {discussions.length === 0 ? (
-                <div className="py-8 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-gray-400 dark:text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    No discussions yet
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Start a discussion by tapping the compose button
-                  </p>
-                </div>
+                <EmptyDiscussions />
               ) : (
                 discussions.map(discussion => {
                   const contact = getContactByUserId(discussion.contactUserId);
@@ -592,139 +553,38 @@ const DiscussionList: React.FC = () => {
                   const lastMessage = lastMessages.get(
                     discussion.contactUserId
                   );
-
                   const isPendingIncoming =
                     discussion.status === 'pending' &&
                     discussion.direction === 'received';
 
-                  const containerClass = isPendingIncoming
-                    ? 'w-full px-6 py-4 text-left'
-                    : 'w-full px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer';
-
                   return (
-                    <div
+                    <DiscussionListItem
                       key={discussion.id}
-                      className={containerClass}
-                      {...(!isPendingIncoming
-                        ? {
-                            onClick: () => handleSelectDiscussion(discussion),
-                            role: 'button',
-                            tabIndex: 0,
-                          }
-                        : {})}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <ContactAvatar contact={contact} size={12} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {contact.name}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {lastMessage &&
-                                  formatRelativeTime(lastMessage.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                          {isPendingIncoming ? (
-                            <div className="mt-1 flex items-center gap-2">
-                              <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                Connection request
-                              </span>
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handleAcceptPendingDiscussion(discussion);
-                                }}
-                                className="px-2.5 py-1 text-xs font-medium rounded border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handleRefusePendingDiscussion(discussion);
-                                }}
-                                className="px-2.5 py-1 text-xs font-medium rounded border border-gray-400 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                              >
-                                Refuse
-                              </button>
-                              {discussion.unreadCount > 0 && (
-                                <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
-                                  {discussion.unreadCount}
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between mt-1">
-                              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                {lastMessage?.content || ''}
-                              </p>
-                              {discussion.unreadCount > 0 && (
-                                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
-                                  {discussion.unreadCount}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      discussion={discussion}
+                      contact={contact}
+                      lastMessage={lastMessage}
+                      isPendingIncoming={isPendingIncoming}
+                      onSelect={handleSelectDiscussion}
+                      onAccept={handleAcceptPendingDiscussion}
+                      onRefuse={handleRefusePendingDiscussion}
+                    />
                   );
                 })
               )}
             </div>
 
             {/* Debug info - hidden in production */}
-            <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-left">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                User: {userProfile?.username}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Address:{' '}
-                {account?.address
-                  ? formatMassaAddress(account.address.toString())
-                  : 'N/A'}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                Status: {userProfile?.status}
-              </p>
-              <button
-                onClick={handleResetAccount}
-                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
-              >
-                Reset Account (for testing)
-              </button>
-              <br />
-              <button
-                onClick={handleResetAllAccounts}
-                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
-              >
-                Reset All Accounts (wipe local storage)
-              </button>
-              <br />
-              <button
-                onClick={handleResetAllDiscussionsAndMessages}
-                className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
-              >
-                Reset Discussions, Messages & Contacts (DB only)
-              </button>
-              <br />
-              <button
-                onClick={handleSimulateIncomingDiscussion}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
-              >
-                Simulate Incoming Discussion (test)
-              </button>
-              <br />
-              <button
-                onClick={handleFetchAllAnnouncements}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
-              >
-                Fetch All Announcements (test)
-              </button>
-            </div>
+            <DebugPanel
+              userProfile={userProfile}
+              accountAddress={account?.address?.toString() ?? null}
+              onResetAccount={handleResetAccount}
+              onResetAllAccounts={handleResetAllAccounts}
+              onResetDiscussionsAndMessages={
+                handleResetAllDiscussionsAndMessages
+              }
+              onSimulateIncomingDiscussion={handleSimulateIncomingDiscussion}
+              onFetchAllAnnouncements={handleFetchAllAnnouncements}
+            />
           </div>
         </div>
 

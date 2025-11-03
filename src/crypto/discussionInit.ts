@@ -7,7 +7,6 @@
 import { db, Discussion, DiscussionMessage } from '../db';
 import { getSessionModule } from '../wasm';
 import { useAccountStore } from '../stores/accountStore';
-import { createMessageProtocol } from '../api/messageProtocol';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 import { messageReceptionService } from '../services/messageReception';
 
@@ -108,7 +107,7 @@ export async function processIncomingAnnouncement(
       direction: 'received',
       status: 'pending',
       nextSeeker: undefined,
-      unreadCount: 1,
+      unreadCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
