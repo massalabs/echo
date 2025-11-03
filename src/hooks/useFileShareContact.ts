@@ -46,7 +46,7 @@ export function useFileShareContact() {
         );
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({
+          await navigator.share({
             files: [file],
           });
           return;
@@ -91,9 +91,7 @@ export function useFileShareContact() {
         try {
           bytes = stringToBytesAuto(data.userPubKeys);
         } catch (e) {
-          setError(
-            'Invalid userPubKeys format. Expected hex or base64 string: ' + e
-          );
+          setError('Invalid userPubKeys format. Expected base64 string: ' + e);
           return;
         }
       } else if (Array.isArray(data.userPubKeys)) {
