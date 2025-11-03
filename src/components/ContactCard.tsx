@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Contact } from '../db';
 import ContactAvatar from './avatar/ContactAvatar';
 import { useFileShareContact } from '../hooks/useFileShareContact';
+import { useAccountStore } from '../stores/accountStore';
+import ContactNameModal from './ui/ContactNameModal';
+import { updateContactName } from '../utils/contacts';
 
 interface ContactCardProps {
   contact: Contact;
@@ -19,6 +22,35 @@ const ContactCard: React.FC<ContactCardProps> = ({
   discussionStatus,
 }) => {
   const { exportFileContact, isLoading, error } = useFileShareContact();
+  const ownerUserId = useAccountStore(s => s.userProfile?.userId);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [proposedName, setProposedName] = useState(contact.name);
+  const [displayName, setDisplayName] = useState(contact.name);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  const canEditName = useMemo(() => !!ownerUserId, [ownerUserId]);
+
+  const handleOpenEditName = useCallback(() => {
+    setProposedName(displayName || '');
+    setNameError(null);
+    setIsNameModalOpen(true);
+  }, [displayName]);
+
+  const handleSaveName = useCallback(async () => {
+    if (!ownerUserId) return;
+    const result = await updateContactName(
+      ownerUserId,
+      contact.userId,
+      proposedName
+    );
+    if (!result.ok) {
+      setNameError(result.message);
+      return;
+    }
+    setDisplayName(result.trimmedName);
+    setIsNameModalOpen(false);
+  }, [ownerUserId, proposedName, contact.userId]);
+
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
@@ -52,7 +84,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
               <ContactAvatar contact={contact} size={14} />
               <div className="min-w-0">
                 <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
-                  {contact.name}
+                  {displayName}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {contact.userId}
@@ -61,6 +93,13 @@ const ContactCard: React.FC<ContactCardProps> = ({
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-2">
+              <button
+                onClick={handleOpenEditName}
+                disabled={!canEditName}
+                className="w-full h-[46px] rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-black dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+              >
+                Edit name
+              </button>
               <button
                 onClick={onStartDiscussion}
                 disabled={!canStart}
@@ -100,6 +139,22 @@ const ContactCard: React.FC<ContactCardProps> = ({
             </div>
           </div>
         </div>
+        <ContactNameModal
+          isOpen={isNameModalOpen}
+          onClose={() => setIsNameModalOpen(false)}
+          title="Edit contact name"
+          initialName={proposedName}
+          confirmLabel="Save"
+          error={nameError}
+          onConfirm={async name => {
+            if (name == null) {
+              setNameError('Name cannot be empty.');
+              return;
+            }
+            setProposedName(name);
+            await handleSaveName();
+          }}
+        />
       </div>
     </div>
   );

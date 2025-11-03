@@ -4,6 +4,7 @@ import ContactAvatar from './avatar/ContactAvatar';
 import { formatRelativeTime } from '../utils/timeUtils';
 import { formatUserId } from '../utils/addressUtils';
 import BaseModal from './ui/BaseModal';
+import ContactNameModal from './ui/ContactNameModal';
 
 export type LastMessageInfo = { content: string; timestamp: Date } | undefined;
 
@@ -114,52 +115,27 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   )}
                 </div>
                 {/* Name prompt modal */}
-                <BaseModal
+                <ContactNameModal
                   isOpen={isNameModalOpen}
                   onClose={() => setIsNameModalOpen(false)}
                   title="Set contact name"
-                >
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        autoFocus
-                        value={proposedName}
-                        onChange={e => setProposedName(e.target.value)}
-                        className="w-full h-11 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        placeholder="Enter a name"
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {
-                          const trimmed = proposedName.trim();
-                          setIsNameModalOpen(false);
-                          if (trimmed) {
-                            onAccept(discussion, trimmed);
-                          } else {
-                            onAccept(discussion);
-                          }
-                        }}
-                        className="flex-1 h-11 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold"
-                      >
-                        Continue
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsNameModalOpen(false);
-                          onAccept(discussion);
-                        }}
-                        className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
-                      >
-                        Skip
-                      </button>
-                    </div>
-                  </div>
-                </BaseModal>
+                  initialName={proposedName}
+                  confirmLabel="Continue"
+                  allowEmpty
+                  showSkip
+                  onConfirm={name => {
+                    setIsNameModalOpen(false);
+                    if (name && name.trim()) {
+                      onAccept(discussion, name.trim());
+                    } else {
+                      onAccept(discussion);
+                    }
+                  }}
+                  onSkip={() => {
+                    setIsNameModalOpen(false);
+                    onAccept(discussion);
+                  }}
+                />
                 {/* Refuse confirm modal */}
                 <BaseModal
                   isOpen={isRefuseModalOpen}
@@ -167,7 +143,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   title="Refuse connection?"
                 >
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="text-sm text-g  ray-700 dark:text-gray-300">
                       Refusing will close this discussion request.
                     </p>
                     <div className="flex gap-3">
