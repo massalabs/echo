@@ -124,7 +124,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   }, [name, userId, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
-    if (!isValid || !publicKeys || !userProfile) return;
+    if (!isValid || !publicKeys) return;
     setIsSubmitting(true);
     setError(null);
     try {

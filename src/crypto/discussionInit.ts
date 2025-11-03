@@ -62,8 +62,6 @@ export async function initializeDiscussion(contact: Contact): Promise<{
       updatedAt: new Date(),
     });
 
-    console.log('Created discussion for contact:', contact.userId);
-
     return { discussionId, announcement };
   } catch (error) {
     console.error('Failed to initialize discussion:', error);
@@ -165,6 +163,7 @@ export async function processIncomingAnnouncement(
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
       contactUserId: contact.userId,
+      initiationAnnouncement: announcementData,
       direction: 'received',
       status: 'pending',
       nextSeeker: undefined,
