@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { useWalletStore } from '../stores/walletStore';
-import BottomNavigation from '../components/BottomNavigation';
 import SendModal from '../components/wallet/SendModal';
 import ReceiveModal from '../components/wallet/ReceiveModal';
 import sendIcon from '../assets/icons/send.svg';
@@ -9,12 +8,9 @@ import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
 import { formatMassaAddress } from '../utils/addressUtils';
 import { formatAmount } from '../hooks/temp/parseAmount';
+// no-op
 
-interface WalletProps {
-  onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
-}
-
-const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
+const Wallet: React.FC = () => {
   const { account } = useAccountStore();
   const tokens = useWalletStore.use.tokens();
   const isLoading = useWalletStore.use.isLoading();
@@ -186,9 +182,6 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
             ))}
           </div>
         </div>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation activeTab="wallet" onTabChange={onTabChange} />
       </div>
 
       {/* Send Modal */}

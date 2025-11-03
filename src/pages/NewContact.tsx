@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
@@ -12,17 +13,15 @@ import { isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
-import Popover from './Popover';
-import BaseModal from './ui/BaseModal';
+import Popover from '../components/ui/Popover';
+import BaseModal from '../components/ui/BaseModal';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
+import { useDiscussionList } from '../hooks/useDiscussionList';
 
-interface NewContactProps {
-  onCancel: () => void;
-  onCreated: (contact: Contact) => void;
-}
-
-const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
+const NewContact: React.FC = () => {
+  const navigate = useNavigate();
+  const { handlers } = useDiscussionList();
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
   const [publicKeys, setPublicKeys] = useState<UserPublicKeys | null>(null);
@@ -77,8 +76,8 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       setIsDiscardModalOpen(true);
       return;
     }
-    onCancel();
-  }, [name, userId, onCancel]);
+    navigate('/');
+  }, [name, userId, navigate]);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,14 +167,23 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       }
 
       await db.contacts.add(contact);
-      onCreated(contact);
+      await handlers.handleCreatedNewContact(contact);
+      navigate(`/`);
     } catch (e) {
       console.error(e);
       setError('Failed to create contact. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, publicKeys, userProfile?.userId, name, userId, onCreated]);
+  }, [
+    isValid,
+    publicKeys,
+    userProfile?.userId,
+    name,
+    userId,
+    handlers,
+    navigate,
+  ]);
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
@@ -401,7 +409,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
             <button
               onClick={() => {
                 setIsDiscardModalOpen(false);
-                onCancel();
+                navigate('/');
               }}
               className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
             >

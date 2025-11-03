@@ -1,22 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Contact, db } from '../db';
 import { formatUserId } from '../utils/addressUtils';
-import ContactAvatar from './avatar/ContactAvatar';
+import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useAccountStore } from '../stores/accountStore';
+import { useDiscussionList } from '../hooks/useDiscussionList';
 
-interface NewDiscussionProps {
-  onClose: () => void;
-  onSelectRecipient: (contact: Contact) => void;
-  onNewContact?: () => void;
-  onNewGroup?: () => void;
-}
-
-const NewDiscussion: React.FC<NewDiscussionProps> = ({
-  onClose,
-  onSelectRecipient,
-  onNewContact,
-  onNewGroup,
-}) => {
+const NewDiscussion: React.FC = () => {
+  const { handlers } = useDiscussionList();
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +38,12 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
 
   const filteredContacts = useMemo(() => contacts, [contacts]);
 
-  const handleClose = () => onClose();
+  const handleClose = () => navigate('/');
+  const onNewContact = () => navigate('/new-contact');
+  const onSelectRecipient = (contact: Contact) => {
+    handlers.handleSelectRecipient(contact);
+    navigate(`/contact/${contact.userId}`);
+  };
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900 px-3 py-3">
@@ -82,7 +79,7 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
           <div className="px-4 pt-4">
             <div className="space-y-3">
               <button
-                onClick={onNewGroup ?? (() => {})}
+                onClick={() => {}}
                 className="w-full flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left"
               >
                 <span className="inline-flex w-6 h-6 items-center justify-center">
@@ -106,7 +103,7 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
               </button>
 
               <button
-                onClick={onNewContact ?? (() => {})}
+                onClick={onNewContact}
                 className="w-full flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left"
               >
                 <span className="inline-flex w-6 h-6 items-center justify-center">
@@ -155,7 +152,7 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
                   </svg>
                 </div>
                 <p className="text-sm">No contacts yet</p>
-                <p className="text-xs mt-1">Tap “New contact” to add one</p>
+                <p className="text-xs mt-1">Tap "New contact" to add one</p>
               </div>
             ) : (
               <ul className="max-h-[60vh] overflow-y-auto">

@@ -1,32 +1,33 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Contact } from '../db';
-import ContactAvatar from './avatar/ContactAvatar';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useDiscussionList } from '../hooks/useDiscussionList';
+import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { useAccountStore } from '../stores/accountStore';
-import ContactNameModal from './ui/ContactNameModal';
+import ContactNameModal from '../components/ui/ContactNameModal';
 import { updateContactName } from '../utils/contacts';
 
-interface ContactCardProps {
-  contact: Contact;
-  onBack: () => void;
-  onStartDiscussion: () => void;
-  canStart?: boolean;
-  discussionStatus?: 'pending' | 'active' | 'closed';
-}
+const Contact: React.FC = () => {
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  const { selectors } = useDiscussionList();
+  const contact = userId ? selectors.getContactByUserId(userId) : undefined;
 
-const ContactCard: React.FC<ContactCardProps> = ({
-  contact,
-  onBack,
-  onStartDiscussion,
-  canStart = true,
-  discussionStatus,
-}) => {
+  // All hooks must be called before early return
   const { exportFileContact, isLoading, error } = useFileShareContact();
   const ownerUserId = useAccountStore(s => s.userProfile?.userId);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
-  const [proposedName, setProposedName] = useState(contact.name);
-  const [displayName, setDisplayName] = useState(contact.name);
+  const [proposedName, setProposedName] = useState(contact?.name || '');
+  const [displayName, setDisplayName] = useState(contact?.name || '');
   const [nameError, setNameError] = useState<string | null>(null);
+
+  // Update state when contact changes
+  React.useEffect(() => {
+    if (contact) {
+      setProposedName(contact.name);
+      setDisplayName(contact.name);
+    }
+  }, [contact]);
 
   const canEditName = useMemo(() => !!ownerUserId, [ownerUserId]);
 
@@ -37,7 +38,7 @@ const ContactCard: React.FC<ContactCardProps> = ({
   }, [displayName]);
 
   const handleSaveName = useCallback(async () => {
-    if (!ownerUserId) return;
+    if (!ownerUserId || !contact) return;
     const result = await updateContactName(
       ownerUserId,
       contact.userId,
@@ -49,7 +50,25 @@ const ContactCard: React.FC<ContactCardProps> = ({
     }
     setDisplayName(result.trimmedName);
     setIsNameModalOpen(false);
-  }, [ownerUserId, proposedName, contact.userId]);
+  }, [ownerUserId, proposedName, contact]);
+
+  if (!contact) {
+    return (
+      <div className="min-h-screen-mobile bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Loading contact…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const disc = selectors.getDiscussionByContactUserId(contact.userId);
+  const canStart = disc ? disc.status === 'active' : true;
+
+  const onBack = () => navigate('/');
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
@@ -101,17 +120,6 @@ const ContactCard: React.FC<ContactCardProps> = ({
                 Edit name
               </button>
               <button
-                onClick={onStartDiscussion}
-                disabled={!canStart}
-                className={`w-full h-[46px] rounded-lg font-semibold transition-colors ${
-                  canStart
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 cursor-not-allowed'
-                }`}
-              >
-                Start chat
-              </button>
-              <button
                 onClick={() =>
                   exportFileContact({
                     userPubKeys: contact.publicKeys,
@@ -125,10 +133,9 @@ const ContactCard: React.FC<ContactCardProps> = ({
               </button>
               {!canStart && (
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {discussionStatus === 'pending' &&
+                  {disc?.status === 'pending' &&
                     'Connection pending. You cannot chat yet.'}
-                  {discussionStatus === 'closed' &&
-                    'This discussion is closed.'}
+                  {disc?.status === 'closed' && 'This discussion is closed.'}
                 </p>
               )}
               {error && (
@@ -160,4 +167,4 @@ const ContactCard: React.FC<ContactCardProps> = ({
   );
 };
 
-export default ContactCard;
+export default Contact;

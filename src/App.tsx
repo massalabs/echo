@@ -1,21 +1,36 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useAccountStore } from './stores/accountStore';
-import { db } from './db';
+import { db, UserProfile } from './db';
 import OnboardingFlow from './components/OnboardingFlow';
-import DiscussionList from './components/DiscussionList';
-import ErrorBoundary from './components/ErrorBoundary';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
 import PWABadge from './PWABadge.tsx';
-import DebugOverlay from './components/DebugOverlay';
+import DebugOverlay from './components/ui/DebugOverlay.tsx';
 import { addDebugLog } from './components/debugLogs';
-import AccountImport from './components/AccountImport';
+import AccountImport from './components/account/AccountImport.tsx';
 import { backgroundSyncService } from './services/backgroundSync';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
+
+// Route components and helpers
+import WelcomeBack from './components/WelcomeBack';
+import AccountCreation from './components/account/AccountCreation.tsx';
+import MainLayout from './components/ui/MainLayout.tsx';
+import Discussions from './pages/Discussions';
+import Contact from './pages/Contact';
+import Discussion from './pages/Discussion';
+import NewDiscussion from './pages/NewDiscussion';
+import NewContact from './pages/NewContact';
+import Settings from './pages/Settings';
+import Wallet from './pages/Wallet';
 
 const AppContent: React.FC = () => {
   const { isInitialized, isLoading, setLoading, userProfile } =
     useAccountStore();
   const [showImport, setShowImport] = useState(false);
+  const [existingAccountInfo, setExistingAccountInfo] =
+    useState<UserProfile | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   addDebugLog(
     `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
@@ -87,7 +102,34 @@ const AppContent: React.FC = () => {
     };
   }, [userProfile]);
 
-  if (isLoading) {
+  // Load existing account info to show username in WelcomeBack when unauthenticated
+  useEffect(() => {
+    (async () => {
+      try {
+        if (isInitialized && !userProfile) {
+          const info = await useAccountStore
+            .getState()
+            .getExistingAccountInfo();
+          setExistingAccountInfo(info);
+        }
+      } catch (_e) {
+        setExistingAccountInfo(null);
+      }
+    })();
+  }, [isInitialized, userProfile]);
+
+  // Ensure we default to /welcome if hash is empty when unauthenticated
+  useEffect(() => {
+    if (isInitialized && !userProfile && !isLoading) {
+      const currentHash = window.location.hash.slice(1) || '/';
+      if (currentHash === '/' || currentHash === '') {
+        window.location.hash = '#/welcome';
+      }
+    }
+  }, [isInitialized, userProfile, isLoading]);
+
+  // Show global loader only during initial boot, not during sign-in.
+  if (isLoading && !isInitialized && !userProfile) {
     return (
       <div className="min-h-screen-mobile bg-white flex items-center justify-center">
         <div className="text-center">
@@ -98,9 +140,41 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If we have a user profile, always show MainApp (user is authenticated)
+  // If we have a user profile, show main app routes
   if (userProfile) {
-    return <DiscussionList />;
+    return (
+      <Routes>
+        <Route path="/new-discussion" element={<NewDiscussion />} />
+        <Route path="/new-contact" element={<NewContact />} />
+        <Route path="/contact/:userId" element={<Contact />} />
+        <Route path="/discussion/:userId" element={<Discussion />} />
+        <Route
+          path="/wallet"
+          element={
+            <MainLayout>
+              <Wallet />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <MainLayout>
+              <Settings />
+            </MainLayout>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <MainLayout>
+              <Discussions />
+            </MainLayout>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
   }
 
   // If not initialized and no profile, show onboarding
@@ -125,45 +199,100 @@ const AppContent: React.FC = () => {
       />
     );
   }
+  // Initialized but unauthenticated: route between WelcomeBack and Setup
 
-  return <DiscussionList />;
+  return (
+    <Routes>
+      <Route
+        path="/welcome"
+        element={
+          <WelcomeBack
+            key="welcomeback-router"
+            onCreateNewAccount={() => {
+              setLoginError(null); // Clear error when navigating to setup
+              window.location.hash = '#/setup';
+            }}
+            onAccountSelected={() => {
+              // Only navigate if userProfile is actually set (successful login)
+              // The route will automatically update when userProfile changes
+              setLoginError(null); // Clear error on successful login
+            }}
+            accountInfo={existingAccountInfo}
+            persistentError={loginError}
+            onErrorChange={setLoginError}
+          />
+        }
+      />
+      <Route
+        path="/setup"
+        element={
+          <AccountCreation
+            onComplete={() => {
+              useAccountStore.setState({ isInitialized: true });
+              // After account creation, go to discussions
+              window.location.hash = '#/';
+            }}
+            onBack={() => {
+              // If there is at least one account, go back to welcome; otherwise go to onboarding
+              useAccountStore
+                .getState()
+                .hasExistingAccount()
+                .then(hasAny => {
+                  if (hasAny) {
+                    window.location.hash = '#/welcome';
+                  } else {
+                    useAccountStore.setState({ isInitialized: false });
+                  }
+                })
+                .catch(() => {
+                  // On error, fall back to onboarding
+                  useAccountStore.setState({ isInitialized: false });
+                });
+            }}
+          />
+        }
+      />
+      <Route path="/" element={<Navigate to="/welcome" replace />} />
+      <Route path="*" element={<Navigate to="/welcome" replace />} />
+    </Routes>
+  );
 };
 
 function App() {
   return (
-    <ErrorBoundary>
-      <AppContent />
-      <DebugOverlay />
-      {/* PWA Badge - hidden for now to match design */}
-      <div className="hidden">
-        <PWABadge />
-      </div>
-      {/* Toast Notifications - App level */}
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#4ade80',
-              secondary: '#fff',
+    <HashRouter>
+      <ErrorBoundary>
+        <AppContent />
+        <DebugOverlay />
+        <div className="hidden">
+          <PWABadge />
+        </div>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
             },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#4ade80',
+                secondary: '#fff',
+              },
             },
-          },
-        }}
-      />
-    </ErrorBoundary>
+            error: {
+              duration: 5000,
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
+      </ErrorBoundary>
+    </HashRouter>
   );
 }
 

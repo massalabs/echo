@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAccountStore } from '../stores/accountStore';
-import { validateMnemonic } from '../crypto/bip39';
-import { validatePassword as _validatePassword } from '../utils/validation';
+import { useAccountStore } from '../../stores/accountStore';
+import { validateMnemonic } from '../../crypto/bip39';
+import { validatePassword as _validatePassword } from '../../utils/validation';
 
 interface AccountImportProps {
   onBack: () => void;

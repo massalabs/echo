@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { UserProfile } from '../db';
-import AccountSelection from './AccountSelection';
-import AccountImport from './AccountImport';
+import AccountSelection from './account/AccountSelection';
+import AccountImport from './account/AccountImport';
 import appLogo from '../assets/echo_face.svg';
 
 // Persist the last selected account across re-renders/remounts
@@ -169,7 +169,13 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
       handleBiometricAuth,
     ]);
 
-    const handlePasswordAuth = async () => {
+    const handlePasswordAuth = async (
+      e?: React.MouseEvent | React.KeyboardEvent
+    ) => {
+      // Prevent any form submission or navigation
+      e?.preventDefault();
+      e?.stopPropagation();
+
       setIsLoading(true);
       onErrorChange?.(null);
 
@@ -196,16 +202,27 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
         }
 
         await loadAccount(password, targetAccountId);
-        onAccountSelected();
+        // Verify that userProfile was actually set before calling onAccountSelected
+        // Give it a tiny moment for the store to update
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const state = useAccountStore.getState();
+        if (state.userProfile) {
+          onAccountSelected();
+        } else {
+          // If userProfile wasn't set, treat it as an error
+          throw new Error('Failed to load account');
+        }
       } catch (error) {
         console.error('Password authentication failed:', error);
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : 'Invalid password. Please try again.';
+        // Show user-friendly error message regardless of the technical error
+        const errorMessage = 'Invalid password. Please try again.';
         // Set error in parent component so it persists across re-renders
         onErrorChange?.(errorMessage);
         setPassword(''); // Clear password on error
+        // Ensure we stay on the welcome page - don't navigate away on error
+        if (window.location.hash !== '#/welcome') {
+          window.location.hash = '#/welcome';
+        }
       } finally {
         setIsLoading(false);
       }
@@ -373,7 +390,8 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                           password.trim() &&
                           !isLoading
                         ) {
-                          handlePasswordAuth();
+                          e.preventDefault();
+                          handlePasswordAuth(e);
                         }
                       }}
                       placeholder="Enter your password"
@@ -386,7 +404,8 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                     />
                   </div>
                   <button
-                    onClick={handlePasswordAuth}
+                    type="button"
+                    onClick={e => handlePasswordAuth(e)}
                     disabled={isLoading || !password.trim()}
                     className="w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >

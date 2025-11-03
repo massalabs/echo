@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
-import { db } from '../db';
-import { useAccountStore } from '../stores/accountStore';
-import { announcementService } from '../services/announcement';
-import { formatMassaAddress } from '../utils/addressUtils';
-import { useDiscussionList } from '../hooks/useDiscussionList';
+import { db } from '../../db';
+import { useAccountStore } from '../../stores/accountStore';
+import { announcementService } from '../../services/announcement';
+import { formatMassaAddress } from '../../utils/addressUtils';
+import { useDiscussionList } from '../../hooks/useDiscussionList';
 
 const DebugPanel: React.FC = () => {
   const { userProfile, account, resetAccount } = useAccountStore();

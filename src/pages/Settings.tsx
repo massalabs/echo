@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import BaseModal from './ui/BaseModal';
+import BaseModal from '../components/ui/BaseModal';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
-import BottomNavigation from './BottomNavigation';
-import AccountBackup from './AccountBackup';
-import ShareContact from './ShareContact';
-
-interface SettingsProps {
-  onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
-}
+import AccountBackup from '../components/account/AccountBackup';
+import ShareContact from '../components/ShareContact';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
   SHARE_CONTACT = 'SHARE_CONTACT',
 }
 
-const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
+const Settings = (): React.ReactElement => {
   const {
     userProfile,
     account,
@@ -262,9 +257,6 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
             </span>
           </button>
         </div>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation activeTab="settings" onTabChange={onTabChange} />
       </div>
       <BaseModal
         isOpen={isResetModalOpen}

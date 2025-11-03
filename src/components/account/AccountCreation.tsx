@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import appLogo from '../assets/echo_face.svg';
-import { useAccountStore } from '../stores/accountStore';
-import { addDebugLog } from './debugLogs';
-import { validatePassword, validateUsername } from '../utils/validation';
+import { useAccountStore } from '../../stores/accountStore';
+import { addDebugLog } from '../debugLogs';
+import { validatePassword, validateUsername } from '../../utils/validation';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -297,7 +297,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
               className={`p-4 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800`}
             >
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg
                     className="h-5 w-5 text-green-400"
                     viewBox="0 0 20 20"
