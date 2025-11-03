@@ -175,7 +175,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, name, userId, onCreated, userProfile?.userId]);
+  }, [isValid, name, userId, onCreated, userProfile?.userId, publicKeys]);
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
