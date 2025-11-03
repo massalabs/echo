@@ -82,7 +82,7 @@ export async function initializeDiscussion(
  * @param announcementData - The announcement data from the blockchain
  * @returns The discussion ID and session information
  */
-export async function processIncomingInitiation(
+export async function processIncomingAnnouncement(
   contactUserId: string,
   announcementData: Uint8Array
 ): Promise<{
@@ -106,24 +106,11 @@ export async function processIncomingInitiation(
       ownerUserId: userProfile.userId,
       contactUserId,
       direction: 'received',
-      status: 'active',
+      status: 'pending',
       nextSeeker: undefined,
-      unreadCount: 1, // Incoming discussion has 1 unread
+      unreadCount: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
-
-    // Store the incoming announcement as initiation message
-    await db.discussionMessages.add({
-      discussionId,
-      messageType: 'initiation',
-      direction: 'incoming',
-      ciphertext: announcementData,
-      ct: new Uint8Array(0),
-      rand: new Uint8Array(0),
-      nonce: new Uint8Array(12),
-      status: 'delivered',
-      timestamp: new Date(),
     });
 
     console.log('Created discussion for contact:', contactUserId);
@@ -155,6 +142,14 @@ export async function getDiscussionsForContact(
  */
 export async function getActiveDiscussions(): Promise<Discussion[]> {
   return await db.discussions.where('status').equals('active').toArray();
+}
+
+/**
+ * Get all pending discussions
+ * @returns Array of pending discussions
+ */
+export async function getPendingDiscussions(): Promise<Discussion[]> {
+  return await db.discussions.where('status').equals('pending').toArray();
 }
 
 /**

@@ -412,6 +412,43 @@ const DiscussionList: React.FC = () => {
     [loadDiscussions, loadContacts]
   );
 
+  const handleAcceptPendingDiscussion = useCallback(
+    async (discussion: Discussion) => {
+      try {
+        if (discussion.id == null) return;
+        await db.discussions.update(discussion.id, {
+          status: 'active',
+          updatedAt: new Date(),
+        });
+        await loadDiscussions();
+      } catch (error) {
+        console.error('Failed to accept discussion:', error);
+      }
+    },
+    [loadDiscussions]
+  );
+
+  const handleRefusePendingDiscussion = useCallback(
+    async (discussion: Discussion) => {
+      try {
+        const confirmed = window.confirm(
+          'Refuse connection request? This will close the discussion.'
+        );
+        if (!confirmed) return;
+        if (discussion.id == null) return;
+        await db.discussions.update(discussion.id, {
+          status: 'closed',
+          unreadCount: 0,
+          updatedAt: new Date(),
+        });
+        await loadDiscussions();
+      } catch (error) {
+        console.error('Failed to refuse discussion:', error);
+      }
+    },
+    [loadDiscussions]
+  );
+
   // Show loading state
   if (appState === 'loading' || isLoading) {
     return (
@@ -556,11 +593,25 @@ const DiscussionList: React.FC = () => {
                     discussion.contactUserId
                   );
 
+                  const isPendingIncoming =
+                    discussion.status === 'pending' &&
+                    discussion.direction === 'received';
+
+                  const containerClass = isPendingIncoming
+                    ? 'w-full px-6 py-4 text-left'
+                    : 'w-full px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer';
+
                   return (
-                    <button
+                    <div
                       key={discussion.id}
-                      onClick={() => handleSelectDiscussion(discussion)}
-                      className="w-full px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className={containerClass}
+                      {...(!isPendingIncoming
+                        ? {
+                            onClick: () => handleSelectDiscussion(discussion),
+                            role: 'button',
+                            tabIndex: 0,
+                          }
+                        : {})}
                     >
                       <div className="flex items-center space-x-3">
                         <ContactAvatar contact={contact} size={12} />
@@ -569,24 +620,57 @@ const DiscussionList: React.FC = () => {
                             <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                               {contact.name}
                             </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {lastMessage &&
-                                formatRelativeTime(lastMessage.timestamp)}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {lastMessage &&
+                                  formatRelativeTime(lastMessage.timestamp)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                              {lastMessage?.content || ''}
-                            </p>
-                            {discussion.unreadCount > 0 && (
-                              <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
-                                {discussion.unreadCount}
+                          {isPendingIncoming ? (
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                Connection request
                               </span>
-                            )}
-                          </div>
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleAcceptPendingDiscussion(discussion);
+                                }}
+                                className="px-2.5 py-1 text-xs font-medium rounded border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  handleRefusePendingDiscussion(discussion);
+                                }}
+                                className="px-2.5 py-1 text-xs font-medium rounded border border-gray-400 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              >
+                                Refuse
+                              </button>
+                              {discussion.unreadCount > 0 && (
+                                <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                                  {discussion.unreadCount}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                {lastMessage?.content || ''}
+                              </p>
+                              {discussion.unreadCount > 0 && (
+                                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                                  {discussion.unreadCount}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })
               )}

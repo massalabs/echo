@@ -13,7 +13,7 @@ import {
 } from '../api/messageProtocol';
 import { notificationService } from './notifications';
 import bs58check from 'bs58check';
-import { processIncomingInitiation } from '../crypto/discussionInit';
+import { processIncomingAnnouncement } from '../crypto/discussionInit';
 import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, getSessionModule, SessionModule } from '../wasm';
 
@@ -599,7 +599,7 @@ export class MessageReceptionService {
       }
 
       // Delegate to the new WASM-based initiation processor
-      const { discussionId } = await processIncomingInitiation(
+      const { discussionId } = await processIncomingAnnouncement(
         contactUserIdString,
         announcementData
       );
