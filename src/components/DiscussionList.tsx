@@ -13,7 +13,7 @@ import AccountCreation from './AccountCreation';
 import NewDiscussion from './NewDiscussion';
 import NewContact from './NewContact';
 import DiscussionView from './Discussion';
-import { announcementService } from '../services/announcement';
+
 import {
   acceptPendingDiscussion,
   initializeDiscussion,
@@ -25,8 +25,6 @@ let globalLoginError: string | null = null;
 const DiscussionList: React.FC = () => {
   const {
     userProfile,
-    account,
-    resetAccount,
     hasExistingAccount,
     getExistingAccountInfo,
     isInitialized,
@@ -169,89 +167,6 @@ const DiscussionList: React.FC = () => {
     }
   }, [appState, loadDiscussions, loadContacts]);
 
-  const handleResetAccount = useCallback(async () => {
-    try {
-      await resetAccount();
-      setAppState('setup');
-    } catch (error) {
-      console.error('Failed to reset account:', error);
-    }
-  }, [resetAccount]);
-
-  const handleResetAllDiscussionsAndMessages = useCallback(async () => {
-    try {
-      // Clear discussions-related data and contacts while keeping user profile
-      await db.transaction(
-        'rw',
-        [
-          db.contacts,
-          db.messages,
-          db.discussions,
-          db.discussionKeys,
-          db.discussionMessages,
-        ],
-        async () => {
-          await db.discussionMessages.clear();
-          await db.discussionKeys.clear();
-          await db.messages.clear();
-          await db.discussions.clear();
-          await db.contacts.clear();
-        }
-      );
-
-      // Reload UI lists
-      await loadDiscussions();
-      await loadContacts();
-    } catch (error) {
-      console.error('Failed to reset discussions and messages:', error);
-    }
-  }, [loadDiscussions, loadContacts]);
-
-  const handleResetAllAccounts = useCallback(async () => {
-    try {
-      // Clear all local storage
-      localStorage.clear();
-      sessionStorage.clear();
-
-      // Clear IndexedDB (Dexie database) - multiple approaches to ensure it's wiped
-      // Close the database first
-      db.close();
-
-      // Delete the database
-      await db.delete();
-
-      // Also try to clear any cached database instances
-      try {
-        await db.delete();
-      } catch (_e) {
-        // Ignore errors here as the database might already be deleted
-      }
-
-      // Clear any other IndexedDB databases that might exist
-      try {
-        const databases = await indexedDB.databases();
-        for (const database of databases) {
-          if (database.name?.includes('EchoDatabase')) {
-            indexedDB.deleteDatabase(database.name);
-          }
-        }
-      } catch (_e) {
-        // Some browsers don't support indexedDB.databases()
-        console.log('Could not enumerate databases');
-      }
-
-      // Reset the account store
-      await resetAccount();
-
-      // Force page reload to ensure clean state
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to reset all accounts:', error);
-      // Even if there's an error, try to reload to reset state
-      window.location.reload();
-    }
-  }, [resetAccount]);
-
   const handleAccountSelected = useCallback(() => {
     globalLoginError = null; // Clear any login errors
     setAppState('main');
@@ -274,54 +189,6 @@ const DiscussionList: React.FC = () => {
   const handleBackToWelcome = useCallback(() => {
     setAppState('welcome');
   }, []);
-
-  const handleSimulateIncomingDiscussion = useCallback(async () => {
-    try {
-      console.log('Simulating incoming discussion announcement...');
-
-      // Request notification permission first
-      if ('Notification' in window && Notification.permission === 'default') {
-        const permission = await Notification.requestPermission();
-        console.log('Notification permission:', permission);
-      }
-
-      // Use the announcement service simulation method
-      const ann = await announcementService.getInstance();
-      const result = await ann.simulateIncomingDiscussion();
-
-      if (result.success && result.newMessagesCount > 0) {
-        console.log('Successfully simulated incoming discussion!');
-        // Reload discussions and contacts to show the new discussion
-        await loadDiscussions();
-        await loadContacts();
-      } else {
-        console.log(
-          'No new discussions created from simulation:',
-          result.error
-        );
-      }
-    } catch (error) {
-      console.error('Failed to simulate incoming discussion:', error);
-    }
-  }, [loadDiscussions, loadContacts]);
-
-  const handleFetchAllAnnouncements = useCallback(async () => {
-    try {
-      const announcementSvc = await announcementService.getInstance();
-
-      const result = await announcementSvc.fetchAndProcessAnnouncements();
-
-      // TODO: Show a notification if there are new discussions ? Or just reload the discussions list ?
-      if (result.success) {
-        await loadDiscussions();
-        await loadContacts();
-      } else {
-        console.error('Failed to fetch announcements:', result.error);
-      }
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
-    }
-  }, [loadDiscussions, loadContacts]);
 
   const handleTabChange = useCallback(
     (tab: 'wallet' | 'discussions' | 'settings') => {
@@ -571,17 +438,7 @@ const DiscussionList: React.FC = () => {
             </div>
 
             {/* Debug info - hidden in production */}
-            <DebugPanel
-              userProfile={userProfile}
-              accountAddress={account?.address?.toString() ?? null}
-              onResetAccount={handleResetAccount}
-              onResetAllAccounts={handleResetAllAccounts}
-              onResetDiscussionsAndMessages={
-                handleResetAllDiscussionsAndMessages
-              }
-              onSimulateIncomingDiscussion={handleSimulateIncomingDiscussion}
-              onFetchAllAnnouncements={handleFetchAllAnnouncements}
-            />
+            <DebugPanel />
           </div>
         </div>
 
