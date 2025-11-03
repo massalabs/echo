@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
+import { useAccountStore } from '../stores/accountStore';
 import { isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
 import { generateUserKeys } from '../wasm';
@@ -14,6 +15,7 @@ interface NewContactProps {
 const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
+  const { userProfile } = useAccountStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -77,11 +79,12 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     setError(null);
     try {
       // Ensure unique contact name (case-insensitive)
-      const duplicateByName = await db.contacts
-        .where('name')
-        // Dexie provides case-insensitive equals for string indexes
-        .equalsIgnoreCase(name.trim())
-        .first();
+      if (!userProfile?.userId) throw new Error('No authenticated user');
+      const duplicateByName = await db
+        .getContactsByOwner(userProfile.userId)
+        .then(list =>
+          list.find(c => c.name.toLowerCase() === name.trim().toLowerCase())
+        );
       if (duplicateByName) {
         setNameError('This name is already used by another contact.');
         setIsSubmitting(false);
@@ -94,6 +97,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       const userPublicKeys = newUserKeys.public_keys();
 
       const contact: Omit<Contact, 'id'> = {
+        ownerUserId: userProfile.userId,
         name: name.trim(),
         userId: userId.trim(),
         publicKeys: userPublicKeys.to_bytes(),
@@ -104,7 +108,10 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       };
 
       // Ensure unique user ID
-      const existing = await db.getContactByUserId(contact.userId);
+      const existing = await db.getContactByOwnerAndUserId(
+        userProfile.userId,
+        contact.userId
+      );
       if (existing) {
         setError('This user ID already exists in your contacts.');
         setIsSubmitting(false);
@@ -119,7 +126,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, name, userId, onCreated]);
+  }, [isValid, name, userId, onCreated, userProfile?.userId]);
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">

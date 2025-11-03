@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Contact, db } from '../db';
 import { formatUserId } from '../utils/addressUtils';
 import ContactAvatar from './avatar/ContactAvatar';
+import { useAccountStore } from '../stores/accountStore';
 
 interface NewDiscussionProps {
   onClose: () => void;
@@ -24,7 +25,12 @@ const NewDiscussion: React.FC<NewDiscussionProps> = ({
     const loadContacts = async () => {
       try {
         setIsLoading(true);
-        const list = await db.contacts.orderBy('name').toArray();
+        const { userProfile } = useAccountStore.getState();
+        const list = userProfile?.userId
+          ? await db
+              .getContactsByOwner(userProfile.userId)
+              .then(arr => arr.sort((a, b) => a.name.localeCompare(b.name)))
+          : [];
         if (isMounted) {
           setContacts(list);
         }
