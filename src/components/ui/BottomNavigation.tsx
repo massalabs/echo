@@ -1,11 +1,11 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import walletIcon from '../assets/icons/wallet.svg';
-import walletActiveIcon from '../assets/icons/wallet_active.svg';
-import discussionIcon from '../assets/icons/discussion.svg';
-import discussionActiveIcon from '../assets/icons/discussion_active.svg';
-import settingsIcon from '../assets/icons/settings.svg';
-import settingsActiveIcon from '../assets/icons/settings_active.svg';
+import walletIcon from '../../assets/icons/wallet.svg';
+import walletActiveIcon from '../../assets/icons/wallet_active.svg';
+import discussionIcon from '../../assets/icons/discussion.svg';
+import discussionActiveIcon from '../../assets/icons/discussion_active.svg';
+import settingsIcon from '../../assets/icons/settings.svg';
+import settingsActiveIcon from '../../assets/icons/settings_active.svg';
 
 const BottomNavigation: React.FC = () => {
   const navigate = useNavigate();

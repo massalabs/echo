@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { isValidAddress, formatMassaAddress } from '../utils/addressUtils';
+import { formatMassaAddress, isValidAddress } from '../../utils/addressUtils';
 
 interface AddressInputProps {
   value: string;

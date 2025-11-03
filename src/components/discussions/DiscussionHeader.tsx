@@ -1,5 +1,5 @@
 import React from 'react';
-import appLogo from '../assets/echo_face.svg';
+import appLogo from '../../assets/echo_face.svg';
 
 interface DiscussionHeaderProps {
   title?: string;

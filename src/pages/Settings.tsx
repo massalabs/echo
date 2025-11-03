@@ -4,7 +4,7 @@ import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
-import ShareContact from '../components/ShareContact';
+import ShareContact from '../components/settings/ShareContact';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import appLogo from '../assets/echo_face.svg';
+import appLogo from '../../assets/echo_face.svg';
 import { useAccountStore } from '../../stores/accountStore';
-import { addDebugLog } from '../debugLogs';
+import { addDebugLog } from '../ui/debugLogs';
 import { validatePassword, validateUsername } from '../../utils/validation';
 
 interface AccountCreationProps {

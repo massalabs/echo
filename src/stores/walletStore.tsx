@@ -5,7 +5,7 @@ import { priceFetcher } from '../utils/fetchPrice';
 import { createSelectors } from './utils/createSelectors';
 
 import { FeeConfig } from '../components/wallet/FeeConfigModal';
-import { addDebugLog } from '../components/debugLogs';
+import { addDebugLog } from '../components/ui/debugLogs';
 import { initialTokens } from './utils/const';
 
 type WithNonNull<T, K extends keyof T> = Omit<T, K> & {

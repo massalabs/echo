@@ -6,7 +6,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
 import PWABadge from './PWABadge.tsx';
 import DebugOverlay from './components/ui/DebugOverlay.tsx';
-import { addDebugLog } from './components/debugLogs';
+import { addDebugLog } from './components/ui/debugLogs';
 import AccountImport from './components/account/AccountImport.tsx';
 import { backgroundSyncService } from './services/backgroundSync';
 import { Toaster } from 'react-hot-toast';
