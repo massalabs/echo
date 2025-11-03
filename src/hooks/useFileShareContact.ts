@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import * as yaml from 'js-yaml';
 
 import { useAccountStore } from '../stores/accountStore';
+import { decodeFromBase64, encodeToBase64 } from '../utils/base64';
 
 export interface FileContact {
   userPubKeys: Uint8Array;
@@ -13,11 +14,6 @@ type ImportableYaml = {
   userPubKeys?: number[] | string;
   userName?: string;
 };
-
-function stringToBytesAuto(str: string): Uint8Array {
-  const buf = Buffer.from(str, 'base64');
-  return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-}
 
 export function useFileShareContact() {
   const [fileContact, setFileContact] = useState<FileContact | null>(null);
@@ -32,7 +28,7 @@ export function useFileShareContact() {
         setError(null);
         const doc = {
           // Export as base64 using Buffer (no btoa)
-          userPubKeys: Buffer.from(contact.userPubKeys).toString('base64'),
+          userPubKeys: encodeToBase64(contact.userPubKeys),
           userName: contact.userName ?? undefined,
         };
         const yamlText = yaml.dump(doc, { noRefs: true });
@@ -118,7 +114,7 @@ export function useFileShareContact() {
       let bytes: Uint8Array;
       if (typeof data.userPubKeys === 'string') {
         try {
-          bytes = stringToBytesAuto(data.userPubKeys);
+          bytes = decodeFromBase64(data.userPubKeys);
         } catch (e) {
           setError('Invalid userPubKeys format. Expected base64 string: ' + e);
           return;

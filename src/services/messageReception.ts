@@ -22,8 +22,6 @@ export interface MessageReceptionResult {
   error?: string;
 }
 
-// Announcement types are handled in AnnouncementService
-
 export class MessageReceptionService {
   private _messageProtocol: IMessageProtocol | null = null;
 
@@ -39,12 +37,6 @@ export class MessageReceptionService {
     }
     return this._messageProtocol;
   }
-
-  // Announcement responsibilities moved to AnnouncementService
-
-  /* -------------------------------------------------------------------------- */
-  /*                                MESSAGE API                                 */
-  /* -------------------------------------------------------------------------- */
 
   /**
    * Fetch new encrypted messages for a specific discussion
@@ -138,10 +130,6 @@ export class MessageReceptionService {
       };
     }
   }
-
-  // =========================
-  // Announcement checks across discussions
-  // =========================
 
   /**
    * Fetch messages for all active discussions

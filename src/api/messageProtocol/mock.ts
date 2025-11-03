@@ -6,6 +6,7 @@
  * Useful for development and testing when the backend is not available.
  */
 
+import { encodeToBase64 } from '../../utils/base64';
 import { IMessageProtocol, EncryptedMessage } from './types';
 
 export class MockMessageProtocol implements IMessageProtocol {
@@ -20,7 +21,7 @@ export class MockMessageProtocol implements IMessageProtocol {
     const collected: EncryptedMessage[] = [];
     for (const seeker of seekers) {
       // Convert seeker to base64 string for storage key
-      const key = Buffer.from(seeker).toString('base64');
+      const key = encodeToBase64(seeker);
       const msgs = this.mockMessages.get(key) || [];
       // attach seeker on returned messages
       collected.push(...msgs.map(m => ({ ...m, seeker })));
@@ -37,7 +38,7 @@ export class MockMessageProtocol implements IMessageProtocol {
     message: EncryptedMessage
   ): Promise<void> {
     // Convert seeker to base64 string for storage key
-    const seekerBase64 = btoa(String.fromCharCode(...seeker));
+    const seekerBase64 = encodeToBase64(seeker);
     console.log('Mock: Sending message to seeker (b64):', seekerBase64);
 
     // Store the message in our mock storage

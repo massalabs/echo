@@ -100,6 +100,7 @@ export async function acceptDiscussionRequest(
       );
     }
 
+    // TODO: Do we save the second announcement bytes?
     // update discussion status
     await db.discussions.update(discussion.id, {
       status: 'active',
