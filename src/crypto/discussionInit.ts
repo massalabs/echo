@@ -1,4 +1,4 @@
-// TODO: For annoucement handle if there is al-ready an announcement for this contact ?
+// TODO: For announcement handle if there is already an announcement for this contact ?
 
 /**
  * Discussion Initialization Module
