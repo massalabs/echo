@@ -31,6 +31,7 @@
     "currency.js": "^2.0.4-8d9f8632",
     "dexie": "^4.2.0",
     "dexie-react-hooks": "^4.2.0",
+    "js-yaml": "^4.1.0",
     "pbkdf2": "^3.1.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.6.1",
     "@types/pbkdf2": "^3.1.2",
     "@types/react": "^19.0.8",

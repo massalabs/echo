@@ -1,9 +1,18 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
 import { isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
+import { useFileShareContact } from '../hooks/useFileShareContact';
+import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import Popover from './Popover';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
 
@@ -15,11 +24,20 @@ interface NewContactProps {
 const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
+  const [publicKeys, setPublicKeys] = useState<UserPublicKeys | null>(null);
   const { userProfile } = useAccountStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [userIdError, setUserIdError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    fileContact,
+    importFileContact,
+    error: importFileContactError,
+    isLoading: isImportingFileContact,
+  } = useFileShareContact();
+  const [activeImportTab, setActiveImportTab] = useState<'file' | 'qr'>('file');
 
   const isValid = useMemo(() => {
     return validateUsername(name).valid && isValidUserId(userId);
@@ -59,6 +77,37 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     onCancel();
   }, [name, userId, onCancel]);
 
+  const handleFileImport = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      await importFileContact(file);
+    },
+    [importFileContact]
+  );
+
+  // When a file contact is imported, map it to the form fields
+  useEffect(() => {
+    if (!fileContact) return;
+    try {
+      const publicKeys = UserPublicKeys.from_bytes(fileContact.userPubKeys);
+      setPublicKeys(publicKeys);
+      const userIdString = bs58check.encode(publicKeys.derive_id());
+      validateUserId(userIdString);
+      setUserId(userIdString);
+
+      if (fileContact.userName) {
+        setName(fileContact.userName);
+        validateName(fileContact.userName);
+      }
+      setError(null);
+    } catch (e) {
+      setError(
+        `Failed to process imported contact: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }, [fileContact, validateName, validateUserId]);
+
   const handleGenerate = useCallback(async () => {
     const nameIsValid = validateUsername(name).valid;
     if (!nameIsValid || userId || isSubmitting) return;
@@ -74,7 +123,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   }, [name, userId, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
-    if (!isValid) return;
+    if (!isValid || !publicKeys) return;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -168,6 +217,90 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
         {/* Form */}
         <div className="px-4 pb-20">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-5">
+            {/* Import Tabs */}
+            <div className="space-y-4">
+              <div className="w-full p-1 bg-gray-100 dark:bg-gray-800 rounded-lg relative h-10 flex items-center">
+                <div
+                  className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow transition-transform duration-200 ease-out ${
+                    activeImportTab === 'file'
+                      ? 'translate-x-0'
+                      : 'translate-x-full'
+                  }`}
+                  aria-hidden="true"
+                />
+                <button
+                  type="button"
+                  onClick={() => setActiveImportTab('file')}
+                  className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
+                    activeImportTab === 'file'
+                      ? 'text-black dark:text-white'
+                      : 'text-gray-600 dark:text-gray-300'
+                  }`}
+                  aria-pressed={activeImportTab === 'file'}
+                >
+                  Import from file
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveImportTab('qr')}
+                  className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
+                    activeImportTab === 'qr'
+                      ? 'text-black dark:text-white'
+                      : 'text-gray-600 dark:text-gray-300'
+                  }`}
+                  aria-pressed={activeImportTab === 'qr'}
+                >
+                  Import from QR code
+                </button>
+              </div>
+
+              {activeImportTab === 'file' && (
+                <div className="p-4">
+                  <p className="text-[15px] font-medium text-[#4a4a4a] dark:text-gray-300 mb-4">
+                    Import a contact from a .yaml file
+                  </p>
+                  <div className="flex justify-center items-center gap-2 relative">
+                    <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-200 text-sm font-medium cursor-pointer">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".yaml,.yml"
+                        className="hidden"
+                        onChange={handleFileImport}
+                        disabled={isImportingFileContact}
+                      />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                        />
+                      </svg>
+                      <span>Import</span>
+                    </label>
+                    <Popover message="You can setup a discussion with a Gossip user by importing its .yaml file" />
+                  </div>
+                </div>
+              )}
+
+              {activeImportTab === 'qr' && (
+                <div className="p-4">
+                  <p className="text-[15px] font-medium text-[#4a4a4a] dark:text-gray-300">
+                    Import from QR code (coming soon).
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700" />
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Name
@@ -238,9 +371,9 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
               </p>
             </div>
 
-            {error && (
+            {(error || importFileContactError) && (
               <div className="text-sm text-red-600 dark:text-red-400">
-                {error}
+                {error || importFileContactError}
               </div>
             )}
 
