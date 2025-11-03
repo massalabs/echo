@@ -122,7 +122,7 @@ export const useDiscussionList = () => {
       if (appState !== 'main') setAppState('main');
       return;
     }
-    if (isInitialized && !userProfile && appState === 'loading') {
+    if (!userProfile && appState === 'loading') {
       checkExistingAccount();
     }
   }, [
