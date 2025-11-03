@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import * as yaml from 'js-yaml';
 
-import { useAccountStore } from '../stores/accountStore';
 import { decodeFromBase64, encodeToBase64 } from '../utils/base64';
 
 export interface FileContact {
@@ -20,81 +19,82 @@ export function useFileShareContact() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { userProfile } = useAccountStore();
+  const exportFileContact = useCallback(async (contact: FileContact) => {
+    try {
+      setError(null);
+      const doc = {
+        // Export as base64 using Buffer (no btoa)
+        userPubKeys: encodeToBase64(contact.userPubKeys),
+        userName: contact.userName ?? undefined,
+      };
+      const yamlText = yaml.dump(doc, { noRefs: true });
 
-  const exportFileContact = useCallback(
-    async (contact: FileContact) => {
+      // Prefer a generic type for maximum compatibility in download fallbacks (iOS/Safari quirks)
+      const blob = new Blob([yamlText], { type: 'application/octet-stream' });
+      const base = (contact.userName || 'contact')
+        .toString()
+        .trim()
+        .replace(/[^a-zA-Z0-9-_]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase();
+      const filename = `${base || 'contact'}-gossip-contact.yaml`;
+
+      // Try the Web Share API (files) if available and allowed
       try {
-        setError(null);
-        const doc = {
-          // Export as base64 using Buffer (no btoa)
-          userPubKeys: encodeToBase64(contact.userPubKeys),
-          userName: contact.userName ?? undefined,
+        type ShareData = {
+          files?: File[];
+          title?: string;
+          text?: string;
+          url?: string;
         };
-        const yamlText = yaml.dump(doc, { noRefs: true });
+        const nav = navigator as Navigator & {
+          canShare?: (data?: ShareData) => boolean;
+          share?: (data: ShareData) => Promise<void>;
+        };
 
-        // Prefer a generic type for maximum compatibility in download fallbacks (iOS/Safari quirks)
-        const blob = new Blob([yamlText], { type: 'application/octet-stream' });
-        const filename = `${userProfile?.username || 'user'}-gossip-contact.yaml`;
+        // Create once and reuse for canShare and share
+        const shareFile = new File([blob], filename, {
+          type: 'text/yaml;charset=utf-8',
+        });
 
-        // Try the Web Share API (files) if available and allowed
-        try {
-          type ShareData = {
-            files?: File[];
-            title?: string;
-            text?: string;
-            url?: string;
-          };
-          const nav = navigator as Navigator & {
-            canShare?: (data?: ShareData) => boolean;
-            share?: (data: ShareData) => Promise<void>;
-          };
-
-          // Create once and reuse for canShare and share
-          const shareFile = new File([blob], filename, {
-            type: 'text/yaml;charset=utf-8',
-          });
-
-          let canShareFiles = false;
-          if (typeof navigator !== 'undefined' && !!nav.canShare) {
-            try {
-              canShareFiles = nav.canShare({ files: [shareFile] });
-            } catch {
-              canShareFiles = false;
-            }
+        let canShareFiles = false;
+        if (typeof navigator !== 'undefined' && !!nav.canShare) {
+          try {
+            canShareFiles = nav.canShare({ files: [shareFile] });
+          } catch {
+            canShareFiles = false;
           }
-
-          if (canShareFiles && nav.share) {
-            await nav.share({ files: [shareFile] });
-            return;
-          }
-        } catch {
-          // Ignore share errors and fall back to download
         }
 
-        // Fallback: programmatic download via Object URL
-        const url = URL.createObjectURL(blob);
-        try {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          a.rel = 'noopener';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        } finally {
-          URL.revokeObjectURL(url);
+        if (canShareFiles && nav.share) {
+          await nav.share({ files: [shareFile] });
+          return;
         }
-      } catch (e) {
-        setError(
-          e instanceof Error
-            ? `Failed to export file: ${e.message}`
-            : 'Failed to export file'
-        );
+      } catch {
+        // Ignore share errors and fall back to download
       }
-    },
-    [userProfile?.username]
-  );
+
+      // Fallback: programmatic download via Object URL
+      const url = URL.createObjectURL(blob);
+      try {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? `Failed to export file: ${e.message}`
+          : 'Failed to export file'
+      );
+    }
+  }, []);
 
   const importFileContact = useCallback(async (file: File) => {
     if (

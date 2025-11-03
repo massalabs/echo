@@ -3,9 +3,11 @@ import { db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
 import { announcementService } from '../services/announcement';
 import { formatMassaAddress } from '../utils/addressUtils';
+import { useDiscussionList } from '../hooks/useDiscussionList';
 
 const DebugPanel: React.FC = () => {
   const { userProfile, account, resetAccount } = useAccountStore();
+  const { handlers } = useDiscussionList();
 
   const handleResetAccount = useCallback(async () => {
     try {
@@ -36,8 +38,10 @@ const DebugPanel: React.FC = () => {
       );
     } catch (error) {
       console.error('Failed to reset discussions and messages:', error);
+    } finally {
+      await handlers.handleRefresh();
     }
-  }, []);
+  }, [handlers]);
 
   const handleResetAllAccounts = useCallback(async () => {
     try {
@@ -91,20 +95,6 @@ const DebugPanel: React.FC = () => {
     }
   }, []);
 
-  const handleFetchAllAnnouncements = useCallback(async () => {
-    try {
-      const svc = await announcementService.getInstance();
-      const result = await svc.fetchAndProcessAnnouncements();
-      if (result.success) {
-        console.log('Fetched announcements successfully');
-      } else {
-        console.error('Failed to fetch announcements:', result.error);
-      }
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
-    }
-  }, []);
-
   return (
     <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-left">
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -145,13 +135,6 @@ const DebugPanel: React.FC = () => {
         className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
       >
         Simulate Incoming Discussion (test)
-      </button>
-      <br />
-      <button
-        onClick={handleFetchAllAnnouncements}
-        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
-      >
-        Fetch All Announcements (test)
       </button>
     </div>
   );
