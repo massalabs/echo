@@ -1,5 +1,9 @@
 export function encodeToBase64(data: Uint8Array): string {
-  return btoa(String.fromCharCode(...data));
+  return btoa(
+    Array.from(data)
+      .map(byte => String.fromCharCode(byte))
+      .join('')
+  );
 }
 
 export function decodeFromBase64(b64: string): Uint8Array {

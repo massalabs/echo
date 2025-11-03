@@ -176,10 +176,6 @@ export class AnnouncementService {
           lastSeen: new Date(),
           createdAt: new Date(),
         });
-        contact = await db.getContactByOwnerAndUserId(
-          ownerUserId,
-          contactUserIdString
-        );
       }
 
       if (!contact) {
