@@ -80,12 +80,16 @@ const DiscussionList: React.FC = () => {
 
   const loadContacts = useCallback(async () => {
     try {
-      const contactsList = await db.contacts.toArray();
+      if (!userProfile?.userId) {
+        setContacts([]);
+        return;
+      }
+      const contactsList = await db.getContactsByOwner(userProfile.userId);
       setContacts(contactsList);
     } catch (error) {
       console.error('Failed to load contacts:', error);
     }
-  }, []);
+  }, [userProfile?.userId]);
 
   const getContactByUserId = useCallback(
     (userId: string) => {
