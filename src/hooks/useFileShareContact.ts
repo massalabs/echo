@@ -36,30 +36,62 @@ export function useFileShareContact() {
           userName: contact.userName ?? undefined,
         };
         const yamlText = yaml.dump(doc, { noRefs: true });
-        const blob = new Blob([yamlText], { type: 'text/yaml;charset=utf-8' });
-        const file = new File(
-          [blob],
-          `${userProfile?.username || 'user'}-gossip-contact.yaml`,
-          {
-            type: 'text/yaml;charset=utf-8',
-          }
-        );
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
+        // Prefer a generic type for maximum compatibility in download fallbacks (iOS/Safari quirks)
+        const blob = new Blob([yamlText], { type: 'application/octet-stream' });
+        const filename = `${userProfile?.username || 'user'}-gossip-contact.yaml`;
+
+        // Try the Web Share API (files) if available and allowed
+        try {
+          type ShareData = {
+            files?: File[];
+            title?: string;
+            text?: string;
+            url?: string;
+          };
+          const nav = navigator as Navigator & {
+            canShare?: (data?: ShareData) => boolean;
+            share?: (data: ShareData) => Promise<void>;
+          };
+
+          // Create once and reuse for canShare and share
+          const shareFile = new File([blob], filename, {
+            type: 'text/yaml;charset=utf-8',
           });
-          return;
+
+          const canShareFiles =
+            typeof navigator !== 'undefined' &&
+            !!nav.canShare &&
+            (() => {
+              try {
+                return nav.canShare!({ files: [shareFile] });
+              } catch {
+                return false;
+              }
+            })();
+
+          if (canShareFiles && nav.share) {
+            await nav.share({ files: [shareFile] });
+            return;
+          }
+        } catch {
+          // Ignore share errors and fall back to download
         }
 
+        // Fallback: programmatic download via Object URL
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${userProfile?.username || 'user'}-gossip-contact.yaml`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        try {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.rel = 'noopener';
+          a.target = '_self';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } finally {
+          URL.revokeObjectURL(url);
+        }
       } catch (e) {
         setError(
           e instanceof Error
