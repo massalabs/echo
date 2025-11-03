@@ -164,7 +164,9 @@ const DiscussionList: React.FC = () => {
                         isPendingIncoming={isPendingIncoming}
                         isPendingOutgoing={isPendingOutgoing}
                         onSelect={handlers.handleSelectDiscussion}
-                        onAccept={handlers.handleAcceptDiscussionRequest}
+                        onAccept={(d, newName) =>
+                          handlers.handleAcceptDiscussionRequest(d, newName)
+                        }
                         onRefuse={handlers.handleRefuseDiscussionRequest}
                       />
                     );

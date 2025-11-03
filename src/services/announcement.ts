@@ -166,10 +166,17 @@ export class AnnouncementService {
       );
 
       if (!contact) {
+        // check for number of contacts with the same name
+        const newRequestCount = await db.contacts
+          .where('name')
+          .equals(`New Request`)
+          .count();
+
         await db.contacts.add({
           ownerUserId,
           userId: contactUserIdString,
-          name: `User ${contactUserIdString.substring(0, 8)}`,
+          // TODO: Add a better name for the new request
+          name: `New Request ${newRequestCount + 1}`,
           publicKeys: announcerPkeys.to_bytes(),
           avatar: undefined,
           isOnline: false,

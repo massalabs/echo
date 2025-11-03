@@ -245,16 +245,28 @@ export const useDiscussionList = () => {
   );
 
   const handleAcceptDiscussionRequest = useCallback(
-    async (discussion: Discussion) => {
+    async (discussion: Discussion, newName?: string) => {
       try {
         if (discussion.id == null) return;
+        // If the user provided a new contact name, update it first
+        if (newName && userProfile?.userId) {
+          try {
+            await db.contacts
+              .where('[ownerUserId+userId]')
+              .equals([userProfile.userId, discussion.contactUserId])
+              .modify({ name: newName });
+            await loadContacts();
+          } catch (e) {
+            console.error('Failed to update contact name:', e);
+          }
+        }
         await acceptDiscussionRequest(discussion);
         await loadDiscussions();
       } catch (error) {
         console.error('Failed to accept discussion:', error);
       }
     },
-    [loadDiscussions]
+    [loadDiscussions, loadContacts, userProfile?.userId]
   );
 
   const handleRefresh = useCallback(async () => {

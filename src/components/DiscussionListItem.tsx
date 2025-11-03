@@ -2,6 +2,7 @@ import React from 'react';
 import { Discussion, Contact } from '../db';
 import ContactAvatar from './avatar/ContactAvatar';
 import { formatRelativeTime } from '../utils/timeUtils';
+import { formatUserId } from '../utils/addressUtils';
 
 export type LastMessageInfo = { content: string; timestamp: Date } | undefined;
 
@@ -12,7 +13,7 @@ interface DiscussionListItemProps {
   isPendingIncoming: boolean;
   isPendingOutgoing: boolean;
   onSelect: (discussion: Discussion) => void;
-  onAccept: (discussion: Discussion) => void;
+  onAccept: (discussion: Discussion, newName?: string) => void;
   onRefuse: (discussion: Discussion) => void;
 }
 
@@ -78,31 +79,44 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
               </div>
             </div>
             {isPendingIncoming ? (
-              <div className="mt-2 flex items-center gap-2">
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    onAccept(discussion);
-                  }}
-                  className="px-2.5 py-1 text-xs font-medium rounded border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                >
-                  Accept
-                </button>
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    onRefuse(discussion);
-                  }}
-                  className="px-2.5 py-1 text-xs font-medium rounded border border-gray-400 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  Refuse
-                </button>
-                {discussion.unreadCount > 0 && (
-                  <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
-                    {discussion.unreadCount}
-                  </span>
-                )}
-              </div>
+              <>
+                <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400 break-all">
+                  User Id: {formatUserId(contact.userId)}
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      const suggested = contact.name || '';
+                      const newName = window
+                        .prompt('Set a name for this contact', suggested)
+                        ?.trim();
+                      if (newName) {
+                        onAccept(discussion, newName);
+                      } else {
+                        onAccept(discussion);
+                      }
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      onRefuse(discussion);
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded border border-gray-400 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    Refuse
+                  </button>
+                  {discussion.unreadCount > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                      {discussion.unreadCount}
+                    </span>
+                  )}
+                </div>
+              </>
             ) : (
               <div className="flex items-center justify-between mt-1">
                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
