@@ -114,6 +114,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     try {
       const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
       const pub = newUserKeys.public_keys();
+      setPublicKeys(pub);
       setUserId(bs58check.encode(pub.derive_id()));
       setUserIdError(null);
     } catch (e) {
@@ -140,16 +141,11 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
         return;
       }
 
-      // Ensure we have public keys for the contact. For now, we only support
-      // generated contacts (manual userId entry without public keys is unsupported).
-      const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
-      const userPublicKeys = newUserKeys.public_keys();
-
       const contact: Omit<Contact, 'id'> = {
         ownerUserId: userProfile.userId,
         name: name.trim(),
         userId: userId.trim(),
-        publicKeys: userPublicKeys.to_bytes(),
+        publicKeys: publicKeys.to_bytes(),
         avatar: undefined,
         isOnline: false,
         lastSeen: new Date(),

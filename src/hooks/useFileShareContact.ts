@@ -59,16 +59,14 @@ export function useFileShareContact() {
             type: 'text/yaml;charset=utf-8',
           });
 
-          const canShareFiles =
-            typeof navigator !== 'undefined' &&
-            !!nav.canShare &&
-            (() => {
-              try {
-                return nav.canShare!({ files: [shareFile] });
-              } catch {
-                return false;
-              }
-            })();
+          let canShareFiles = false;
+          if (typeof navigator !== 'undefined' && !!nav.canShare) {
+            try {
+              canShareFiles = nav.canShare({ files: [shareFile] });
+            } catch {
+              canShareFiles = false;
+            }
+          }
 
           if (canShareFiles && nav.share) {
             await nav.share({ files: [shareFile] });
@@ -85,7 +83,6 @@ export function useFileShareContact() {
           a.href = url;
           a.download = filename;
           a.rel = 'noopener';
-          a.target = '_self';
           document.body.appendChild(a);
           a.click();
           a.remove();
