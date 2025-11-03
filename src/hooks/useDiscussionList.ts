@@ -118,7 +118,7 @@ export const useDiscussionList = () => {
       if (appState !== 'setup') setAppState('setup');
       return;
     }
-    if (isInitialized && userProfile) {
+    if (userProfile) {
       if (appState !== 'main') setAppState('main');
       return;
     }
