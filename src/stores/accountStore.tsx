@@ -44,7 +44,7 @@ async function createProfileFromAccount(
       ...existing.security,
       ...security,
       webauthn: security.webauthn ?? existing.security.webauthn,
-      password: security.password ?? existing.security.password,
+      encKeySalt: security.encKeySalt ?? existing.security.encKeySalt,
       mnemonicBackup:
         security.mnemonicBackup ?? existing.security.mnemonicBackup,
     };
@@ -128,9 +128,7 @@ async function buildSecurityFromPassword(
   }
 
   const security: UserProfile['security'] = {
-    password: {
-      salt,
-    },
+    encKeySalt: salt,
     mnemonicBackup,
   };
 
@@ -172,14 +170,8 @@ async function buildSecurityFromWebAuthn(
     webauthn: {
       credentialId,
       publicKey: webauthnKey.publicKey,
-      counter: webauthnKey.counter,
-      deviceType: webauthnKey.deviceType,
-      backedUp: webauthnKey.backedUp,
-      transports: webauthnKey.transports,
     },
-    password: {
-      salt,
-    },
+    encKeySalt: salt,
     mnemonicBackup,
   };
 
@@ -343,7 +335,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       }
 
       // Derive EncryptionKey using stored salt
-      const salt = profile.security?.password?.salt;
+      const salt = profile.security?.encKeySalt;
       if (!salt) {
         throw new Error('Password parameters not found');
       }
@@ -461,12 +453,11 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const webauthnKey = await createWebAuthnCredential(
         `Gossip-${username}-${userId}`
       );
-      const { credentialId } = webauthnKey;
+      const { credentialId, publicKey } = webauthnKey;
 
       // Encrypt mnemonic with WebCrypto AES-GCM using WebAuthn-derived key
       // Use derived EncryptionKey already returned in provisionAccount path; here still creating profile
-      const seed =
-        credentialId + Buffer.from(webauthnKey.publicKey).toString('base64');
+      const seed = credentialId + Buffer.from(publicKey).toString('base64');
       const salt = (await generateNonce()).to_bytes();
       const derivedKey = await deriveKey(seed, salt);
       const { encryptedData: encryptedMnemonic, nonce: nonce } = await encrypt(
@@ -480,15 +471,9 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         security: {
           webauthn: {
             credentialId,
-            publicKey: webauthnKey.publicKey,
-            counter: webauthnKey.counter,
-            deviceType: webauthnKey.deviceType,
-            backedUp: webauthnKey.backedUp,
-            transports: webauthnKey.transports,
+            publicKey,
           },
-          password: {
-            salt,
-          },
+          encKeySalt: salt,
           mnemonicBackup: {
             encryptedMnemonic,
             nonce,
@@ -554,7 +539,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         profile.security.webauthn.credentialId +
         Buffer.from(profile.security.webauthn.publicKey).toString('base64');
 
-      const salt = profile.security.password?.salt;
+      const salt = profile.security.encKeySalt;
       if (!salt || salt.length < 8) {
         throw new Error(
           'Biometric account is missing KDF salt. Please re-authenticate and re-create your account after updating the app.'
@@ -606,7 +591,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
 
       let decryptedMnemonic: string;
 
-      const salt = profile.security.password?.salt;
+      const salt = profile.security.encKeySalt;
       if (!salt || salt.length < 8) {
         throw new Error(
           'Biometric account is missing KDF salt. Please re-authenticate and re-create your account after updating the app.'
