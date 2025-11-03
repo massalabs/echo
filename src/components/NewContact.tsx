@@ -13,6 +13,7 @@ import { validateUsername } from '../utils/validation';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 import Popover from './Popover';
+import BaseModal from './ui/BaseModal';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
 
@@ -70,9 +71,11 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     return true;
   }, []);
 
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
   const handleBack = useCallback(() => {
     if (name || userId) {
-      if (!window.confirm('Discard this contact?')) return;
+      setIsDiscardModalOpen(true);
+      return;
     }
     onCancel();
   }, [name, userId, onCancel]);
@@ -384,6 +387,35 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
           </div>
         </div>
       </div>
+      {/* Discard confirm modal */}
+      <BaseModal
+        isOpen={isDiscardModalOpen}
+        onClose={() => setIsDiscardModalOpen(false)}
+        title="Discard new contact?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Your changes will be lost.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setIsDiscardModalOpen(false);
+                onCancel();
+              }}
+              className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              Discard
+            </button>
+            <button
+              onClick={() => setIsDiscardModalOpen(false)}
+              className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };
