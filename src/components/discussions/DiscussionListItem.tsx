@@ -143,7 +143,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   title="Refuse connection?"
                 >
                   <div className="space-y-4">
-                    <p className="text-sm text-g  ray-700 dark:text-gray-300">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
                       Refusing will close this discussion request.
                     </p>
                     <div className="flex gap-3">
