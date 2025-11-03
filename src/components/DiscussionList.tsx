@@ -49,7 +49,14 @@ const DiscussionList: React.FC = () => {
 
   const loadDiscussions = useCallback(async () => {
     try {
-      const discussionsList = await db.getDiscussions();
+      if (!userProfile?.userId) {
+        setDiscussions([]);
+        setLastMessages(new Map());
+        return;
+      }
+      const discussionsList = await db.getDiscussionsByOwner(
+        userProfile.userId
+      );
       setDiscussions(discussionsList);
 
       // Extract last message for each discussion directly from discussionsList
@@ -69,7 +76,7 @@ const DiscussionList: React.FC = () => {
     } catch (error) {
       console.error('Failed to load discussions:', error);
     }
-  }, []);
+  }, [userProfile?.userId]);
 
   const loadContacts = useCallback(async () => {
     try {
@@ -291,9 +298,9 @@ const DiscussionList: React.FC = () => {
 
   const handleBackFromDiscussion = useCallback(async () => {
     // Mark messages as read for the contact we just viewed
-    if (selectedContact) {
+    if (selectedContact && userProfile?.userId) {
       try {
-        await db.markMessagesAsRead(selectedContact.userId);
+        await db.markMessagesAsRead(userProfile.userId, selectedContact.userId);
       } catch (error) {
         console.error('Failed to mark messages as read on back:', error);
       }
@@ -304,7 +311,7 @@ const DiscussionList: React.FC = () => {
     // Reload discussions and contacts to show updated data (including cleared unread counts)
     loadDiscussions();
     loadContacts();
-  }, [loadDiscussions, loadContacts, selectedContact]);
+  }, [loadDiscussions, loadContacts, selectedContact, userProfile?.userId]);
 
   const handleSelectDiscussion = useCallback(
     (discussion: Discussion) => {
