@@ -119,8 +119,6 @@ export class RestMessageProtocol implements IMessageProtocol {
         throw new Error(response.error || 'Failed to fetch announcements');
       }
 
-      console.log('Debug API - announcements:', response);
-
       return response.data.data.map(row => decodeFromBase64(row));
     } catch (error) {
       console.error('Failed to fetch announcements:', error);
