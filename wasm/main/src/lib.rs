@@ -478,8 +478,7 @@ impl SessionManagerWrapper {
         our_pk: &UserPublicKeys,
         our_sk: &UserSecretKeys,
     ) -> Option<UserPublicKeys> {
-        self
-            .inner
+        self.inner
             .feed_incoming_announcement(announcement_bytes, &our_pk.inner, &our_sk.inner)
             .map(|pk| UserPublicKeys { inner: pk })
     }

@@ -321,11 +321,8 @@ impl SessionManager {
         our_sk: &auth::UserSecretKeys,
     ) -> Option<auth::UserPublicKeys> {
         // try to parse as incoming initiation request
-        let Some(incoming_initiation_request) =
-            IncomingInitiationRequest::try_from(announcement_bytes, our_pk, our_sk)
-        else {
-            return None;
-        };
+        let incoming_initiation_request =
+            IncomingInitiationRequest::try_from(announcement_bytes, our_pk, our_sk)?;
 
         // check if it is not too old or too much in the future
         let cur_timestamp = timestamp_millis();

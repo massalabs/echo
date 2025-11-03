@@ -11,6 +11,7 @@ auth = { path = "../auth" }
 crypto-agraphon = { path = "../crypto-agraphon" }
 crypto-rng = { path = "../crypto-rng" }
 crypto-aead = { path = "../crypto-aead" }
+crypto-kdf = { path = "../crypto-kdf" }
 serde = { version = "1.0", features = ["derive"] }
 bincode = { version = "2.0", features = ["serde"] }
 zeroize = { version = "1.8", features = ["derive"] }

@@ -23,6 +23,12 @@
 //! This allows recipients to efficiently look up messages on a public message board without
 //! scanning all messages or revealing their identity.
 //!
+//! During session initialization, each party generates a random 32-byte seeker seed and includes
+//! it in their announcement. When establishing the session, both parties use a KDF to deterministically
+//! derive initial seeker keypairs by combining both seeds (in appropriate order). This ensures both
+//! parties can independently compute each other's initial seeker keys, while maintaining forward secrecy
+//! through the message-level seeker ratchet.
+//!
 //! # Example
 //!
 //! ```no_run
@@ -76,12 +82,11 @@ const MESSAGE_SEEKER_DB_KEY: &[u8] = &[1u8];
 /// Session initialization payload embedded in announcements.
 ///
 /// This is serialized, encrypted in an auth blob, and included in the announcement.
-/// It contains the ephemeral Massa keypair used for seeker generation.
+/// It contains the random seed used to derive the initial seeker keypair through KDF.
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub(crate) struct SessionInitPayload {
-    /// Massa keypair used to generate seeker hashes for this peer's messages
-    #[zeroize(skip)]
-    pub(crate) seeker_massa_keypair: massa_signature::KeyPair,
+    /// Random 32-byte seed used to derive the initial seeker keypair via KDF
+    pub(crate) seeker_seed: [u8; 32],
     /// Unix timestamp in milliseconds when this payload was created
     pub(crate) unix_timestamp_millis: u128,
 }
@@ -142,9 +147,8 @@ pub struct IncomingInitiationRequest {
     pub(crate) origin_public_keys: auth::UserPublicKeys,
     /// Timestamp when the peer created this announcement (milliseconds since Unix epoch)
     pub(crate) timestamp_millis: u128,
-    /// Peer's Massa keypair for generating seekers
-    #[zeroize(skip)]
-    seeker_massa_keypair: massa_signature::KeyPair,
+    /// Peer's random seed used to derive their initial seeker keypair via KDF
+    seeker_seed: [u8; 32],
 }
 
 impl IncomingInitiationRequest {
@@ -192,17 +196,22 @@ impl IncomingInitiationRequest {
             agraphon_announcement: agraphon_announcement.clone(),
             origin_public_keys: auth_blob.public_keys().clone(),
             timestamp_millis: init_payload.unix_timestamp_millis,
-            seeker_massa_keypair: init_payload.seeker_massa_keypair.clone(),
+            seeker_seed: init_payload.seeker_seed,
         })
     }
 }
 
+/// Outgoing session initiation request.
+///
+/// Created when initiating a session with a peer. Contains the Agraphon announcement
+/// and a random seed that will be used (combined with the peer's seed) to derive
+/// initial seeker keypairs.
 #[derive(Clone, Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct OutgoingInitiationRequest {
     agraphon_announcement: crypto_agraphon::OutgoingAnnouncement,
     pub(crate) timestamp_millis: u128,
-    #[zeroize(skip)]
-    seeker_massa_keypair: massa_signature::KeyPair,
+    /// Random seed for deriving initial seeker keypair
+    seeker_seed: [u8; 32],
 }
 
 impl OutgoingInitiationRequest {
@@ -221,13 +230,17 @@ impl OutgoingInitiationRequest {
         // get auth key
         let auth_key = agraphon_announcement_precursor.auth_key();
 
-        // generate seeker keypair
-        let seeker_massa_keypair =
-            massa_signature::KeyPair::generate(0).expect("Failed to generate seeker keypair");
+        // Generate a cryptographically random 32-byte seed that will be used
+        // (combined with the peer's seed via KDF) to derive initial seeker keypairs
+        let seeker_seed = {
+            let mut seeker_seed = [0u8; 32];
+            crypto_rng::fill_buffer(&mut seeker_seed);
+            seeker_seed
+        };
 
         // create initiation payload
         let session_init_payload = SessionInitPayload {
-            seeker_massa_keypair: seeker_massa_keypair.clone(),
+            seeker_seed,
             unix_timestamp_millis: timestamp_millis,
         };
         let session_init_payload_bytes =
@@ -249,22 +262,68 @@ impl OutgoingInitiationRequest {
         (announcement_bytes, Self {
             agraphon_announcement: announcement,
             timestamp_millis,
-            seeker_massa_keypair,
+            seeker_seed,
         })
     }
 }
 
+/// An established session between two peers.
+///
+/// Sessions provide end-to-end encrypted messaging with forward secrecy and post-compromise
+/// security through the Agraphon double-ratchet protocol. Messages are addressed using seekers
+/// derived from ephemeral Massa keypairs.
+///
+/// The initial seeker keypairs are deterministically derived from the random seeds exchanged
+/// during session initialization using a KDF. Each subsequent message includes the next seeker
+/// keypair in the ratchet, ensuring forward secrecy.
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct Session {
+    /// Agraphon protocol instance handling encryption and ratcheting
     agraphon_instance: crypto_agraphon::Agraphon,
+    /// Peer's long-term public keys
     peer_public_keys: auth::UserPublicKeys,
+    /// Current Massa keypair for the next message we expect to receive from the peer
     #[zeroize(skip)]
     peer_seeker_massa_keypair: massa_signature::KeyPair,
+    /// Current Massa keypair for the next message we will send to the peer
     #[zeroize(skip)]
     self_seeker_massa_keypair: massa_signature::KeyPair,
 }
 
 impl Session {
+    /// Creates a new session from a pair of initiation requests.
+    ///
+    /// This combines your outgoing announcement with the peer's incoming announcement to
+    /// establish a shared session. The initial seeker keypairs are deterministically derived
+    /// from the random seeds exchanged in the announcements using HKDF.
+    ///
+    /// # Seeker Key Derivation
+    ///
+    /// The initial seeker keypairs are derived using a key derivation function (KDF) that
+    /// combines both parties' random seeds:
+    /// - Peer's seeker key: `KDF(peer_seed || our_seed, "session.seeker.key")`
+    /// - Our seeker key: `KDF(our_seed || peer_seed, "session.seeker.key")`
+    ///
+    /// The order of inputs ensures each party derives different keys for sending vs receiving.
+    /// The keys are formatted as Massa Ed25519 keypairs (33 bytes: version byte + 32-byte secret).
+    ///
+    /// # Arguments
+    ///
+    /// * `outgoing_initiation_request` - Our announcement that was sent to the peer
+    /// * `incoming_initiation_request` - The peer's announcement that we received
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use auth::*;
+    /// # use sessions::*;
+    /// # let (alice_pk, alice_sk) = derive_keys_from_static_root_secret(&StaticRootSecret::from_passphrase(b"alice"));
+    /// # let (bob_pk, bob_sk) = derive_keys_from_static_root_secret(&StaticRootSecret::from_passphrase(b"bob"));
+    /// let (announcement_bytes, outgoing) = OutgoingInitiationRequest::new(&alice_pk, &alice_sk, &bob_pk);
+    /// # let (bob_announcement, _) = OutgoingInitiationRequest::new(&bob_pk, &bob_sk, &alice_pk);
+    /// # let incoming = IncomingInitiationRequest::try_from(&bob_announcement, &alice_pk, &alice_sk).unwrap();
+    /// let session = Session::from_initiation_request_pair(&outgoing, &incoming);
+    /// ```
     pub fn from_initiation_request_pair(
         outgoing_initiation_request: &OutgoingInitiationRequest,
         incoming_initiation_request: &IncomingInitiationRequest,
@@ -275,12 +334,40 @@ impl Session {
             &incoming_initiation_request.agraphon_announcement,
         );
 
+        // Derive peer's initial seeker keypair from [peer_seed, our_seed]
+        // This produces the key the peer will use to send their first message to us
+        let peer_seeker_massa_keypair = {
+            let mut kdf = crypto_kdf::Extract::new(b"session.seeker.kdf.salt---------");
+            kdf.input_item(incoming_initiation_request.seeker_seed.as_slice());
+            kdf.input_item(outgoing_initiation_request.seeker_seed.as_slice());
+            let expander = kdf.finalize();
+            // Massa keypair format: [version_byte, 32_secret_key_bytes]
+            let mut seeker_key = [0u8; 33];
+            expander.expand(b"session.seeker.key", &mut seeker_key[1..]);
+            massa_signature::KeyPair::from_bytes(seeker_key.as_slice())
+                .expect("Failed to generate peer seeker keypair")
+        };
+
+        // Derive our initial seeker keypair from [our_seed, peer_seed]
+        // This produces the key we will use to send our first message to the peer
+        let self_seeker_massa_keypair = {
+            let mut kdf = crypto_kdf::Extract::new(b"session.seeker.kdf.salt---------");
+            kdf.input_item(outgoing_initiation_request.seeker_seed.as_slice());
+            kdf.input_item(incoming_initiation_request.seeker_seed.as_slice());
+            let expander = kdf.finalize();
+            // Massa keypair format: [version_byte, 32_secret_key_bytes]
+            let mut seeker_key = [0u8; 33];
+            expander.expand(b"session.seeker.key", &mut seeker_key[1..]);
+            massa_signature::KeyPair::from_bytes(seeker_key.as_slice())
+                .expect("Failed to generate self seeker keypair")
+        };
+
         // create session
         Self {
             agraphon_instance,
             peer_public_keys: incoming_initiation_request.origin_public_keys.clone(),
-            peer_seeker_massa_keypair: incoming_initiation_request.seeker_massa_keypair.clone(),
-            self_seeker_massa_keypair: outgoing_initiation_request.seeker_massa_keypair.clone(),
+            peer_seeker_massa_keypair,
+            self_seeker_massa_keypair,
         }
     }
 
@@ -302,7 +389,26 @@ impl Session {
         [&[datastore_key.len() as u8], datastore_key, message_bytes].concat()
     }
 
-    /// Sends an outgoing message on the session and returns the seeker and the encrypted message bytes.
+    /// Sends an outgoing message on the session and returns the seeker and encrypted message data.
+    ///
+    /// This method:
+    /// 1. Generates a new random seeker keypair for the next message
+    /// 2. Uses the current seeker keypair to create the message seeker (address)
+    /// 3. Encrypts the message using the Agraphon protocol
+    /// 4. Signs the encrypted message with the current seeker keypair
+    /// 5. Updates the session's seeker keypair for the next message
+    ///
+    /// The peer must have the corresponding seeker to decrypt the message. The message
+    /// includes the next seeker keypair, maintaining the forward-ratcheting property.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The plaintext message bytes to send
+    ///
+    /// # Returns
+    ///
+    /// A [`SendOutgoingMessageOutput`] containing the seeker (database key) and encrypted data
+    /// that should be posted to the message board.
     pub fn send_outgoing_message(&mut self, message: &[u8]) -> SendOutgoingMessageOutput {
         // get timestamp
         let timestamp = crate::utils::timestamp_millis();
@@ -374,11 +480,33 @@ impl Session {
         }
     }
 
-    /// Get the next peer message seeker.
+    /// Returns the seeker (database key) for the next message from the peer.
+    ///
+    /// Use this to look up the peer's next message on the message board. The seeker
+    /// is derived from the peer's current seeker keypair by hashing its public key.
+    ///
+    /// After successfully receiving a message via [`try_feed_incoming_message`](Self::try_feed_incoming_message),
+    /// this seeker will be updated to point to the subsequent message.
     pub fn next_peer_message_seeker(&self) -> Vec<u8> {
         Self::compute_seeker(&self.peer_seeker_massa_keypair.get_public_key())
     }
 
+    /// Attempts to decrypt and process an incoming message from the peer.
+    ///
+    /// This method verifies the message signature, decrypts the content, and updates
+    /// the session state including the peer's seeker keypair for the next message.
+    ///
+    /// # Arguments
+    ///
+    /// * `self_static_sk` - Your long-term secret keys (needed for decryption)
+    /// * `seeker` - The seeker (database key) used to retrieve this message
+    /// * `message` - The encrypted message data retrieved from the message board
+    ///
+    /// # Returns
+    ///
+    /// - `Some(FeedIncomingMessageOutput)` if decryption succeeds, containing the plaintext
+    ///   message and list of acknowledged seekers
+    /// - `None` if the message is invalid, cannot be decrypted, or has an invalid signature
     pub fn try_feed_incoming_message(
         &mut self,
         self_static_sk: &auth::UserSecretKeys,
@@ -452,7 +580,11 @@ impl Session {
         })
     }
 
-    /// Gets the lag length.
+    /// Returns the number of unacknowledged messages sent by this session.
+    ///
+    /// The lag length increases when you send messages and decreases when the peer
+    /// acknowledges them (by sending messages back to you). This can be used to
+    /// implement flow control or detect communication issues.
     pub fn lag_length(&self) -> u64 {
         self.agraphon_instance.lag_length()
     }
@@ -462,6 +594,7 @@ impl Session {
 mod tests {
     use super::*;
 
+    /// Helper function to generate a random keypair for testing
     fn generate_test_keypair() -> (auth::UserPublicKeys, auth::UserSecretKeys) {
         // Generate a random passphrase for testing
         let mut passphrase = [0u8; 32];
@@ -470,6 +603,7 @@ mod tests {
         auth::derive_keys_from_static_root_secret(&root_secret)
     }
 
+    /// Helper function to create a test message with given contents
     fn create_test_message(contents: &[u8]) -> Message {
         Message {
             timestamp: crate::utils::timestamp_millis(),
@@ -482,6 +616,7 @@ mod tests {
     // Tests for internal Message type removed - Message is now internal implementation detail
     // and is created automatically by send_outgoing_message
 
+    /// Tests that OutgoingInitiationRequest can be created successfully with valid keypairs
     #[test]
     fn test_outgoing_initiation_request_creation() {
         let (our_pk, our_sk) = generate_test_keypair();
@@ -494,6 +629,8 @@ mod tests {
         assert!(outgoing_req.timestamp_millis > 0);
     }
 
+    /// Tests that an incoming initiation request can be parsed from announcement bytes
+    /// and contains the expected public keys and timestamp
     #[test]
     fn test_incoming_initiation_request_parsing() {
         let (our_pk, our_sk) = generate_test_keypair();
@@ -515,6 +652,7 @@ mod tests {
         );
     }
 
+    /// Tests that parsing an announcement intended for a different recipient fails
     #[test]
     fn test_incoming_initiation_request_wrong_recipient() {
         let (our_pk, our_sk) = generate_test_keypair();
@@ -531,6 +669,7 @@ mod tests {
         assert!(incoming_req.is_none());
     }
 
+    /// Tests that parsing invalid announcement data fails gracefully
     #[test]
     fn test_incoming_initiation_request_invalid_data() {
         let (our_pk, our_sk) = generate_test_keypair();
@@ -540,6 +679,8 @@ mod tests {
         assert!(incoming_req.is_none());
     }
 
+    /// Tests that sessions can be created from a pair of initiation requests.
+    /// Verifies that the KDF-based seeker keypair derivation produces valid sessions.
     #[test]
     fn test_session_creation_from_initiation_pair() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -572,6 +713,7 @@ mod tests {
         // Sessions created successfully (KeyPairs are generated randomly, so we can't compare them)
     }
 
+    /// Tests basic message sending and receiving in a session
     #[test]
     fn test_session_send_and_receive_message() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -611,6 +753,7 @@ mod tests {
         assert!((receive_output.timestamp as u128).abs_diff(message.timestamp) < 10);
     }
 
+    /// Tests that messages can be sent in both directions and multiple times
     #[test]
     fn test_session_bidirectional_messaging() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -658,6 +801,8 @@ mod tests {
         assert_eq!(received3.message, b"How are you?");
     }
 
+    /// Tests that a message encrypted for one recipient cannot be decrypted by another.
+    /// This verifies the end-to-end encryption security property.
     #[test]
     fn test_session_wrong_recipient_cannot_decrypt() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -702,6 +847,7 @@ mod tests {
         assert!(eve_attempt.is_none());
     }
 
+    /// Tests that seekers are constructed correctly and have the expected structure
     #[test]
     fn test_session_seeker_construction() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -728,6 +874,7 @@ mod tests {
         assert!(peer_seeker.len() > 10); // Hash + metadata
     }
 
+    /// Tests that lag length increases when messages are sent without acknowledgment
     #[test]
     fn test_session_lag_length() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -758,6 +905,7 @@ mod tests {
         assert!(lag2 > lag1);
     }
 
+    /// Tests that sent messages are acknowledged when the peer replies
     #[test]
     fn test_session_acknowledgments() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -806,6 +954,7 @@ mod tests {
         assert!(!received_reply.newly_acknowledged_self_seekers.is_empty());
     }
 
+    /// Tests that empty messages can be sent and received (useful for keep-alive)
     #[test]
     fn test_session_empty_message() {
         let (alice_pk, alice_sk) = generate_test_keypair();
@@ -839,6 +988,7 @@ mod tests {
         assert!(receive_output.message.is_empty());
     }
 
+    /// Tests that large messages (10KB) can be successfully sent and received
     #[test]
     fn test_session_large_message() {
         let (alice_pk, alice_sk) = generate_test_keypair();

@@ -1099,6 +1099,7 @@ dependencies = [
  "bincode",
  "crypto-aead",
  "crypto-agraphon",
+ "crypto-kdf",
  "crypto-rng",
  "massa_hash",
  "massa_signature",
