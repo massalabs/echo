@@ -30,6 +30,9 @@ const Discussion: React.FC<DiscussionProps> = ({
     ensureDiscussionExists,
   } = useDiscussion({ contact });
 
+  const isAwaitingAcceptance =
+    discussion?.direction === 'initiated' && discussion?.status === 'pending';
+
   const {
     messages,
     isLoading,
@@ -68,13 +71,14 @@ const Discussion: React.FC<DiscussionProps> = ({
   }, [discussion, onDiscussionCreated]);
 
   const handleSendMessage = useCallback(async () => {
+    if (isAwaitingAcceptance) return;
     if (!newMessage.trim()) return;
 
     const success = await sendMessage(newMessage);
     if (success) {
       setNewMessage('');
     }
-  }, [newMessage, sendMessage]);
+  }, [newMessage, sendMessage, isAwaitingAcceptance]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -282,10 +286,14 @@ const Discussion: React.FC<DiscussionProps> = ({
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                No messages yet
+                {isAwaitingAcceptance
+                  ? 'Waiting for acceptance'
+                  : 'No messages yet'}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                Start the conversation by typing a message below
+                {isAwaitingAcceptance
+                  ? 'You started this discussion. You can send messages once your contact accepts.'
+                  : 'Start the conversation by typing a message below'}
               </p>
             </div>
           ) : (
@@ -346,6 +354,12 @@ const Discussion: React.FC<DiscussionProps> = ({
 
         {/* Modern input composer */}
         <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+          {isAwaitingAcceptance && (
+            <div className="mb-2 text-xs text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+              Waiting for your contact to accept the discussion before you can
+              send messages.
+            </div>
+          )}
           <div className="flex items-end gap-3">
             <div className="flex-1 relative">
               <textarea
@@ -353,7 +367,11 @@ const Discussion: React.FC<DiscussionProps> = ({
                 value={newMessage}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder={
+                  isAwaitingAcceptance
+                    ? 'Waiting for acceptance…'
+                    : 'Type a message...'
+                }
                 rows={1}
                 inputMode="text"
                 autoComplete="off"
@@ -361,7 +379,7 @@ const Discussion: React.FC<DiscussionProps> = ({
                 autoCapitalize="sentences"
                 spellCheck="true"
                 className="w-full min-h-[40px] max-h-[120px] px-4 py-3 pr-12 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none transition-all duration-200 overflow-hidden scrollbar-hide"
-                disabled={isSending || isInitializing}
+                disabled={isSending || isInitializing || isAwaitingAcceptance}
                 style={
                   {
                     height: `${inputHeight}px`,
@@ -372,7 +390,12 @@ const Discussion: React.FC<DiscussionProps> = ({
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isSending || isInitializing}
+                disabled={
+                  !newMessage.trim() ||
+                  isSending ||
+                  isInitializing ||
+                  isAwaitingAcceptance
+                }
                 className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full flex items-center justify-center transition-all duration-200 disabled:cursor-not-allowed"
               >
                 {isSending || isInitializing ? (

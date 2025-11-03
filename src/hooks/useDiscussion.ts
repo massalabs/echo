@@ -4,7 +4,6 @@ import {
   initializeDiscussion,
   getDiscussionsForContact,
 } from '../crypto/discussionInit';
-import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 
 interface UseDiscussionProps {
   contact: Contact;
@@ -20,7 +19,10 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
 
     try {
       setIsLoading(true);
-      const discussions = await getDiscussionsForContact(contact.userId);
+      const discussions = await getDiscussionsForContact(
+        contact.ownerUserId,
+        contact.userId
+      );
 
       // Get the most recent discussion (active or pending)
       const latestDiscussion = discussions
@@ -33,7 +35,7 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [contact.userId]);
+  }, [contact.ownerUserId, contact.userId]);
 
   const initializeNewDiscussion = useCallback(async (): Promise<boolean> => {
     if (!contact.userId || isInitializing) return false;
@@ -48,11 +50,8 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
         );
       }
 
-      // Use the contact's user ID for discussion initialization
-      const result = await initializeDiscussion(
-        contact.userId,
-        UserPublicKeys.from_bytes(contact.publicKeys)
-      );
+      // Initialize discussion using Contact object (matches current API)
+      const result = await initializeDiscussion(contact);
 
       // Reload discussions to get the new one
       await loadDiscussion();
@@ -65,15 +64,15 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     } finally {
       setIsInitializing(false);
     }
-  }, [contact.userId, contact.publicKeys, isInitializing, loadDiscussion]);
+  }, [contact, isInitializing, loadDiscussion]);
 
   const ensureDiscussionExists = useCallback(async (): Promise<boolean> => {
     if (discussion) return true;
 
     // Check if a discussion already exists for this contact
     const existingDiscussion = await db.discussions
-      .where('contactUserId')
-      .equals(contact.userId)
+      .where('[ownerUserId+contactUserId]')
+      .equals([contact.ownerUserId, contact.userId])
       .first();
 
     if (existingDiscussion) {
@@ -83,7 +82,12 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
 
     // If no discussion exists, initialize one
     return await initializeNewDiscussion();
-  }, [discussion, contact.userId, initializeNewDiscussion]);
+  }, [
+    discussion,
+    contact.ownerUserId,
+    contact.userId,
+    initializeNewDiscussion,
+  ]);
 
   useEffect(() => {
     loadDiscussion();

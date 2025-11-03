@@ -4,11 +4,11 @@
  * Implements initialization using the new WASM SessionManager API.
  */
 
-import { db, Discussion, DiscussionMessage } from '../db';
+import { Contact, db, Discussion, DiscussionMessage } from '../db';
 import { getSessionModule } from '../wasm';
 import { useAccountStore } from '../stores/accountStore';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
-import { messageReceptionService } from '../services/messageReception';
+import { announcementService } from '../services/announcement';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -16,14 +16,10 @@ import { messageReceptionService } from '../services/messageReception';
 
 /**
  * Initialize a discussion with a contact using SessionManager
- * @param contactUserId - The user ID of the contact to start a discussion with
- * @param recipientUserId - The recipient's 32-byte user ID (base58check encoded)
+ * @param contact - The contact to start a discussion with
  * @returns The discussion ID and session information
  */
-export async function initializeDiscussion(
-  contactUserId: string,
-  contactPublicKeys: UserPublicKeys
-): Promise<{
+export async function initializeDiscussion(contact: Contact): Promise<{
   discussionId: number;
   announcement: Uint8Array;
 }> {
@@ -36,7 +32,7 @@ export async function initializeDiscussion(
 
     // Establish outgoing session and get announcement bytes
     const announcement = await sessionModule.establishOutgoingSession(
-      contactPublicKeys,
+      UserPublicKeys.from_bytes(contact.publicKeys),
       ourPk,
       ourSk
     );
@@ -45,7 +41,7 @@ export async function initializeDiscussion(
     // Broadcast announcement to bulletin and obtain counter
 
     // TODO HAndle fail to broadcast announcement
-    const annSvc = await messageReceptionService.getInstance();
+    const annSvc = await announcementService.getInstance();
     const result = await annSvc.sendAnnouncement(announcement);
     if (!result.success) {
       throw new Error(
@@ -56,7 +52,7 @@ export async function initializeDiscussion(
     // Store discussion in database
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
-      contactUserId,
+      contactUserId: contact.userId,
       direction: 'initiated',
       status: 'pending',
       nextSeeker: undefined,
@@ -66,12 +62,56 @@ export async function initializeDiscussion(
       updatedAt: new Date(),
     });
 
-    console.log('Created discussion for contact:', contactUserId);
+    console.log('Created discussion for contact:', contact.userId);
 
     return { discussionId, announcement };
   } catch (error) {
     console.error('Failed to initialize discussion:', error);
     throw new Error('Discussion initialization failed');
+  }
+}
+
+export async function acceptPendingDiscussion(
+  discussion: Discussion
+): Promise<void> {
+  try {
+    const sessionModule = await getSessionModule();
+    const { ourPk, ourSk } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+
+    const contact = await db.getContactByOwnerAndUserId(
+      discussion.ownerUserId,
+      discussion.contactUserId
+    );
+
+    if (!contact) throw new Error('Contact not found');
+
+    // establish outgoing session and get announcement bytes
+    const announcement = await sessionModule.establishOutgoingSession(
+      UserPublicKeys.from_bytes(contact.publicKeys),
+      ourPk,
+      ourSk
+    );
+
+    // send announcement to contact
+    const announcementSvc = await announcementService.getInstance();
+    const result = await announcementSvc.sendAnnouncement(announcement);
+    if (!result.success) {
+      throw new Error(
+        `Failed to send outgoing session: ${result.error || 'Unknown error'}`
+      );
+    }
+
+    // update discussion status
+    await db.discussions.update(discussion.id, {
+      status: 'active',
+      updatedAt: new Date(),
+    });
+
+    return;
+  } catch (error) {
+    console.error('Failed to accept pending discussion:', error);
+    throw new Error('Failed to accept pending discussion');
   }
 }
 
@@ -82,7 +122,7 @@ export async function initializeDiscussion(
  * @returns The discussion ID and session information
  */
 export async function processIncomingAnnouncement(
-  contactUserId: string,
+  contact: Contact,
   announcementData: Uint8Array
 ): Promise<{
   discussionId: number;
@@ -103,7 +143,7 @@ export async function processIncomingAnnouncement(
     // Store discussion in database with UI metadata
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
-      contactUserId,
+      contactUserId: contact.userId,
       direction: 'received',
       status: 'pending',
       nextSeeker: undefined,
@@ -112,7 +152,7 @@ export async function processIncomingAnnouncement(
       updatedAt: new Date(),
     });
 
-    console.log('Created discussion for contact:', contactUserId);
+    console.log('Created discussion for contact:', contact.userId);
 
     return { discussionId };
   } catch (error) {
@@ -127,11 +167,12 @@ export async function processIncomingAnnouncement(
  * @returns Array of discussions
  */
 export async function getDiscussionsForContact(
+  ownerUserId: string,
   contactUserId: string
 ): Promise<Discussion[]> {
   return await db.discussions
-    .where('contactUserId')
-    .equals(contactUserId)
+    .where('[ownerUserId+contactUserId]')
+    .equals([ownerUserId, contactUserId])
     .toArray();
 }
 

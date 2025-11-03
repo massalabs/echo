@@ -13,10 +13,11 @@ import AccountCreation from './AccountCreation';
 import NewDiscussion from './NewDiscussion';
 import NewContact from './NewContact';
 import DiscussionView from './Discussion';
-import { messageReceptionService } from '../services/messageReception';
-import { initializeDiscussion } from '../crypto/discussionInit';
-import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
-// announcementReception merged into messageReception
+import { announcementService } from '../services/announcement';
+import {
+  acceptPendingDiscussion,
+  initializeDiscussion,
+} from '../crypto/discussionInit';
 
 // Global error state (survives component remounts)
 let globalLoginError: string | null = null;
@@ -284,11 +285,9 @@ const DiscussionList: React.FC = () => {
         console.log('Notification permission:', permission);
       }
 
-      // Get the message reception service
-      const service = await messageReceptionService.getInstance();
-
-      // Use the dedicated simulation method
-      const result = await service.simulateIncomingDiscussion();
+      // Use the announcement service simulation method
+      const ann = await announcementService.getInstance();
+      const result = await ann.simulateIncomingDiscussion();
 
       if (result.success && result.newMessagesCount > 0) {
         console.log('Successfully simulated incoming discussion!');
@@ -308,12 +307,11 @@ const DiscussionList: React.FC = () => {
 
   const handleFetchAllAnnouncements = useCallback(async () => {
     try {
-      const service = await messageReceptionService.getInstance();
-      const protocol = await service.getMessageProtocol();
-      const rawAnnouncements = await protocol.fetchAnnouncements();
-      console.log('Raw announcements (bytes):', rawAnnouncements);
+      const announcementSvc = await announcementService.getInstance();
 
-      const result = await service.fetchAndProcessAnnouncements();
+      const result = await announcementSvc.fetchAndProcessAnnouncements();
+
+      // TODO: Show a notification if there are new discussions ? Or just reload the discussions list ?
       if (result.success) {
         await loadDiscussions();
         await loadContacts();
@@ -390,10 +388,7 @@ const DiscussionList: React.FC = () => {
     async (contact: Contact) => {
       setShowNewContact(false);
       try {
-        await initializeDiscussion(
-          contact.userId,
-          UserPublicKeys.from_bytes(contact.publicKeys)
-        );
+        await initializeDiscussion(contact);
       } catch (e) {
         console.error(
           'Failed to initialize discussion after contact creation:',
@@ -412,10 +407,8 @@ const DiscussionList: React.FC = () => {
     async (discussion: Discussion) => {
       try {
         if (discussion.id == null) return;
-        await db.discussions.update(discussion.id, {
-          status: 'active',
-          updatedAt: new Date(),
-        });
+
+        await acceptPendingDiscussion(discussion);
         await loadDiscussions();
       } catch (error) {
         console.error('Failed to accept discussion:', error);
@@ -556,6 +549,9 @@ const DiscussionList: React.FC = () => {
                   const isPendingIncoming =
                     discussion.status === 'pending' &&
                     discussion.direction === 'received';
+                  const isPendingOutgoing =
+                    discussion.status === 'pending' &&
+                    discussion.direction === 'initiated';
 
                   return (
                     <DiscussionListItem
@@ -564,6 +560,7 @@ const DiscussionList: React.FC = () => {
                       contact={contact}
                       lastMessage={lastMessage}
                       isPendingIncoming={isPendingIncoming}
+                      isPendingOutgoing={isPendingOutgoing}
                       onSelect={handleSelectDiscussion}
                       onAccept={handleAcceptPendingDiscussion}
                       onRefuse={handleRefusePendingDiscussion}

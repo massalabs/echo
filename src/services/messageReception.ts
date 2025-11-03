@@ -11,11 +11,10 @@ import {
   IMessageProtocol,
   createMessageProtocol,
 } from '../api/messageProtocol';
-import { notificationService } from './notifications';
 import bs58check from 'bs58check';
-import { processIncomingAnnouncement } from '../crypto/discussionInit';
 import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, getSessionModule, SessionModule } from '../wasm';
+import { announcementService } from './announcement';
 
 export interface MessageReceptionResult {
   success: boolean;
@@ -23,12 +22,7 @@ export interface MessageReceptionResult {
   error?: string;
 }
 
-// For announcement fetching results (discussions created)
-export interface AnnouncementReceptionResult {
-  success: boolean;
-  newDiscussionsCount: number;
-  error?: string;
-}
+// Announcement types are handled in AnnouncementService
 
 export class MessageReceptionService {
   private _messageProtocol: IMessageProtocol | null = null;
@@ -46,70 +40,7 @@ export class MessageReceptionService {
     return this._messageProtocol;
   }
 
-  /* -------------------------------------------------------------------------- */
-  /*                                ANNOUNCEMENT                                */
-  /* -------------------------------------------------------------------------- */
-
-  /**
-   * Broadcast an outgoing announcement produced by WASM
-   */
-  async sendAnnouncement(announcement: Uint8Array): Promise<{
-    success: boolean;
-    counter?: string;
-    error?: string;
-  }> {
-    try {
-      const protocol = await this.getMessageProtocol();
-      const counter = await protocol.sendAnnouncement(announcement);
-      return { success: true, counter };
-    } catch (error) {
-      console.error('Failed to broadcast outgoing session:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
-
-  /**
-   * Check for incoming announcements
-   * @returns Result with count of new discussions created
-   */
-  async fetchAndProcessAnnouncements(): Promise<AnnouncementReceptionResult> {
-    try {
-      const announcements = await this._fetchAnnouncements();
-
-      let newDiscussionsCount = 0;
-      let hasErrors = false;
-
-      for (const announcement of announcements) {
-        try {
-          const result = await this._processIncomingAnnouncement(announcement);
-          if (result.success) {
-            newDiscussionsCount++;
-          } else {
-            hasErrors = true;
-          }
-        } catch (error) {
-          console.error('Failed to process incoming announcement:', error);
-          hasErrors = true;
-        }
-      }
-
-      return {
-        success: !hasErrors || newDiscussionsCount > 0,
-        newDiscussionsCount,
-        error: hasErrors ? 'Some announcements failed to process' : undefined,
-      };
-    } catch (error) {
-      console.error('Failed to fetch/process incoming announcements:', error);
-      return {
-        success: false,
-        newDiscussionsCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
+  // Announcement responsibilities moved to AnnouncementService
 
   /* -------------------------------------------------------------------------- */
   /*                                MESSAGE API                                 */
@@ -241,7 +172,9 @@ export class MessageReceptionService {
       }
 
       // Also check for incoming session announcements
-      const announcementResult = await this.fetchAndProcessAnnouncements();
+      const announcementSvc = await announcementService.getInstance();
+      const announcementResult =
+        await announcementSvc.fetchAndProcessAnnouncements();
       if (announcementResult.success) {
         totalNewMessages += announcementResult.newDiscussionsCount;
       } else if (announcementResult.error) {
@@ -271,47 +204,7 @@ export class MessageReceptionService {
   // Simulation helpers (test/dev)
   // =========================
 
-  /**
-   * Simulate an incoming discussion announcement for testing
-   * @returns Result with count of new discussions created
-   */
-  async simulateIncomingDiscussion(): Promise<MessageReceptionResult> {
-    try {
-      console.log('Simulating incoming discussion announcement...');
-
-      // Create a mock announcement with more realistic data
-      const mockAnnouncement = new Uint8Array(64);
-      crypto.getRandomValues(mockAnnouncement);
-
-      // Process the mock announcement
-      const result = await this._processIncomingAnnouncement(mockAnnouncement);
-
-      if (result.success) {
-        console.log(
-          'Successfully simulated incoming discussion:',
-          result.discussionId
-        );
-        return {
-          success: true,
-          newMessagesCount: 1,
-        };
-      } else {
-        console.error('Failed to simulate incoming discussion:', result.error);
-        return {
-          success: false,
-          newMessagesCount: 0,
-          error: result.error,
-        };
-      }
-    } catch (error) {
-      console.error('Failed to simulate incoming discussion:', error);
-      return {
-        success: false,
-        newMessagesCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
+  // simulateIncomingDiscussion moved to AnnouncementService
 
   /**
    * Simulate receiving a message for an existing discussion
@@ -525,110 +418,7 @@ export class MessageReceptionService {
   // Private helpers
   // =========================
 
-  /**
-   * Fetch incoming announcements from the protocol
-   * @returns Array of announcement data
-   */
-  private async _fetchAnnouncements(): Promise<Uint8Array[]> {
-    try {
-      const messageProtocol = await this.getMessageProtocol();
-      const announcements = await messageProtocol.fetchAnnouncements();
-      return announcements;
-    } catch (error) {
-      console.error('Failed to fetch incoming announcements:', error);
-      // Return empty array to let caller handle the failure appropriately
-      return [];
-    }
-  }
-
-  /**
-   * Process an incoming announcement
-   * @param announcementData - The announcement data
-   * @returns Result with discussion ID if successful
-   */
-  private async _processIncomingAnnouncement(
-    announcementData: Uint8Array
-  ): Promise<{
-    success: boolean;
-    discussionId?: number;
-    contactUserId?: string;
-    error?: string;
-  }> {
-    const { ourPk, ourSk } = useAccountStore.getState();
-    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
-    try {
-      // Extract contact information from the announcement
-      const sessionModule = await getSessionModule();
-      const announcerPkeys = await sessionModule.feedIncomingAnnouncement(
-        announcementData,
-        ourPk,
-        ourSk
-      );
-      console.log('announcerPkeys', announcerPkeys);
-      if (!announcerPkeys) {
-        throw new Error(
-          'Could not extract announcer public keys from announcement'
-        );
-      }
-      const contactUserId = announcerPkeys.derive_id();
-      const contactUserIdString = bs58check.encode(contactUserId);
-
-      // Create contact if it doesn't exist (for simulation/testing)
-      const ownerUserId = useAccountStore.getState().userProfile?.userId;
-      if (!ownerUserId) throw new Error('No authenticated user');
-      let contact = await db.getContactByOwnerAndUserId(
-        ownerUserId,
-        contactUserIdString
-      );
-      if (!contact) {
-        // Create a mock contact for simulation
-        await db.contacts.add({
-          ownerUserId,
-          userId: contactUserIdString,
-          name: `User ${contactUserIdString.substring(0, 8)}`,
-          publicKeys: announcerPkeys.to_bytes(),
-          avatar: undefined,
-          isOnline: false,
-          lastSeen: new Date(),
-          createdAt: new Date(),
-        });
-        contact = await db.getContactByOwnerAndUserId(
-          ownerUserId,
-          contactUserIdString
-        );
-      }
-
-      // Delegate to the new WASM-based initiation processor
-      const { discussionId } = await processIncomingAnnouncement(
-        contactUserIdString,
-        announcementData
-      );
-
-      // Show notification for new discussion
-      try {
-        await notificationService.showNewDiscussionNotification(
-          contact?.name || `User ${contactUserIdString.substring(0, 8)}`
-        );
-      } catch (notificationError) {
-        console.error(
-          'Failed to show new discussion notification:',
-          notificationError
-        );
-      }
-
-      return {
-        success: true,
-        discussionId,
-        contactUserId: contactUserIdString,
-      };
-    } catch (error) {
-      console.error('Failed to process incoming announcement:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
+  // Announcement processing moved to AnnouncementService
 
   /**
    * Check if there are new encrypted messages for a discussion
