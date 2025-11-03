@@ -69,7 +69,7 @@ export async function initializeDiscussion(contact: Contact): Promise<{
   }
 }
 
-export async function acceptPendingDiscussion(
+export async function acceptDiscussionRequest(
   discussion: Discussion
 ): Promise<void> {
   try {

@@ -15,7 +15,7 @@ import NewContact from './NewContact';
 import DiscussionView from './Discussion';
 
 import {
-  acceptPendingDiscussion,
+  acceptDiscussionRequest,
   initializeDiscussion,
 } from '../crypto/discussionInit';
 
@@ -270,12 +270,12 @@ const DiscussionList: React.FC = () => {
     [loadDiscussions, loadContacts]
   );
 
-  const handleAcceptPendingDiscussion = useCallback(
+  const handleAcceptDiscussionRequest = useCallback(
     async (discussion: Discussion) => {
       try {
         if (discussion.id == null) return;
 
-        await acceptPendingDiscussion(discussion);
+        await acceptDiscussionRequest(discussion);
         await loadDiscussions();
       } catch (error) {
         console.error('Failed to accept discussion:', error);
@@ -429,7 +429,7 @@ const DiscussionList: React.FC = () => {
                       isPendingIncoming={isPendingIncoming}
                       isPendingOutgoing={isPendingOutgoing}
                       onSelect={handleSelectDiscussion}
-                      onAccept={handleAcceptPendingDiscussion}
+                      onAccept={handleAcceptDiscussionRequest}
                       onRefuse={handleRefusePendingDiscussion}
                     />
                   );
