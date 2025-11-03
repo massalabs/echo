@@ -301,7 +301,12 @@ export class MessageReceptionService {
       const contactUserId = discussion.contactUserId;
 
       // Retrieve the contact to get its identifier
-      const contact = await db.getContactByUserId(contactUserId);
+      const ownerUserId2 = useAccountStore.getState().userProfile?.userId;
+      if (!ownerUserId2) throw new Error('No authenticated user');
+      const contact = await db.getContactByOwnerAndUserId(
+        ownerUserId2,
+        contactUserId
+      );
       if (!contact) {
         return {
           success: false,
@@ -336,9 +341,11 @@ export class MessageReceptionService {
           contactPublicKeys,
           contactSecretKeys
         );
-
-        // Refresh to update session states
-        await sessionModule.refresh();
+        await sessionModule.establishOutgoingSession(
+          ourPk,
+          contactPublicKeys,
+          contactSecretKeys
+        );
       }
 
       const peerList = await sessionModule.peerList();
@@ -522,13 +529,16 @@ export class MessageReceptionService {
       const contactUserIdString = bs58check.encode(contactUserId);
 
       // Create contact if it doesn't exist (for simulation/testing)
-      let contact = await db.contacts
-        .where('userId')
-        .equals(contactUserId)
-        .first();
+      const ownerUserId = useAccountStore.getState().userProfile?.userId;
+      if (!ownerUserId) throw new Error('No authenticated user');
+      let contact = await db.getContactByOwnerAndUserId(
+        ownerUserId,
+        contactUserIdString
+      );
       if (!contact) {
         // Create a mock contact for simulation
         await db.contacts.add({
+          ownerUserId,
           userId: contactUserIdString,
           name: `User ${contactUserIdString.substring(0, 8)}`,
           publicKeys: announcerPkeys.to_bytes(),
@@ -537,10 +547,10 @@ export class MessageReceptionService {
           lastSeen: new Date(),
           createdAt: new Date(),
         });
-        contact = await db.contacts
-          .where('userId')
-          .equals(contactUserId)
-          .first();
+        contact = await db.getContactByOwnerAndUserId(
+          ownerUserId,
+          contactUserIdString
+        );
       }
 
       // Delegate to the new WASM-based initiation processor

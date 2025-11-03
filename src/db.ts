@@ -2,6 +2,7 @@ import Dexie, { Table } from 'dexie';
 
 // Define interfaces for your data models
 export interface Contact {
+  ownerUserId: string; // The current user's userId owning this contact
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   name: string;
   avatar?: string;
@@ -121,7 +122,8 @@ export class EchoDatabase extends Dexie {
     super('EchoDatabase');
 
     this.version(10).stores({
-      contacts: 'userId, name, isOnline, lastSeen, createdAt',
+      contacts:
+        '++id, ownerUserId, userId, name, isOnline, lastSeen, createdAt, [ownerUserId+userId] , [ownerUserId+name]',
       messages:
         '++id, ownerUserId, contactUserId, type, direction, status, timestamp, encrypted, [ownerUserId+contactUserId], [ownerUserId+contactUserId+status]',
       userProfile: 'userId, username, status, lastSeen',
@@ -183,8 +185,21 @@ export class EchoDatabase extends Dexie {
   }
 
   // Helper methods for common operations
-  async getContactByUserId(userId: string): Promise<Contact | undefined> {
-    return await this.contacts.where('userId').equals(userId).first();
+  async getContactsByOwner(ownerUserId: string): Promise<Contact[]> {
+    return await this.contacts
+      .where('ownerUserId')
+      .equals(ownerUserId)
+      .toArray();
+  }
+
+  async getContactByOwnerAndUserId(
+    ownerUserId: string,
+    userId: string
+  ): Promise<Contact | undefined> {
+    return await this.contacts
+      .where('[ownerUserId+userId]')
+      .equals([ownerUserId, userId])
+      .first();
   }
 
   async getMessagesForContactByOwner(
