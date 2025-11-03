@@ -1,11 +1,13 @@
 import React from 'react';
 import appLogo from '../assets/echo_face.svg';
 
-interface AppHeaderProps {
+interface DiscussionHeaderProps {
   title?: string;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ title = 'Echo' }) => {
+const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
+  title = 'Discussions',
+}) => {
   return (
     <div className="px-6 py-4">
       <div className="flex items-center justify-between">
@@ -24,4 +26,4 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title = 'Echo' }) => {
   );
 };
 
-export default AppHeader;
+export default DiscussionHeader;

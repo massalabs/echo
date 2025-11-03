@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { UserProfile, Discussion, Contact, db } from '../db';
-import AppHeader from './AppHeader';
+import DiscussionHeader from './DiscussionHeader';
 import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 import DebugPanel from './DebugPanel';
@@ -517,7 +517,7 @@ const DiscussionList: React.FC = () => {
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         {/* Header */}
-        <AppHeader />
+        <DiscussionHeader />
 
         {/* Main content area */}
         <div className="px-4 pb-20 flex-1 overflow-y-auto">
