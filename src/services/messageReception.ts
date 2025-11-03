@@ -494,6 +494,7 @@ export class MessageReceptionService {
         // Create a mock contact for simulation
         await db.contacts.add({
           userId: contactUserId,
+          userPublicKeys: new Uint8Array(0), // TODO: add user public keys
           name: `User ${contactUserId.substring(0, 8)}`,
           avatar: undefined,
           isOnline: false,

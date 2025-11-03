@@ -4,9 +4,15 @@ import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
 import BottomNavigation from './BottomNavigation';
 import AccountBackup from './AccountBackup';
+import ShareContact from './ShareContact';
 
 interface SettingsProps {
   onTabChange: (tab: 'wallet' | 'discussions' | 'settings') => void;
+}
+
+enum SettingsView {
+  SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
+  SHARE_CONTACT = 'SHARE_CONTACT',
 }
 
 const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
@@ -16,7 +22,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
     getMnemonicBackupInfo,
     resetAccount,
   } = useAccountStore();
-  const [showAccountBackup, setShowAccountBackup] = useState(false);
+  const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopyAddress = async () => {
@@ -48,9 +54,14 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   const mnemonicBackupInfo = getMnemonicBackupInfo();
   const hasMnemonic = hasMnemonicBackup();
 
-  // Show MnemonicBackup screen if active
-  if (showAccountBackup) {
-    return <AccountBackup onBack={() => setShowAccountBackup(false)} />;
+  // Show sub-views based on activeView
+  switch (activeView) {
+    case SettingsView.SHOW_ACCOUNT_BACKUP:
+      return <AccountBackup onBack={() => setActiveView(null)} />;
+    case SettingsView.SHARE_CONTACT:
+      return <ShareContact onBack={() => setActiveView(null)} />;
+    default:
+      break;
   }
 
   return (
@@ -130,7 +141,7 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
         <div className="px-4 space-y-2">
           {/* Account Backup Button */}
           <button
-            onClick={() => setShowAccountBackup(true)}
+            onClick={() => setActiveView(SettingsView.SHOW_ACCOUNT_BACKUP)}
             className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             <svg
@@ -152,6 +163,29 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
             {hasMnemonic && mnemonicBackupInfo?.backedUp && (
               <div className="ml-auto w-2 h-2 bg-green-500 rounded-full"></div>
             )}
+          </button>
+
+          {/* Share Contact Button */}
+          <button
+            onClick={() => setActiveView(SettingsView.SHARE_CONTACT)}
+            className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            <svg
+              className="w-5 h-5 text-black dark:text-white mr-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
+              />
+            </svg>
+            <span className="text-base font-semibold text-black dark:text-white">
+              Share Contact
+            </span>
           </button>
 
           {/* Additional Settings Buttons */}

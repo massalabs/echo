@@ -29,5 +29,6 @@ export async function generateUserKeys(
   await ensureWasmInitialized();
   // The actual WASM function is synchronous, so we can call it directly
   const keys = _generate_user_keys(passphrase, secondaryKey);
+
   return keys;
 }
