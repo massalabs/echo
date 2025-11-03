@@ -284,7 +284,7 @@ const DiscussionList: React.FC = () => {
     [loadDiscussions]
   );
 
-  const handleRefusePendingDiscussion = useCallback(
+  const handleRefuseDiscussionRequest = useCallback(
     async (discussion: Discussion) => {
       try {
         const confirmed = window.confirm(
@@ -430,7 +430,7 @@ const DiscussionList: React.FC = () => {
                       isPendingOutgoing={isPendingOutgoing}
                       onSelect={handleSelectDiscussion}
                       onAccept={handleAcceptDiscussionRequest}
-                      onRefuse={handleRefusePendingDiscussion}
+                      onRefuse={handleRefuseDiscussionRequest}
                     />
                   );
                 })
