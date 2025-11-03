@@ -1,3 +1,5 @@
+// TODO: For annoucement handle if there is al-ready an announcement for this contact ?
+
 /**
  * Discussion Initialization Module
  *

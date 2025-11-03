@@ -281,7 +281,6 @@ export const useDiscussionList = () => {
     } catch (error) {
       console.error('Error fetching announcements:', error);
     } finally {
-      console.log('finally');
       await loadDiscussions();
       await loadContacts();
     }
