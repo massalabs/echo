@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
 import { validateMnemonic } from '../../crypto/bip39';
-import { validatePassword as _validatePassword } from '../../utils/validation';
+import { validatePassword } from '../../utils/validation';
 
 interface AccountImportProps {
   onBack: () => void;
@@ -60,7 +60,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
           return;
         }
 
-        const pwdValidation = _validatePassword(password);
+        const pwdValidation = validatePassword(password);
         if (!pwdValidation.valid) {
           setError(pwdValidation.error || 'Invalid password');
           return;
@@ -255,9 +255,9 @@ const AccountImport: React.FC<AccountImportProps> = ({
               className="w-full h-12 px-4 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400"
               disabled={isImporting}
             />
-            {password && !_validatePassword(password).valid && (
+            {password && !validatePassword(password).valid && (
               <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                {_validatePassword(password).error}
+                {validatePassword(password).error}
               </p>
             )}
           </div>
@@ -276,7 +276,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
           disabled={
             isImporting ||
             !username.trim() ||
-            (!useBiometrics && !_validatePassword(password).valid)
+            (!useBiometrics && !validatePassword(password).valid)
           }
           className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
