@@ -124,7 +124,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
   }, [name, userId, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
-    if (!isValid || !publicKeys) return;
+    if (!isValid || !publicKeys || !userProfile) return;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -157,6 +157,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
         userProfile.userId,
         contact.userId
       );
+
       if (existing) {
         setError('This user ID already exists in your contacts.');
         setIsSubmitting(false);
@@ -171,7 +172,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, name, userId, onCreated, userProfile?.userId, publicKeys]);
+  }, [isValid, publicKeys, userProfile, name, userId, onCreated]);
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
