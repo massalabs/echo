@@ -166,7 +166,7 @@ export class AnnouncementService {
       );
 
       if (!contact) {
-        contact = await db.contacts.add({
+        await db.contacts.add({
           ownerUserId,
           userId: contactUserIdString,
           name: `User ${contactUserIdString.substring(0, 8)}`,
@@ -176,6 +176,11 @@ export class AnnouncementService {
           lastSeen: new Date(),
           createdAt: new Date(),
         });
+
+        contact = await db.getContactByOwnerAndUserId(
+          ownerUserId,
+          contactUserIdString
+        );
       }
 
       if (!contact) {
