@@ -132,6 +132,35 @@ export class AnnouncementService {
     }
   }
 
+  /**
+   * Generates a temporary contact name for new incoming requests.
+   * TODO: Replace with a better naming scheme.
+   */
+  private async _generateTemporaryContactName(
+    ownerUserId: string
+  ): Promise<string> {
+    // Find all contacts with names starting with "New Request"
+    // and extract the maximum number suffix
+    const newRequestContacts = await db.contacts
+      .where('ownerUserId')
+      .equals(ownerUserId)
+      .filter(contact => contact.name.startsWith('New Request'))
+      .toArray();
+
+    // Extract numbers from names like "New Request 1", "New Request 2", etc.
+    const numbers = newRequestContacts
+      .map(c => {
+        const match = c.name.match(/^New Request (\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+
+    const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
+    const nextNumber = maxNumber + 1;
+
+    return `New Request ${nextNumber}`;
+  }
+
   private async _processIncomingAnnouncement(
     announcementData: Uint8Array
   ): Promise<{
@@ -166,30 +195,13 @@ export class AnnouncementService {
       );
 
       if (!contact) {
-        // Find all contacts with names starting with "New Request"
-        // and extract the maximum number suffix
-        const newRequestContacts = await db.contacts
-          .where('ownerUserId')
-          .equals(ownerUserId)
-          .filter(contact => contact.name.startsWith('New Request'))
-          .toArray();
-
-        // Extract numbers from names like "New Request 1", "New Request 2", etc.
-        const numbers = newRequestContacts
-          .map(c => {
-            const match = c.name.match(/^New Request (\d+)$/);
-            return match ? parseInt(match[1], 10) : 0;
-          })
-          .filter(n => n > 0);
-
-        const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
-        const nextNumber = maxNumber + 1;
+        const contactName =
+          await this._generateTemporaryContactName(ownerUserId);
 
         await db.contacts.add({
           ownerUserId,
           userId: contactUserIdString,
-          // TODO: Add a better name for the new request
-          name: `New Request ${nextNumber}`,
+          name: contactName,
           publicKeys: announcerPkeys.to_bytes(),
           avatar: undefined,
           isOnline: false,
