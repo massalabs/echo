@@ -375,7 +375,7 @@ export class MessageReceptionService {
         if (!discussion.initiationAnnouncement) {
           throw new Error('No initiation announcement found');
         }
-        console.log('feedIncomingAnnouncement');
+
         await sessionModule.feedIncomingAnnouncement(
           discussion.initiationAnnouncement,
           contactPublicKeys,

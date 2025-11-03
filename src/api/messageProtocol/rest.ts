@@ -107,28 +107,6 @@ export class RestMessageProtocol implements IMessageProtocol {
     return response.data.counter;
   }
 
-  // Broadcast an incoming session response produced by WASM
-  // TODO Remove, same as sendAnnouncement
-  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<string> {
-    const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
-
-    const response = await this.makeRequest<{ counter: string }>(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        data: encodeToBase64(announcement),
-      }),
-    });
-
-    if (!response.success || !response.data) {
-      throw new Error(
-        response.error || 'Failed to broadcast incoming announcement'
-      );
-    }
-
-    return response.data.counter;
-  }
-
   async fetchAnnouncements(): Promise<Uint8Array[]> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 

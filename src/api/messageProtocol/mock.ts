@@ -62,16 +62,6 @@ export class MockMessageProtocol implements IMessageProtocol {
     return String(this.bulletinCounter);
   }
 
-  // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<string> {
-    console.log('Mock: Broadcasting incoming session response');
-    // For the mock, also push to announcements
-    this.mockAnnouncements.push(announcement);
-    this.bulletinCounter += 1;
-    await new Promise(resolve => setTimeout(resolve, 150));
-    return String(this.bulletinCounter);
-  }
-
   async fetchAnnouncements(): Promise<Uint8Array[]> {
     console.log('Mock: Fetching announcements');
 

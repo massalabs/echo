@@ -35,12 +35,6 @@ export interface IMessageProtocol {
   sendAnnouncement(announcement: Uint8Array): Promise<string>;
 
   /**
-   * Broadcast an incoming session response produced by WASM.
-   * Returns the bulletin counter provided by the API.
-   */
-  feedIncomingAnnouncement(announcement: Uint8Array): Promise<string>;
-
-  /**
    * Fetch incoming discussion announcements from the bulletin storage.
    * Returns raw announcement bytes as provided by the API.
    */
