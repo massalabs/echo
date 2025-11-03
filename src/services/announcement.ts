@@ -164,6 +164,7 @@ export class AnnouncementService {
         ownerUserId,
         contactUserIdString
       );
+
       if (!contact) {
         contact = await db.contacts.add({
           ownerUserId,

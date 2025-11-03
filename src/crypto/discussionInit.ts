@@ -140,7 +140,28 @@ export async function processIncomingAnnouncement(
       ourSk
     );
 
-    // Store discussion in database with UI metadata
+    // If we already have a pending initiated discussion with this contact,
+    // upgrade it to active instead of creating a duplicate.
+    const existing = await db.getDiscussionByOwnerAndContact(
+      userProfile.userId,
+      contact.userId
+    );
+
+    if (existing) {
+      // If we initiated and were waiting, mark as active on response
+      if (existing.status === 'pending' && existing.direction === 'initiated') {
+        await db.discussions.update(existing.id!, {
+          status: 'active',
+          updatedAt: new Date(),
+        });
+        return { discussionId: existing.id! };
+      }
+
+      // If some discussion already exists, reuse it
+      return { discussionId: existing.id! };
+    }
+
+    // Otherwise create a new pending received discussion
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
       contactUserId: contact.userId,
