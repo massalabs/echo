@@ -13,6 +13,7 @@ export interface Contact {
 
 export interface Message {
   id?: number;
+  ownerUserId: string; // The current user's userId owning this message
   contactUserId: string; // Reference to Contact.userId
   content: string;
   type: 'text' | 'image' | 'file' | 'audio' | 'video';
@@ -61,6 +62,7 @@ export interface Settings {
 // Unified discussion interface combining protocol state and UI metadata
 export interface Discussion {
   id?: number;
+  ownerUserId: string; // The current user's userId owning this discussion
   contactUserId: string; // Reference to Contact.userId - unique per contact
 
   // Protocol/Encryption fields
@@ -118,15 +120,14 @@ export class EchoDatabase extends Dexie {
   constructor() {
     super('EchoDatabase');
 
-    // Define schema with userId as primary key for contacts and userProfile
-    this.version(9).stores({
+    this.version(10).stores({
       contacts: 'userId, name, isOnline, lastSeen, createdAt',
       messages:
-        '++id, contactUserId, type, direction, status, timestamp, encrypted, [contactUserId+status]',
+        '++id, ownerUserId, contactUserId, type, direction, status, timestamp, encrypted, [ownerUserId+contactUserId], [ownerUserId+contactUserId+status]',
       userProfile: 'userId, username, status, lastSeen',
       settings: '++id, key, updatedAt',
       discussions:
-        '++id, &contactUserId, direction, status, lastSyncTimestamp, unreadCount, lastMessageTimestamp, createdAt, updatedAt',
+        '++id, ownerUserId, &[ownerUserId+contactUserId], status, [ownerUserId+status], lastSyncTimestamp, unreadCount, lastMessageTimestamp, createdAt, updatedAt',
       discussionKeys: '++id, discussionId, isActive, createdAt',
       discussionMessages:
         '++id, discussionId, messageType, direction, status, timestamp',
@@ -186,23 +187,25 @@ export class EchoDatabase extends Dexie {
     return await this.contacts.where('userId').equals(userId).first();
   }
 
-  async getMessagesForContact(
+  async getMessagesForContactByOwner(
+    ownerUserId: string,
     contactUserId: string,
     limit = 50
   ): Promise<Message[]> {
     return await this.messages
-      .where('contactUserId')
-      .equals(contactUserId)
+      .where('[ownerUserId+contactUserId]')
+      .equals([ownerUserId, contactUserId])
       .reverse()
       .limit(limit)
       .toArray();
   }
 
-  async getDiscussions(): Promise<Discussion[]> {
-    // Get all discussions and sort by last message timestamp stored on the discussion
-    const allDiscussions = await this.discussions.toArray();
-
-    return allDiscussions.sort((a, b) => {
+  async getDiscussionsByOwner(ownerUserId: string): Promise<Discussion[]> {
+    const all = await this.discussions
+      .where('ownerUserId')
+      .equals(ownerUserId)
+      .toArray();
+    return all.sort((a, b) => {
       if (a.lastMessageTimestamp && b.lastMessageTimestamp) {
         return (
           b.lastMessageTimestamp.getTime() - a.lastMessageTimestamp.getTime()
@@ -214,23 +217,26 @@ export class EchoDatabase extends Dexie {
     });
   }
 
-  async getUnreadCount(): Promise<number> {
-    const discussions = await this.discussions.toArray();
-    return discussions.reduce(
-      (total, discussion) => total + discussion.unreadCount,
-      0
-    );
+  async getUnreadCountByOwner(ownerUserId: string): Promise<number> {
+    const discussions = await this.discussions
+      .where('ownerUserId')
+      .equals(ownerUserId)
+      .toArray();
+    return discussions.reduce((total, d) => total + d.unreadCount, 0);
   }
 
-  async markMessagesAsRead(contactUserId: string): Promise<void> {
+  async markMessagesAsRead(
+    ownerUserId: string,
+    contactUserId: string
+  ): Promise<void> {
     await this.messages
-      .where(['contactUserId', 'status'])
-      .equals([contactUserId, 'delivered'])
+      .where('[ownerUserId+contactUserId+status]')
+      .equals([ownerUserId, contactUserId, 'delivered'])
       .modify({ status: 'read' });
 
     await this.discussions
-      .where('contactUserId')
-      .equals(contactUserId)
+      .where('[ownerUserId+contactUserId]')
+      .equals([ownerUserId, contactUserId])
       .modify({ unreadCount: 0 });
   }
 
@@ -240,8 +246,8 @@ export class EchoDatabase extends Dexie {
 
     // Get existing discussion
     const discussion = await this.discussions
-      .where('contactUserId')
-      .equals(message.contactUserId)
+      .where('[ownerUserId+contactUserId]')
+      .equals([message.ownerUserId, message.contactUserId])
       .first();
 
     if (discussion) {
@@ -264,10 +270,11 @@ export class EchoDatabase extends Dexie {
         message.contactUserId
       );
       await this.discussions.put({
+        ownerUserId: message.ownerUserId,
         contactUserId: message.contactUserId,
         direction: message.direction === 'incoming' ? 'received' : 'initiated',
         status: 'pending',
-        nextSeeker: undefined, // Will be set by protocol when available
+        nextSeeker: undefined,
         lastMessageId: messageId,
         lastMessageContent: message.content,
         lastMessageTimestamp: message.timestamp,
@@ -317,8 +324,13 @@ export class EchoDatabase extends Dexie {
    * Get all active discussions with their sync status
    * @returns Array of active discussions
    */
-  async getActiveDiscussions(): Promise<Discussion[]> {
-    return await this.discussions.where('status').equals('active').toArray();
+  async getActiveDiscussionsByOwner(
+    ownerUserId: string
+  ): Promise<Discussion[]> {
+    return await this.discussions
+      .where('[ownerUserId+status]')
+      .equals([ownerUserId, 'active'])
+      .toArray();
   }
 
   /**

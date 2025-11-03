@@ -30,8 +30,9 @@ export async function initializeDiscussion(
   try {
     const sessionModule = await getSessionModule();
 
-    const { ourPk, ourSk } = useAccountStore.getState();
+    const { ourPk, ourSk, userProfile } = useAccountStore.getState();
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+    if (!userProfile?.userId) throw new Error('No authenticated user');
 
     // Establish outgoing session and get announcement bytes
     const announcement = await sessionModule.establishOutgoingSession(
@@ -42,6 +43,7 @@ export async function initializeDiscussion(
 
     // Store discussion in database with UI metadata and keep announcement on discussion
     const discussionId = await db.discussions.add({
+      ownerUserId: userProfile.userId,
       contactUserId,
       direction: 'initiated',
       status: 'pending',
@@ -86,8 +88,9 @@ export async function processIncomingInitiation(
   try {
     const sessionModule = await getSessionModule();
 
-    const { ourPk, ourSk } = useAccountStore.getState();
+    const { ourPk, ourSk, userProfile } = useAccountStore.getState();
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+    if (!userProfile?.userId) throw new Error('No authenticated user');
 
     await sessionModule.feedIncomingAnnouncement(
       announcementData,
@@ -97,6 +100,7 @@ export async function processIncomingInitiation(
 
     // Store discussion in database with UI metadata
     const discussionId = await db.discussions.add({
+      ownerUserId: userProfile.userId,
       contactUserId,
       direction: 'received',
       status: 'active',

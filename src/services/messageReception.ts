@@ -82,7 +82,10 @@ export class MessageReceptionService {
           const content = decoder.decode(out.message);
 
           // Create a regular message entry for the UI
+          const ownerUserId = useAccountStore.getState().userProfile?.userId;
+          if (!ownerUserId) throw new Error('No authenticated user');
           await db.addMessage({
+            ownerUserId,
             contactUserId: discussion.contactUserId,
             content,
             type: 'text',
@@ -135,7 +138,10 @@ export class MessageReceptionService {
    */
   async fetchAllDiscussions(): Promise<MessageReceptionResult> {
     try {
-      const activeDiscussions = await db.getActiveDiscussions();
+      const ownerUserId = useAccountStore.getState().userProfile?.userId;
+      if (!ownerUserId) throw new Error('No authenticated user');
+      const activeDiscussions =
+        await db.getActiveDiscussionsByOwner(ownerUserId);
       let totalNewMessages = 0;
       let hasErrors = false;
 
@@ -281,7 +287,6 @@ export class MessageReceptionService {
       const { ourPk } = useAccountStore.getState();
       if (!ourPk) throw new Error('WASM public keys unavailable');
       const ourUserId = ourPk.derive_id();
-      console.log('ourUserId', bs58check.encode(ourUserId));
 
       // Get the discussion to access the session
       const discussion = await db.discussions.get(discussionId);
@@ -587,34 +592,6 @@ export class MessageReceptionService {
     } catch (error) {
       console.error('Failed to check for new encrypted messages:', error);
       return false;
-    }
-  }
-
-  /**
-   * Get count of new encrypted messages across all discussions
-   * @returns Total count of new encrypted messages
-   */
-  async getTotalNewEncryptedMessages(): Promise<number> {
-    try {
-      const activeDiscussions = await db.getActiveDiscussions();
-      let totalCount = 0;
-
-      for (const discussion of activeDiscussions) {
-        if (!discussion.id) continue;
-
-        const count = await db.discussionMessages
-          .where('discussionId')
-          .equals(discussion.id)
-          .filter(msg => msg.direction === 'incoming')
-          .count();
-
-        totalCount += count;
-      }
-
-      return totalCount;
-    } catch (error) {
-      console.error('Failed to get total new encrypted messages:', error);
-      return 0;
     }
   }
 }

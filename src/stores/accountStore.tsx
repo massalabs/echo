@@ -31,6 +31,7 @@ import {
 } from '../assets/generated/wasm/echo_wasm';
 import bs58check from 'bs58check';
 import { getActiveOrFirstProfile } from './utils/getAccount';
+import { getSessionModule } from '../wasm/loader';
 
 async function createProfileFromAccount(
   username: string,
@@ -366,6 +367,12 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         isInitialized: true,
         isLoading: false,
       });
+      try {
+        const sessionModule = await getSessionModule();
+        await sessionModule.refresh();
+      } catch (e) {
+        console.error('Session refresh after login failed:', e);
+      }
     } catch (error) {
       console.error('Error loading account:', error);
       set({ isLoading: false });
@@ -567,6 +574,12 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         isInitialized: true,
         isLoading: false,
       });
+      try {
+        const sessionModule = await getSessionModule();
+        await sessionModule.refresh();
+      } catch (e) {
+        console.error('Session refresh after biometric login failed:', e);
+      }
     } catch (error) {
       console.error('Error loading account with biometrics:', error);
       set({ isLoading: false });
