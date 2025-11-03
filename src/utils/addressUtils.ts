@@ -4,6 +4,7 @@
 
 import { Address, PublicKey } from '@massalabs/massa-web3';
 import bs58check from 'bs58check';
+import { generateUserKeys } from '../wasm';
 
 /**
  * Shortens a wallet address by showing the first few and last few characters
@@ -114,10 +115,11 @@ export function formatUserId(userId: string): string {
 
 /**
  * Mock that Generates a random 32-byte user ID
+ * @param password - Optional password
  * @returns Base58 string representing a 32-byte user ID
  */
-export function generateUserId(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return bs58check.encode(bytes);
+export async function generate(password?: string): Promise<string> {
+  const identity = await generateUserKeys(password || '');
+  const userId = identity.public_keys().derive_id();
+  return bs58check.encode(userId);
 }

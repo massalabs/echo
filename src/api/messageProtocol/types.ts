@@ -3,30 +3,15 @@
  */
 
 export interface EncryptedMessage {
-  id: string;
   seeker: Uint8Array;
   ciphertext: Uint8Array;
-  ct: Uint8Array;
-  rand: Uint8Array;
-  nonce: Uint8Array;
-  messageType: 'initiation' | 'response' | 'regular';
-  direction: 'incoming' | 'outgoing';
   timestamp: Date;
-  metadata?: Record<string, unknown>;
 }
 
 export interface MessageProtocolResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
-}
-
-// Payload to broadcast announcements per API contract
-export interface AnnouncementPayload {
-  // Raw announcement bytes produced by WASM (agraphon)
-  announcement: Uint8Array;
-  // AuthBlob built client-side (opaque to the API)
-  authBlob: Record<string, unknown>;
 }
 
 /**
@@ -41,17 +26,17 @@ export interface IMessageProtocol {
   /**
    * Send an encrypted message to the key-value store
    */
-  sendMessage(discussionKey: string, message: EncryptedMessage): Promise<void>;
+  sendMessage(seeker: Uint8Array, message: EncryptedMessage): Promise<void>;
 
   /**
    * Broadcast an outgoing session announcement produced by WASM
    */
-  createOutgoingSession(payload: AnnouncementPayload): Promise<void>;
+  createOutgoingSession(announcement: Uint8Array): Promise<void>;
 
   /**
    * Broadcast an incoming session response produced by WASM
    */
-  feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void>;
+  feedIncomingAnnouncement(announcement: Uint8Array): Promise<void>;
 
   /**
    * Fetch incoming discussion announcements

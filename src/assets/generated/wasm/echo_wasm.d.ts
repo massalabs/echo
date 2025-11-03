@@ -4,7 +4,7 @@ export function start(): void;
 /**
  * Generates user keys from a passphrase using password-based key derivation.
  */
-export function generate_user_keys(passphrase: string, secondary_public_key: Uint8Array): UserKeys;
+export function generate_user_keys(passphrase: string): UserKeys;
 /**
  * Encrypts data using AES-256-SIV authenticated encryption.
  *
@@ -98,6 +98,16 @@ export class EncryptionKey {
    */
   static generate(): EncryptionKey;
   /**
+   * Generates a deterministic encryption key (64 bytes) from a seed and salt.
+   *
+   * Uses Argon2id via `crypto_password_kdf` to derive a 64-byte key suitable for
+   * AES-256-SIV (which requires 64 bytes: 2×256-bit keys).
+   *
+   * - `seed`: application-provided seed string (treat like a password)
+   * - `salt`: unique, random salt (minimum 8 bytes, recommended 16+ bytes)
+   */
+  static from_seed(seed: string, salt: Uint8Array): EncryptionKey;
+  /**
    * Creates an encryption key from raw bytes (must be 64 bytes).
    */
   static from_bytes(bytes: Uint8Array): EncryptionKey;
@@ -105,25 +115,6 @@ export class EncryptionKey {
    * Gets the raw bytes of the encryption key.
    */
   to_bytes(): Uint8Array;
-}
-/**
- * Message to be sent through a session.
- */
-export class Message {
-  free(): void;
-  [Symbol.dispose](): void;
-  /**
-   * Creates a new message with the given contents.
-   */
-  constructor(contents: Uint8Array);
-  /**
-   * Gets the message timestamp (milliseconds since Unix epoch).
-   */
-  readonly timestamp: number;
-  /**
-   * Gets the message contents.
-   */
-  readonly contents: Uint8Array;
 }
 /**
  * Nonce for AEAD operations (AES-256-SIV).
@@ -156,9 +147,13 @@ export class ReceiveMessageOutput {
   free(): void;
   [Symbol.dispose](): void;
   /**
-   * Gets the received message.
+   * Gets the received message contents.
    */
-  readonly message: Message;
+  readonly message: Uint8Array;
+  /**
+   * Gets the message timestamp (milliseconds since Unix epoch).
+   */
+  readonly timestamp: number;
   /**
    * Gets the list of newly acknowledged seekers.
    */
@@ -176,9 +171,9 @@ export class SendMessageOutput {
    */
   readonly seeker: Uint8Array;
   /**
-   * Gets the encrypted message ciphertext.
+   * Gets the encrypted message data.
    */
-  readonly ciphertext: Uint8Array;
+  readonly data: Uint8Array;
 }
 /**
  * Session manager configuration for controlling session behavior.
@@ -223,11 +218,11 @@ export class SessionManagerWrapper {
   /**
    * Establishes an outgoing session with a peer.
    */
-  establish_outgoing_session(peer_pk: UserPublicKeys, our_pk: UserPublicKeys, our_sk: UserSecretKeys, seeker_prefix: Uint8Array): Uint8Array;
+  establish_outgoing_session(peer_pk: UserPublicKeys, our_pk: UserPublicKeys, our_sk: UserSecretKeys): Uint8Array;
   /**
    * Feeds an incoming announcement from the blockchain.
    */
-  feed_incoming_announcement(announcement_bytes: Uint8Array, our_pk: UserPublicKeys, our_sk: UserSecretKeys): void;
+  feed_incoming_announcement(announcement_bytes: Uint8Array, our_pk: UserPublicKeys, our_sk: UserSecretKeys): UserPublicKeys | undefined;
   /**
    * Gets the list of message board seekers to monitor.
    */
@@ -235,7 +230,7 @@ export class SessionManagerWrapper {
   /**
    * Sends a message to a peer.
    */
-  send_message(peer_id: Uint8Array, message: Message): SendMessageOutput | undefined;
+  send_message(peer_id: Uint8Array, message_contents: Uint8Array): SendMessageOutput | undefined;
   /**
    * Processes an incoming message from the message board.
    */
@@ -304,10 +299,6 @@ export class UserPublicKeys {
    * Gets the Massa public key bytes.
    */
   readonly massa_public_key: Uint8Array;
-  /**
-   * Gets the secondary public key bytes.
-   */
-  readonly secondary_public_key: Uint8Array;
 }
 /**
  * User secret keys for signing and decryption.
@@ -336,10 +327,6 @@ export class UserSecretKeys {
    * Gets only the Massa secret key bytes
    */
   readonly massa_secret_key: Uint8Array;
-  /**
-   * Gets the secondary secret key bytes.
-   */
-  readonly secondary_secret_key: Uint8Array;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -354,7 +341,6 @@ export interface InitOutput {
   readonly userpublickeys_dsa_verification_key: (a: number) => [number, number];
   readonly userpublickeys_kem_public_key: (a: number) => [number, number];
   readonly userpublickeys_massa_public_key: (a: number) => [number, number];
-  readonly userpublickeys_secondary_public_key: (a: number) => [number, number];
   readonly userpublickeys_to_bytes: (a: number) => [number, number, number, number];
   readonly userpublickeys_from_bytes: (a: number, b: number) => [number, number, number];
   readonly __wbg_usersecretkeys_free: (a: number, b: number) => void;
@@ -363,13 +349,13 @@ export interface InitOutput {
   readonly usersecretkeys_dsa_signing_key: (a: number) => [number, number];
   readonly usersecretkeys_kem_secret_key: (a: number) => [number, number];
   readonly usersecretkeys_massa_secret_key: (a: number) => [number, number];
-  readonly usersecretkeys_secondary_secret_key: (a: number) => [number, number];
   readonly __wbg_userkeys_free: (a: number, b: number) => void;
   readonly userkeys_public_keys: (a: number) => [number, number, number];
   readonly userkeys_secret_keys: (a: number) => [number, number, number];
-  readonly generate_user_keys: (a: number, b: number, c: number, d: number) => [number, number, number];
+  readonly generate_user_keys: (a: number, b: number) => [number, number, number];
   readonly __wbg_encryptionkey_free: (a: number, b: number) => void;
   readonly encryptionkey_generate: () => number;
+  readonly encryptionkey_from_seed: (a: number, b: number, c: number, d: number) => [number, number, number];
   readonly encryptionkey_from_bytes: (a: number, b: number) => [number, number, number];
   readonly encryptionkey_to_bytes: (a: number) => [number, number];
   readonly __wbg_nonce_free: (a: number, b: number) => void;
@@ -378,24 +364,21 @@ export interface InitOutput {
   readonly nonce_to_bytes: (a: number) => [number, number];
   readonly aead_encrypt: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
   readonly aead_decrypt: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
-  readonly __wbg_message_free: (a: number, b: number) => void;
-  readonly message_new: (a: number, b: number) => number;
-  readonly message_timestamp: (a: number) => number;
-  readonly message_contents: (a: number) => [number, number];
   readonly __wbg_sendmessageoutput_free: (a: number, b: number) => void;
   readonly sendmessageoutput_seeker: (a: number) => [number, number];
-  readonly sendmessageoutput_ciphertext: (a: number) => [number, number];
+  readonly sendmessageoutput_data: (a: number) => [number, number];
   readonly __wbg_receivemessageoutput_free: (a: number, b: number) => void;
-  readonly receivemessageoutput_message: (a: number) => number;
+  readonly receivemessageoutput_message: (a: number) => [number, number];
+  readonly receivemessageoutput_timestamp: (a: number) => number;
   readonly receivemessageoutput_acknowledged_seekers: (a: number) => any;
   readonly __wbg_sessionmanagerwrapper_free: (a: number, b: number) => void;
   readonly sessionmanagerwrapper_new: (a: number) => number;
   readonly sessionmanagerwrapper_from_encrypted_blob: (a: number, b: number, c: number) => [number, number, number];
   readonly sessionmanagerwrapper_to_encrypted_blob: (a: number, b: number) => [number, number, number, number];
-  readonly sessionmanagerwrapper_establish_outgoing_session: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
-  readonly sessionmanagerwrapper_feed_incoming_announcement: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly sessionmanagerwrapper_establish_outgoing_session: (a: number, b: number, c: number, d: number) => [number, number];
+  readonly sessionmanagerwrapper_feed_incoming_announcement: (a: number, b: number, c: number, d: number, e: number) => number;
   readonly sessionmanagerwrapper_get_message_board_read_keys: (a: number) => any;
-  readonly sessionmanagerwrapper_send_message: (a: number, b: number, c: number, d: number) => [number, number, number];
+  readonly sessionmanagerwrapper_send_message: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
   readonly sessionmanagerwrapper_feed_incoming_message_board_read: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
   readonly sessionmanagerwrapper_peer_list: (a: number) => any;
   readonly sessionmanagerwrapper_peer_session_status: (a: number, b: number, c: number) => [number, number, number];

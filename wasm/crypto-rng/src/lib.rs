@@ -107,8 +107,6 @@
 //! (on platforms that support it), but this is generally not recommended for
 //! cryptographic code.
 
-use getrandom::getrandom;
-
 /// Fills a buffer with cryptographically secure random bytes.
 ///
 /// This function uses the operating system's secure random source to fill the
@@ -169,7 +167,8 @@ use getrandom::getrandom;
 /// - Session tokens
 /// - Any other security-critical random data
 pub fn fill_buffer(buffer: &mut [u8]) {
-    getrandom(buffer).expect("Failed to generate random bytes: system random source unavailable");
+    getrandom::getrandom(buffer)
+        .expect("Failed to generate random bytes: system random source unavailable");
 }
 
 #[cfg(test)]

@@ -19,7 +19,7 @@ pub struct SendOutgoingMessageResult {
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct FeedIncomingMessageResult {
     pub message_bytes: Vec<u8>,
-    pub newly_acknowledged_self_seekers: Vec<[u8; 32]>,
+    pub newly_acknowledged_self_seekers: Vec<Vec<u8>>,
 }
 
 /// The main session state machine for secure asynchronous messaging.
@@ -56,8 +56,8 @@ pub struct FeedIncomingMessageResult {
 /// # let mut session: Agraphon = todo!();
 /// # let peer_static_pk: kem::PublicKey = todo!();
 /// let plaintext = b"Hello, world!";
-/// let result = session.send_outgoing_message(plaintext, &peer_static_pk);
-/// // Send result.message_bytes to peer using result.seeker as identifier
+/// let result = session.send_outgoing_message(b"seeker", plaintext, &peer_static_pk);
+/// // Send result to peer (result is Vec<u8>)
 /// ```
 ///
 /// # Receiving Messages
@@ -77,7 +77,7 @@ pub struct FeedIncomingMessageResult {
 ///     &my_static_sk,
 ///     &received_ciphertext,
 /// ).expect("Failed to decrypt message");
-/// // Access decrypted message with result.message_bytes
+/// // Access decrypted message with result
 /// ```
 #[derive(Serialize, Deserialize, Zeroize)]
 pub struct Agraphon {
@@ -137,15 +137,13 @@ impl Agraphon {
             height: 1,
             sk_next: self_outgoing_announcement.sk_next.clone(),
             k_next: self_outgoing_announcement.k_next,
-            seeker_next: self_outgoing_announcement.seeker_next,
-            seeker: self_outgoing_announcement.id,
+            seeker: Vec::new(),
         }));
 
         let latest_peer_msg = HistoryItemPeer {
             our_parent_height: 0,
             pk_next: peer_incoming_announcement.pk_next.clone(),
             k_next: peer_incoming_announcement.k_next,
-            seeker_next: peer_incoming_announcement.seeker_next,
         };
 
         Self {
@@ -222,10 +220,6 @@ impl Agraphon {
         None
     }
 
-    pub fn get_next_peer_message_seeker(&self) -> [u8; 32] {
-        self.latest_peer_msg.seeker_next
-    }
-
     fn try_incoming_message_with_self_parent(
         &mut self,
         our_parent_height: u64,
@@ -234,7 +228,7 @@ impl Agraphon {
     ) -> Option<FeedIncomingMessageResult> {
         let self_msg = &self.latest_peer_msg;
         let peer_msg = self.get_self_message_by_height(our_parent_height)?;
-        let peer_msg_seeker = peer_msg.seeker;
+        let peer_msg_seeker = peer_msg.seeker.clone();
 
         // read randomness
         let msg_randomness: [u8; 32] = message.get(..32)?.try_into().ok()?;
@@ -292,7 +286,6 @@ impl Agraphon {
             our_parent_height,
             pk_next,
             k_next: msg_root_kdf.k_next,
-            seeker_next: msg_root_kdf.seeker_next,
         };
 
         // prune old messages that cannot be parents anymore
@@ -303,7 +296,7 @@ impl Agraphon {
             .is_some_and(|msg| msg.height < our_parent_height)
         {
             if let Some(popped_msg) = self.self_msg_history.pop_front() {
-                newly_acknowledged_seekers.push(popped_msg.seeker);
+                newly_acknowledged_seekers.push(popped_msg.seeker.clone());
             }
         }
         newly_acknowledged_seekers.push(peer_msg_seeker);
@@ -349,12 +342,10 @@ impl Agraphon {
     /// # let mut session: Agraphon = todo!();
     /// # let peer_static_pk: kem::PublicKey = todo!();
     /// let plaintext = b"Hello, peer!";
-    /// let result = session.send_outgoing_message(plaintext, &peer_static_pk);
+    /// let result = session.send_outgoing_message(b"seeker", plaintext, &peer_static_pk);
     ///
-    /// // Post the message to a public board using the seeker as the lookup key
-    /// // The peer can then fetch it directly without scanning all messages
-    /// println!("Post to board at key: {:?}", &result.seeker[..8]);
-    /// println!("Message size: {} bytes", result.message_bytes.len());
+    /// // Post the message to a public board
+    /// println!("Message size: {} bytes", result.len());
     /// ```
     ///
     /// # Panics
@@ -363,9 +354,10 @@ impl Agraphon {
     /// operation as the history is initialized during session creation.
     pub fn send_outgoing_message(
         &mut self,
+        seeker: &[u8],
         payload: &[u8],
         peer_static_pk: &kem::PublicKey,
-    ) -> SendOutgoingMessageResult {
+    ) -> Vec<u8> {
         // choose parent messages
         let p_self = self
             .self_msg_history
@@ -420,17 +412,13 @@ impl Agraphon {
             b"",
         ));
 
-        // get seeker for this message
-        let seeker = p_self.seeker_next;
-
         // push self message to history
         let height = p_self.height + 1;
         self.self_msg_history.push_back(Box::new(HistoryItemSelf {
             height,
             sk_next,
             k_next: msg_root_kdf.k_next,
-            seeker_next: msg_root_kdf.seeker_next,
-            seeker,
+            seeker: seeker.to_vec(),
         }));
 
         // assemble full message
@@ -442,10 +430,7 @@ impl Agraphon {
         ]
         .concat();
 
-        SendOutgoingMessageResult {
-            seeker,
-            message_bytes,
-        }
+        message_bytes
     }
 
     /// Returns the number of unacknowledged messages.
@@ -573,33 +558,33 @@ mod tests {
 
         // Alice sends to Bob
         let msg1 = b"Hello Bob!";
-        let result1 = alice_session.send_outgoing_message(msg1, &bob_pk);
+        let result1 = alice_session.send_outgoing_message(b"seeker", msg1, &bob_pk);
         let decrypted1 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result1.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result1)
             .expect("Bob failed to decrypt Alice's message");
         assert_eq!(&decrypted1.message_bytes, msg1);
 
         // Bob replies to Alice
         let msg2 = b"Hi Alice!";
-        let result2 = bob_session.send_outgoing_message(msg2, &alice_pk);
+        let result2 = bob_session.send_outgoing_message(b"seeker", msg2, &alice_pk);
         let decrypted2 = alice_session
-            .try_feed_incoming_message(&alice_sk, &result2.message_bytes)
+            .try_feed_incoming_message(&alice_sk, &result2)
             .expect("Alice failed to decrypt Bob's message");
         assert_eq!(&decrypted2.message_bytes, msg2);
 
         // Alice sends another message
         let msg3 = b"How are you?";
-        let result3 = alice_session.send_outgoing_message(msg3, &bob_pk);
+        let result3 = alice_session.send_outgoing_message(b"seeker", msg3, &bob_pk);
         let decrypted3 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result3.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result3)
             .expect("Bob failed to decrypt Alice's second message");
         assert_eq!(&decrypted3.message_bytes, msg3);
 
         // Bob replies again
         let msg4 = b"I'm good, thanks!";
-        let result4 = bob_session.send_outgoing_message(msg4, &alice_pk);
+        let result4 = bob_session.send_outgoing_message(b"seeker", msg4, &alice_pk);
         let decrypted4 = alice_session
-            .try_feed_incoming_message(&alice_sk, &result4.message_bytes)
+            .try_feed_incoming_message(&alice_sk, &result4)
             .expect("Alice failed to decrypt Bob's reply");
         assert_eq!(&decrypted4.message_bytes, msg4);
     }
@@ -612,35 +597,35 @@ mod tests {
 
         // Alice sends three messages in a row
         let msg1 = b"Message 1";
-        let result1 = alice_session.send_outgoing_message(msg1, &bob_pk);
+        let result1 = alice_session.send_outgoing_message(b"seeker", msg1, &bob_pk);
 
         let msg2 = b"Message 2";
-        let result2 = alice_session.send_outgoing_message(msg2, &bob_pk);
+        let result2 = alice_session.send_outgoing_message(b"seeker", msg2, &bob_pk);
 
         let msg3 = b"Message 3";
-        let result3 = alice_session.send_outgoing_message(msg3, &bob_pk);
+        let result3 = alice_session.send_outgoing_message(b"seeker", msg3, &bob_pk);
 
         // Bob receives all three messages (potentially out of order)
         let decrypted1 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result1.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result1)
             .expect("Failed to decrypt message 1");
         assert_eq!(&decrypted1.message_bytes, msg1);
 
         let decrypted2 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result2.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result2)
             .expect("Failed to decrypt message 2");
         assert_eq!(&decrypted2.message_bytes, msg2);
 
         let decrypted3 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result3.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result3)
             .expect("Failed to decrypt message 3");
         assert_eq!(&decrypted3.message_bytes, msg3);
 
         // Bob responds
         let msg4 = b"Got all three!";
-        let result4 = bob_session.send_outgoing_message(msg4, &alice_pk);
+        let result4 = bob_session.send_outgoing_message(b"seeker", msg4, &alice_pk);
         let decrypted4 = alice_session
-            .try_feed_incoming_message(&alice_sk, &result4.message_bytes)
+            .try_feed_incoming_message(&alice_sk, &result4)
             .expect("Failed to decrypt Bob's response");
         assert_eq!(&decrypted4.message_bytes, msg4);
     }
@@ -659,32 +644,32 @@ mod tests {
 
         // Alice sends two messages
         let msg1 = b"Alice message 1";
-        let result1 = alice_session.send_outgoing_message(msg1, &bob_pk);
+        let result1 = alice_session.send_outgoing_message(b"seeker", msg1, &bob_pk);
 
         let msg2 = b"Alice message 2";
-        let result2 = alice_session.send_outgoing_message(msg2, &bob_pk);
+        let result2 = alice_session.send_outgoing_message(b"seeker", msg2, &bob_pk);
 
         // Bob receives both messages in order
         let decrypted1 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result1.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result1)
             .expect("Failed to decrypt message 1");
         assert_eq!(&decrypted1.message_bytes, msg1);
 
         let decrypted2 = bob_session
-            .try_feed_incoming_message(&bob_sk, &result2.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result2)
             .expect("Failed to decrypt message 2");
         assert_eq!(&decrypted2.message_bytes, msg2);
 
         // Bob sends a reply. Note: The protocol automatically uses Bob's latest peer state
         // (Alice's message 2) as the parent. Bob doesn't explicitly choose which parent to reference.
         let bob_msg = b"Bob's reply";
-        let bob_result = bob_session.send_outgoing_message(bob_msg, &alice_pk);
+        let bob_result = bob_session.send_outgoing_message(b"seeker", bob_msg, &alice_pk);
 
         // Alice should be able to decrypt Bob's message by scanning through her message history.
         // Alice maintains messages 1 and 2 in her history, and the protocol will try different
         // parent IDs until it finds the one that Bob actually used (which will be message 2).
         let decrypted_bob = alice_session
-            .try_feed_incoming_message(&alice_sk, &bob_result.message_bytes)
+            .try_feed_incoming_message(&alice_sk, &bob_result)
             .expect("Failed to decrypt Bob's reply");
         assert_eq!(&decrypted_bob.message_bytes, bob_msg);
     }
@@ -699,9 +684,9 @@ mod tests {
         assert_eq!(initial_lag, 1);
 
         // Alice sends 3 messages
-        let r1 = alice_session.send_outgoing_message(b"msg1", &bob_pk);
-        let _r2 = alice_session.send_outgoing_message(b"msg2", &bob_pk);
-        let _r3 = alice_session.send_outgoing_message(b"msg3", &bob_pk);
+        let r1 = alice_session.send_outgoing_message(b"seeker", b"msg1", &bob_pk);
+        let _r2 = alice_session.send_outgoing_message(b"seeker", b"msg2", &bob_pk);
+        let _r3 = alice_session.send_outgoing_message(b"seeker", b"msg3", &bob_pk);
 
         // Lag should now be 4 (Alice sent 3 more messages, now at height 4, Bob still at 0)
         let lag_before = alice_session.lag_length();
@@ -709,13 +694,13 @@ mod tests {
 
         // Bob receives and responds to first message
         bob_session
-            .try_feed_incoming_message(&bob_sk, &r1.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &r1)
             .expect("Failed to decrypt");
-        let bob_result = bob_session.send_outgoing_message(b"reply", &alice_pk);
+        let bob_result = bob_session.send_outgoing_message(b"seeker", b"reply", &alice_pk);
 
         // Alice receives Bob's reply
         alice_session
-            .try_feed_incoming_message(&alice_sk, &bob_result.message_bytes)
+            .try_feed_incoming_message(&alice_sk, &bob_result)
             .expect("Failed to decrypt");
 
         // Alice's lag should decrease as Bob acknowledged her message
@@ -730,10 +715,10 @@ mod tests {
 
         // Send a large message (100KB)
         let large_msg = vec![42u8; 100_000];
-        let result = alice_session.send_outgoing_message(&large_msg, &bob_pk);
+        let result = alice_session.send_outgoing_message(b"seeker", &large_msg, &bob_pk);
 
         let decrypted = bob_session
-            .try_feed_incoming_message(&bob_sk, &result.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result)
             .expect("Failed to decrypt large message");
         assert_eq!(&decrypted.message_bytes, &large_msg);
     }
@@ -745,10 +730,10 @@ mod tests {
 
         // Send an empty message
         let empty_msg = b"";
-        let result = alice_session.send_outgoing_message(empty_msg, &bob_pk);
+        let result = alice_session.send_outgoing_message(b"seeker", empty_msg, &bob_pk);
 
         let decrypted = bob_session
-            .try_feed_incoming_message(&bob_sk, &result.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result)
             .expect("Failed to decrypt empty message");
         assert_eq!(&decrypted.message_bytes, empty_msg);
     }
@@ -759,15 +744,15 @@ mod tests {
             setup_sessions();
 
         let msg = b"Test message";
-        let mut result = alice_session.send_outgoing_message(msg, &bob_pk);
+        let mut result = alice_session.send_outgoing_message(b"seeker", msg, &bob_pk);
 
         // Corrupt the ciphertext
-        if result.message_bytes.len() > 100 {
-            result.message_bytes[100] ^= 1;
+        if result.len() > 100 {
+            result[100] ^= 1;
         }
 
         // Decryption should fail
-        let decrypt_result = bob_session.try_feed_incoming_message(&bob_sk, &result.message_bytes);
+        let decrypt_result = bob_session.try_feed_incoming_message(&bob_sk, &result);
         assert!(decrypt_result.is_none());
     }
 
@@ -783,13 +768,13 @@ mod tests {
 
         // Alice sends message to Bob
         let msg = b"For Bob only";
-        let result = alice_session.send_outgoing_message(msg, &bob_pk);
+        let result = alice_session.send_outgoing_message(b"seeker", msg, &bob_pk);
 
         // Eve tries to decrypt with her key - should fail
         // (Eve would need a proper session, but even with one, she shouldn't be able to decrypt)
         // For this test, we just verify Bob can decrypt it
         let decrypted = bob_session
-            .try_feed_incoming_message(&bob_sk, &result.message_bytes)
+            .try_feed_incoming_message(&bob_sk, &result)
             .expect("Bob should be able to decrypt");
         assert_eq!(&decrypted.message_bytes, msg);
     }

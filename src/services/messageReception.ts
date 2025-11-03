@@ -7,14 +7,15 @@
 
 import { db } from '../db';
 import {
+  EncryptedMessage,
   IMessageProtocol,
   createMessageProtocol,
 } from '../api/messageProtocol';
 import { notificationService } from './notifications';
 import bs58check from 'bs58check';
 import { processIncomingInitiation } from '../crypto/discussionInit';
-import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
-import { getSessionModule } from '../wasm';
+import { useAccountStore } from '../stores/accountStore';
+import { generateUserKeys, getSessionModule, SessionModule } from '../wasm';
 
 export interface MessageReceptionResult {
   success: boolean;
@@ -61,7 +62,8 @@ export class MessageReceptionService {
       const messageProtocol = await this.getMessageProtocol();
       const sessionModule = await getSessionModule();
       const seekers = await sessionModule.getMessageBoardReadKeys();
-      const { ourSk } = await getDecryptedWasmKeys();
+      const { ourSk } = useAccountStore.getState();
+      if (!ourSk) throw new Error('WASM secret keys unavailable');
 
       let storedCount = 0;
       // Fetch in one shot for all seekers
@@ -77,10 +79,13 @@ export class MessageReceptionService {
           if (!out) continue;
 
           const decoder = new TextDecoder();
-          const content = decoder.decode(out.message.contents);
+          const content = decoder.decode(out.message);
 
           // Create a regular message entry for the UI
-          const messageId = await db.addMessage({
+          const ownerUserId = useAccountStore.getState().userProfile?.userId;
+          if (!ownerUserId) throw new Error('No authenticated user');
+          await db.addMessage({
+            ownerUserId,
             contactUserId: discussion.contactUserId,
             content,
             type: 'text',
@@ -88,20 +93,10 @@ export class MessageReceptionService {
             status: 'delivered',
             timestamp: encryptedMsg.timestamp,
             encrypted: true,
-            metadata: encryptedMsg.metadata,
+            metadata: {},
           });
 
-          // Update the discussion thread
-          await db.discussionThreads
-            .where('contactUserId')
-            .equals(discussion.contactUserId)
-            .modify(thread => {
-              thread.lastMessageId = messageId;
-              thread.lastMessageContent = content;
-              thread.lastMessageTimestamp = encryptedMsg.timestamp;
-              thread.unreadCount = thread.unreadCount + 1;
-              thread.updatedAt = new Date();
-            });
+          // Discussion metadata (last message, unread) is maintained by db.addMessage
 
           // Update discussion with new seeker from acknowledged_seekers
           if (out.acknowledged_seekers && out.acknowledged_seekers.length > 0) {
@@ -143,7 +138,10 @@ export class MessageReceptionService {
    */
   async fetchAllDiscussions(): Promise<MessageReceptionResult> {
     try {
-      const activeDiscussions = await db.getActiveDiscussions();
+      const ownerUserId = useAccountStore.getState().userProfile?.userId;
+      if (!ownerUserId) throw new Error('No authenticated user');
+      const activeDiscussions =
+        await db.getActiveDiscussionsByOwner(ownerUserId);
       let totalNewMessages = 0;
       let hasErrors = false;
 
@@ -286,6 +284,10 @@ export class MessageReceptionService {
     try {
       console.log('Simulating received message for discussion:', discussionId);
 
+      const { ourPk } = useAccountStore.getState();
+      if (!ourPk) throw new Error('WASM public keys unavailable');
+      const ourUserId = ourPk.derive_id();
+
       // Get the discussion to access the session
       const discussion = await db.discussions.get(discussionId);
       if (!discussion) {
@@ -295,140 +297,164 @@ export class MessageReceptionService {
           error: 'Discussion not found',
         };
       }
+      console.log(discussion);
+      const contactUserId = discussion.contactUserId;
 
-      // Create a mock encrypted message with seeker
-      const mockSeeker = crypto.getRandomValues(new Uint8Array(32));
-      const mockMessage = {
-        id: `sim_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-        seeker: mockSeeker,
-        ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-        ct: crypto.getRandomValues(new Uint8Array(32)),
-        rand: crypto.getRandomValues(new Uint8Array(32)),
-        nonce: crypto.getRandomValues(new Uint8Array(12)),
-        messageType: 'regular' as const,
-        direction: 'incoming' as const,
+      // Retrieve the contact to get its identifier
+      const contact = await db.getContactByUserId(contactUserId);
+      if (!contact) {
+        return {
+          success: false,
+          newMessagesCount: 0,
+          error: 'Contact not found',
+        };
+      }
+
+      const contactIdentity = await generateUserKeys(
+        `test_user_${contact.name}`
+      );
+      // Get the peer ID from the contact's public keys
+      const contactPublicKeys = contactIdentity.public_keys();
+      const contactSecretKeys = contactIdentity.secret_keys();
+      // create a local session module instance
+      const sessionModule = new SessionModule();
+      await sessionModule.init();
+
+      // if there is no message yet, respond to the anouncement
+      const messages = await db.messages
+        .where('contactUserId')
+        .equals(contactUserId)
+        .filter(m => m.direction === 'incoming')
+        .toArray();
+      if (messages.length === 0) {
+        if (!discussion.initiationAnnouncement) {
+          throw new Error('No initiation announcement found');
+        }
+        console.log('feedIncomingAnnouncement');
+        await sessionModule.feedIncomingAnnouncement(
+          discussion.initiationAnnouncement,
+          contactPublicKeys,
+          contactSecretKeys
+        );
+
+        // Refresh to update session states
+        await sessionModule.refresh();
+      }
+
+      const peerList = await sessionModule.peerList();
+      console.log(
+        'peers',
+        peerList.map(p => bs58check.encode(p))
+      );
+      console.log(
+        'peer status',
+        await sessionModule.peerSessionStatus(ourUserId)
+      );
+
+      // Create a new Message with test content using sendMessage
+      const testContent =
+        'This is a simulated received message for testing purposes.';
+      const messageContent = new TextEncoder().encode(testContent);
+
+      // Use sendMessage to create a properly encrypted message
+      const sendOutput = await sessionModule.sendMessage(
+        ourUserId,
+        messageContent
+      );
+      if (!sendOutput) {
+        throw new Error('sendMessage returned null');
+      }
+
+      // Now we have a properly encrypted message with seeker and ciphertext
+      const { seeker, data: ciphertext } = sendOutput;
+
+      // Create message object matching simplified EncryptedMessage interface
+      const mockMessage: EncryptedMessage = {
+        seeker,
+        ciphertext,
         timestamp: new Date(),
-        metadata: { simulated: true },
       };
 
       // Add to mock protocol's message store so it can be fetched and decrypted
       const messageProtocol = await this.getMessageProtocol();
-      if ('addMockMessage' in messageProtocol) {
-        const seekerHex = Array.from(mockSeeker)
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-        type MockProtocol = {
-          addMockMessage?: (
-            seekerHex: string,
-            message: typeof mockMessage
-          ) => void;
-        };
-        (messageProtocol as MockProtocol).addMockMessage?.(
-          seekerHex,
-          mockMessage
-        );
-      }
+      await messageProtocol.sendMessage(seeker, mockMessage);
 
-      // For simulation, directly process the message since getMessageBoardReadKeys()
-      // returns empty when no outgoing sessions are established
-      const sessionModule = await getSessionModule();
-      const { ourSk } = await getDecryptedWasmKeys();
+      console.log('msg sent', seeker);
 
-      try {
-        console.log(
-          'Attempting to decrypt simulated message with seeker:',
-          Array.from(mockSeeker).slice(0, 8)
-        );
-        const out = await sessionModule.feedIncomingMessageBoardRead(
-          mockSeeker,
-          mockMessage.ciphertext,
-          ourSk
-        );
+      // try {
+      // console.log(
+      //   'Attempting to decrypt simulated message with seeker:',
+      //   Array.from(seeker).slice(0, 8)
+      // );
+      // const out = await sessionModule.feedIncomingMessageBoardRead(
+      //   seeker,
+      //   ciphertext,
+      //   ourSk
+      // );
 
-        if (out) {
-          console.log('WASM decryption successful, creating message');
-          const decoder = new TextDecoder();
-          const content = decoder.decode(out.message.contents);
+      // if (out) {
+      //   console.log('WASM decryption successful, creating message');
+      //   const decoder = new TextDecoder();
+      //   const content = decoder.decode(out.message.contents);
 
-          // Create a regular message entry for the UI
-          const messageId = await db.addMessage({
-            contactUserId: discussion.contactUserId,
-            content:
-              'This is a simulated received message for testing purposes.',
-            type: 'text',
-            direction: 'incoming',
-            status: 'delivered',
-            timestamp: mockMessage.timestamp,
-            encrypted: true,
-            metadata: mockMessage.metadata,
-          });
-          console.log(
-            'Created message with ID:',
-            messageId,
-            'for contact:',
-            discussion.contactUserId
-          );
+      //   // Create a regular message entry for the UI
+      //   const messageId = await db.addMessage({
+      //     contactUserId: discussion.contactUserId,
+      //     content,
+      //     type: 'text',
+      //     direction: 'incoming',
+      //     status: 'delivered',
+      //     timestamp: mockMessage.timestamp,
+      //     encrypted: true,
+      //     metadata: { simulated: true },
+      //   });
+      //   console.log(
+      //     'Created message with ID:',
+      //     messageId,
+      //     'for contact:',
+      //     discussion.contactUserId
+      //   );
 
-          // Update the discussion thread
-          await db.discussionThreads
-            .where('contactUserId')
-            .equals(discussion.contactUserId)
-            .modify(thread => {
-              thread.lastMessageId = messageId;
-              thread.lastMessageContent = content;
-              thread.lastMessageTimestamp = mockMessage.timestamp;
-              thread.unreadCount = thread.unreadCount + 1;
-              thread.updatedAt = new Date();
-            });
+      //   // Discussion metadata (last message, unread) is maintained by db.addMessage
 
-          // Update discussion with new seeker from acknowledged_seekers
-          if (out.acknowledged_seekers && out.acknowledged_seekers.length > 0) {
-            const newSeeker = out.acknowledged_seekers[0];
-            await db.discussions.update(discussionId, {
-              nextSeeker: newSeeker,
-              updatedAt: new Date(),
-            });
-          }
-        } else {
-          console.log('WASM decryption returned null, using fallback');
-          throw new Error('WASM decryption returned null');
-        }
-      } catch (error) {
-        console.error('Failed to decrypt simulated message:', error);
-        console.log(
-          'Using fallback: creating simple message without decryption'
-        );
-        // Fallback: create a simple message without decryption
-        const messageId = await db.addMessage({
-          contactUserId: discussion.contactUserId,
-          content: 'This is a simulated received message for testing purposes.',
-          type: 'text',
-          direction: 'incoming',
-          status: 'delivered',
-          timestamp: mockMessage.timestamp,
-          encrypted: false,
-          metadata: mockMessage.metadata,
-        });
-        console.log(
-          'Created fallback message with ID:',
-          messageId,
-          'for contact:',
-          discussion.contactUserId
-        );
-
-        // Update the discussion thread
-        await db.discussionThreads
-          .where('contactUserId')
-          .equals(discussion.contactUserId)
-          .modify(thread => {
-            thread.lastMessageId = messageId;
-            thread.lastMessageContent =
-              'This is a simulated received message for testing purposes.';
-            thread.lastMessageTimestamp = mockMessage.timestamp;
-            thread.unreadCount = thread.unreadCount + 1;
-            thread.updatedAt = new Date();
-          });
-      }
+      //   // Update discussion with new seeker from acknowledged_seekers
+      //   if (
+      //     out.acknowledged_seekers &&
+      //     out.acknowledged_seekers.length > 0
+      //   ) {
+      //     const newSeeker = out.acknowledged_seekers[0];
+      //     await db.discussions.update(discussionId, {
+      //       nextSeeker: newSeeker,
+      //       updatedAt: new Date(),
+      //     });
+      //   }
+      // } else {
+      //   console.log('WASM decryption returned null, using fallback');
+      //   throw new Error('WASM decryption returned null');
+      // }
+      // } catch (error) {
+      //   console.error('Failed to decrypt simulated message:', error);
+      //   console.log(
+      //     'Using fallback: creating simple message without decryption'
+      //   );
+      //   // Fallback: create a simple message without decryption
+      //   const messageId = await db.addMessage({
+      //     contactUserId: discussion.contactUserId,
+      //     content: 'This is a simulated received message for testing purposes.',
+      //     type: 'text',
+      //     direction: 'incoming',
+      //     status: 'delivered',
+      //     timestamp: new Date(),
+      //     encrypted: false,
+      //     metadata: { simulated: true },
+      //   });
+      //   console.log(
+      //     'Created fallback message with ID:',
+      //     messageId,
+      //     'for contact:',
+      //     discussion.contactUserId
+      //   );
+      // }
 
       console.log(
         'Successfully simulated received message for discussion:',
@@ -477,13 +503,23 @@ export class MessageReceptionService {
     contactUserId?: string;
     error?: string;
   }> {
+    const { ourPk, ourSk } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
     try {
       // Extract contact information from the announcement
-      const contactUserId =
-        this._extractContactUserIdFromAnnouncement(announcementData);
-      if (!contactUserId) {
-        throw new Error('Could not extract contact user ID from announcement');
+      const sessionModule = await getSessionModule();
+      const announcerPkeys = await sessionModule.feedIncomingAnnouncement(
+        announcementData,
+        ourPk,
+        ourSk
+      );
+      if (!announcerPkeys) {
+        throw new Error(
+          'Could not extract announcer public keys from announcement'
+        );
       }
+      const contactUserId = announcerPkeys.derive_id();
+      const contactUserIdString = bs58check.encode(contactUserId);
 
       // Create contact if it doesn't exist (for simulation/testing)
       let contact = await db.contacts
@@ -493,9 +529,9 @@ export class MessageReceptionService {
       if (!contact) {
         // Create a mock contact for simulation
         await db.contacts.add({
-          userId: contactUserId,
-          userPublicKeys: new Uint8Array(0), // TODO: add user public keys
-          name: `User ${contactUserId.substring(0, 8)}`,
+          userId: contactUserIdString,
+          name: `User ${contactUserIdString.substring(0, 8)}`,
+          publicKeys: announcerPkeys.to_bytes(),
           avatar: undefined,
           isOnline: false,
           lastSeen: new Date(),
@@ -509,14 +545,14 @@ export class MessageReceptionService {
 
       // Delegate to the new WASM-based initiation processor
       const { discussionId } = await processIncomingInitiation(
-        contactUserId,
+        contactUserIdString,
         announcementData
       );
 
       // Show notification for new discussion
       try {
         await notificationService.showNewDiscussionNotification(
-          contact?.name || `User ${contactUserId.substring(0, 8)}`
+          contact?.name || `User ${contactUserIdString.substring(0, 8)}`
         );
       } catch (notificationError) {
         console.error(
@@ -528,7 +564,7 @@ export class MessageReceptionService {
       return {
         success: true,
         discussionId,
-        contactUserId,
+        contactUserId: contactUserIdString,
       };
     } catch (error) {
       console.error('Failed to process incoming announcement:', error);
@@ -536,29 +572,6 @@ export class MessageReceptionService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
-    }
-  }
-
-  /**
-   * Extract contact user ID from announcement data
-   * @param announcementData - The announcement data
-   * @returns Contact user ID or null if not found
-   */
-  private _extractContactUserIdFromAnnouncement(
-    announcementData: Uint8Array
-  ): string | null {
-    try {
-      // In a real implementation, this would parse the announcement data
-      // to extract the sender's user ID. For now, we'll generate a mock ID.
-      const mockUserIdBytes = new Uint8Array(announcementData.slice(0, 32));
-      const mockUserId = bs58check.encode(mockUserIdBytes);
-      return mockUserId;
-    } catch (error) {
-      console.error(
-        'Failed to extract contact user ID from announcement:',
-        error
-      );
-      return null;
     }
   }
 
@@ -579,34 +592,6 @@ export class MessageReceptionService {
     } catch (error) {
       console.error('Failed to check for new encrypted messages:', error);
       return false;
-    }
-  }
-
-  /**
-   * Get count of new encrypted messages across all discussions
-   * @returns Total count of new encrypted messages
-   */
-  async getTotalNewEncryptedMessages(): Promise<number> {
-    try {
-      const activeDiscussions = await db.getActiveDiscussions();
-      let totalCount = 0;
-
-      for (const discussion of activeDiscussions) {
-        if (!discussion.id) continue;
-
-        const count = await db.discussionMessages
-          .where('discussionId')
-          .equals(discussion.id)
-          .filter(msg => msg.direction === 'incoming')
-          .count();
-
-        totalCount += count;
-      }
-
-      return totalCount;
-    } catch (error) {
-      console.error('Failed to get total new encrypted messages:', error);
-      return 0;
     }
   }
 }

@@ -105,22 +105,16 @@ impl UserPublicKeys {
         self.inner.massa_public_key.to_bytes()
     }
 
-    /// Gets the secondary public key bytes.
-    #[wasm_bindgen(getter)]
-    pub fn secondary_public_key(&self) -> Vec<u8> {
-        self.inner.secondary_public_key.to_vec()
-    }
-
     /// Serializes the public keys to bytes.
     pub fn to_bytes(&self) -> Result<Vec<u8>, JsValue> {
-        bincode::serialize(&self.inner)
-            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        Ok(self.inner.to_bytes())
     }
 
     /// Deserializes public keys from bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<UserPublicKeys, JsValue> {
-        let inner = bincode::deserialize(bytes)
-            .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?;
+        let inner = bincode::serde::decode_from_slice(bytes, bincode::config::standard())
+            .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?
+            .0;
         Ok(UserPublicKeys { inner })
     }
 }
@@ -135,14 +129,15 @@ pub struct UserSecretKeys {
 impl UserSecretKeys {
     /// Serializes the secret keys to bytes for secure storage.
     pub fn to_bytes(&self) -> Result<Vec<u8>, JsValue> {
-        bincode::serialize(&self.inner)
+        bincode::serde::encode_to_vec(&self.inner, bincode::config::standard())
             .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
     }
 
     /// Deserializes secret keys from bytes.
     pub fn from_bytes(bytes: &[u8]) -> Result<UserSecretKeys, JsValue> {
-        let inner = bincode::deserialize(bytes)
-            .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?;
+        let inner = bincode::serde::decode_from_slice(bytes, bincode::config::standard())
+            .map_err(|e| JsValue::from_str(&format!("Deserialization error: {}", e)))?
+            .0;
         Ok(UserSecretKeys { inner })
     }
 
@@ -162,12 +157,6 @@ impl UserSecretKeys {
     #[wasm_bindgen(getter)]
     pub fn massa_secret_key(&self) -> Vec<u8> {
         self.inner.massa_keypair.to_bytes().to_vec()
-    }
-
-    /// Gets the secondary secret key bytes.
-    #[wasm_bindgen(getter)]
-    pub fn secondary_secret_key(&self) -> Vec<u8> {
-        self.inner.secondary_secret_key.to_vec()
     }
 }
 
@@ -193,24 +182,14 @@ impl UserKeys {
 
 /// Generates user keys from a passphrase using password-based key derivation.
 #[wasm_bindgen]
-pub fn generate_user_keys(
-    passphrase: &str,
-    secondary_public_key: &[u8],
-) -> Result<UserKeys, JsValue> {
-    if secondary_public_key.len() != 32 {
-        return Err(JsValue::from_str("Secondary public key must be 32 bytes"));
-    }
-
+pub fn generate_user_keys(passphrase: &str) -> Result<UserKeys, JsValue> {
     let root_secret = auth::StaticRootSecret::from_passphrase(passphrase.as_bytes());
-    let mut spk = [0u8; 32];
-    spk.copy_from_slice(secondary_public_key);
 
-    let (public_keys, secret_keys) = auth::derive_keys_from_static_root_secret(&root_secret, spk);
+    let (public_keys, secret_keys) = auth::derive_keys_from_static_root_secret(&root_secret);
 
     Ok(UserKeys {
-        public_keys_bytes: bincode::serialize(&public_keys)
-            .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))?,
-        secret_keys_bytes: bincode::serialize(&secret_keys)
+        public_keys_bytes: public_keys.to_bytes(),
+        secret_keys_bytes: bincode::serde::encode_to_vec(&secret_keys, bincode::config::standard())
             .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))?,
     })
 }
@@ -232,6 +211,25 @@ impl EncryptionKey {
         Self {
             inner: crypto_aead::Key::from(key_bytes),
         }
+    }
+
+    /// Generates a deterministic encryption key (64 bytes) from a seed and salt.
+    ///
+    /// Uses Argon2id via `crypto_password_kdf` to derive a 64-byte key suitable for
+    /// AES-256-SIV (which requires 64 bytes: 2×256-bit keys).
+    ///
+    /// - `seed`: application-provided seed string (treat like a password)
+    /// - `salt`: unique, random salt (minimum 8 bytes, recommended 16+ bytes)
+    pub fn from_seed(seed: &str, salt: &[u8]) -> Result<EncryptionKey, JsValue> {
+        if salt.len() < 8 {
+            return Err(JsValue::from_str("Salt must be at least 8 bytes"));
+        }
+
+        let mut key_bytes = [0u8; 64];
+        crypto_password_kdf::derive(seed.as_bytes(), salt, &mut key_bytes);
+        Ok(Self {
+            inner: crypto_aead::Key::from(key_bytes),
+        })
     }
 
     /// Creates an encryption key from raw bytes (must be 64 bytes).
@@ -366,41 +364,6 @@ pub fn aead_decrypt(
     crypto_aead::decrypt(&key.inner, &nonce.inner, ciphertext, aad)
 }
 
-/// Message to be sent through a session.
-#[wasm_bindgen]
-pub struct Message {
-    inner: sessions::Message,
-}
-
-#[wasm_bindgen]
-impl Message {
-    /// Creates a new message with the given contents.
-    #[wasm_bindgen(constructor)]
-    pub fn new(contents: &[u8]) -> Self {
-        Self {
-            inner: sessions::Message {
-                timestamp: web_time::SystemTime::now()
-                    .duration_since(web_time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis(),
-                contents: contents.to_vec(),
-            },
-        }
-    }
-
-    /// Gets the message timestamp (milliseconds since Unix epoch).
-    #[wasm_bindgen(getter)]
-    pub fn timestamp(&self) -> f64 {
-        self.inner.timestamp as f64
-    }
-
-    /// Gets the message contents.
-    #[wasm_bindgen(getter)]
-    pub fn contents(&self) -> Vec<u8> {
-        self.inner.contents.clone()
-    }
-}
-
 /// Session status indicating the state of a peer session.
 #[wasm_bindgen]
 pub enum SessionStatus {
@@ -417,7 +380,7 @@ pub enum SessionStatus {
 #[wasm_bindgen]
 pub struct SendMessageOutput {
     seeker: Vec<u8>,
-    ciphertext: Vec<u8>,
+    data: Vec<u8>,
 }
 
 #[wasm_bindgen]
@@ -428,28 +391,33 @@ impl SendMessageOutput {
         self.seeker.clone()
     }
 
-    /// Gets the encrypted message ciphertext.
+    /// Gets the encrypted message data.
     #[wasm_bindgen(getter)]
-    pub fn ciphertext(&self) -> Vec<u8> {
-        self.ciphertext.clone()
+    pub fn data(&self) -> Vec<u8> {
+        self.data.clone()
     }
 }
 
 /// Output from receiving a message.
 #[wasm_bindgen]
 pub struct ReceiveMessageOutput {
-    message: Message,
+    message: Vec<u8>,
+    timestamp: f64,
     acknowledged_seekers: js_sys::Array,
 }
 
 #[wasm_bindgen]
 impl ReceiveMessageOutput {
-    /// Gets the received message.
+    /// Gets the received message contents.
     #[wasm_bindgen(getter)]
-    pub fn message(&self) -> Message {
-        Message {
-            inner: self.message.inner.clone(),
-        }
+    pub fn message(&self) -> Vec<u8> {
+        self.message.clone()
+    }
+
+    /// Gets the message timestamp (milliseconds since Unix epoch).
+    #[wasm_bindgen(getter)]
+    pub fn timestamp(&self) -> f64 {
+        self.timestamp
     }
 
     /// Gets the list of newly acknowledged seekers.
@@ -498,14 +466,9 @@ impl SessionManagerWrapper {
         peer_pk: &UserPublicKeys,
         our_pk: &UserPublicKeys,
         our_sk: &UserSecretKeys,
-        seeker_prefix: &[u8],
     ) -> Vec<u8> {
-        self.inner.establish_outgoing_session(
-            &peer_pk.inner,
-            &our_pk.inner,
-            &our_sk.inner,
-            seeker_prefix,
-        )
+        self.inner
+            .establish_outgoing_session(&peer_pk.inner, &our_pk.inner, &our_sk.inner)
     }
 
     /// Feeds an incoming announcement from the blockchain.
@@ -514,9 +477,11 @@ impl SessionManagerWrapper {
         announcement_bytes: &[u8],
         our_pk: &UserPublicKeys,
         our_sk: &UserSecretKeys,
-    ) {
-        self.inner
-            .feed_incoming_announcement(announcement_bytes, &our_pk.inner, &our_sk.inner);
+    ) -> Option<UserPublicKeys> {
+        self
+            .inner
+            .feed_incoming_announcement(announcement_bytes, &our_pk.inner, &our_sk.inner)
+            .map(|pk| UserPublicKeys { inner: pk })
     }
 
     /// Gets the list of message board seekers to monitor.
@@ -534,7 +499,7 @@ impl SessionManagerWrapper {
     pub fn send_message(
         &mut self,
         peer_id: &[u8],
-        message: &Message,
+        message_contents: &[u8],
     ) -> Result<Option<SendMessageOutput>, JsValue> {
         if peer_id.len() != 32 {
             return Err(JsValue::from_str("Peer ID must be 32 bytes"));
@@ -545,10 +510,10 @@ impl SessionManagerWrapper {
 
         Ok(self
             .inner
-            .send_message(&peer_id, &message.inner)
+            .send_message(&peer_id, message_contents)
             .map(|output| SendMessageOutput {
                 seeker: output.seeker.clone(),
-                ciphertext: output.ciphertext.clone(),
+                data: output.data.clone(),
             }))
     }
 
@@ -569,9 +534,8 @@ impl SessionManagerWrapper {
                 }
 
                 ReceiveMessageOutput {
-                    message: Message {
-                        inner: output.message.clone(),
-                    },
+                    message: output.message.clone(),
+                    timestamp: output.timestamp as f64,
                     acknowledged_seekers,
                 }
             })

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Contact, Message, db } from '../db';
+import { useAccountStore } from '../stores/accountStore';
 import { messageReceptionService } from '../services/messageReception';
 import { notificationService } from '../services/notifications';
 
@@ -20,6 +21,7 @@ export const useMessages = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const { userProfile } = useAccountStore();
 
   const loadMessages = useCallback(async () => {
     if (!contact.userId) return;
@@ -27,7 +29,11 @@ export const useMessages = ({
     try {
       setIsLoading(true);
       console.log('Loading messages for contact:', contact.userId);
-      const messageList = await db.getMessagesForContact(contact.userId);
+      if (!userProfile?.userId) return;
+      const messageList = await db.getMessagesForContactByOwner(
+        userProfile.userId,
+        contact.userId
+      );
       console.log(
         'Loaded messages:',
         messageList.length,
@@ -41,7 +47,7 @@ export const useMessages = ({
     } finally {
       setIsLoading(false);
     }
-  }, [contact.userId]);
+  }, [contact.userId, userProfile?.userId]);
 
   const syncMessages = useCallback(async () => {
     if (!discussionId || isSyncing) return;
@@ -88,7 +94,9 @@ export const useMessages = ({
       setIsSending(true);
       try {
         // Create message record with sending status
+        if (!userProfile?.userId) return false;
         const message: Omit<Message, 'id'> = {
+          ownerUserId: userProfile.userId,
           contactUserId: contact.userId,
           content: content.trim(),
           type: 'text',
@@ -108,22 +116,18 @@ export const useMessages = ({
         if (discussionId) {
           try {
             const service = await messageReceptionService.getInstance();
-            // Get the discussion to access the discussionKey
+            // Get the discussion to access the nextSeeker (used as routing key)
             const discussion = await db.discussions.get(discussionId);
             if (!discussion) {
               throw new Error('Discussion not found');
             }
+            // Use nextSeeker directly, or create a placeholder if not available
+            const seeker = discussion.nextSeeker || new Uint8Array(32);
             // Create a mock encrypted message payload for protocol
             const messageProtocol = await service.getMessageProtocol();
-            await messageProtocol.sendMessage(discussion.discussionKey, {
-              id: `out_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-              seeker: new Uint8Array(0),
+            await messageProtocol.sendMessage(seeker, {
+              seeker,
               ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-              ct: crypto.getRandomValues(new Uint8Array(32)),
-              rand: crypto.getRandomValues(new Uint8Array(32)),
-              nonce: crypto.getRandomValues(new Uint8Array(12)),
-              messageType: 'regular',
-              direction: 'outgoing',
               timestamp: new Date(),
             });
 
@@ -178,6 +182,7 @@ export const useMessages = ({
     },
     [
       contact.userId,
+      userProfile?.userId,
       isSending,
       discussionId,
       onDiscussionRequired,

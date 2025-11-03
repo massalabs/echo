@@ -51,10 +51,9 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   const formatAccountType = (account: UserProfile) => {
     if (account.security?.webauthn?.credentialId) {
       return 'Biometric';
-    } else if (account.security?.password?.salt) {
+    } else {
       return 'Password';
     }
-    return 'Unknown';
   };
 
   const getAccountIcon = (account: UserProfile) => {

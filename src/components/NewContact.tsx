@@ -7,12 +7,13 @@ import React, {
 } from 'react';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
-import { isValidUserId, generateUserId } from '../utils/addressUtils';
+import { isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
-import bs58check from 'bs58check';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 import Popover from './Popover';
+import { generateUserKeys } from '../wasm';
+import bs58check from 'bs58check';
 
 interface NewContactProps {
   onCancel: () => void;
@@ -60,7 +61,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       return false;
     }
     if (!isValidUserId(value)) {
-      setUserIdError('Please enter a valid base58check encoded user ID');
+      setUserIdError('Please enter a valid base58 encoded user ID');
       return false;
     }
     setUserIdError(null);
@@ -102,16 +103,47 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       setError('Failed to process imported contact: ' + e);
     }
   }, [fileContact, validateName, validateUserId]);
+  
+  const handleGenerate = useCallback(async () => {
+    const nameIsValid = validateUsername(name).valid;
+    if (!nameIsValid || userId || isSubmitting) return;
+    try {
+      const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
+      const pub = newUserKeys.public_keys();
+      setUserId(bs58check.encode(pub.derive_id()));
+      setUserIdError(null);
+    } catch (e) {
+      console.error(e);
+      setUserIdError('Failed to generate user ID. Please try again.');
+    }
+  }, [name, userId, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid || !publicKeys) return;
     setIsSubmitting(true);
     setError(null);
     try {
+      // Ensure unique contact name (case-insensitive)
+      const duplicateByName = await db.contacts
+        .where('name')
+        // Dexie provides case-insensitive equals for string indexes
+        .equalsIgnoreCase(name.trim())
+        .first();
+      if (duplicateByName) {
+        setNameError('This name is already used by another contact.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Ensure we have public keys for the contact. For now, we only support
+      // generated contacts (manual userId entry without public keys is unsupported).
+      const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
+      const userPublicKeys = newUserKeys.public_keys();
+
       const contact: Omit<Contact, 'id'> = {
         name: name.trim(),
         userId: userId.trim(),
-        userPublicKeys: publicKeys.to_bytes(),
+        publicKeys: userPublicKeys.to_bytes(),
         avatar: undefined,
         isOnline: false,
         lastSeen: new Date(),
@@ -308,11 +340,12 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    const newUserId = generateUserId();
-                    setUserId(newUserId);
-                    validateUserId(newUserId);
+                  onClick={async () => {
+                    await handleGenerate();
                   }}
+                  disabled={
+                    !validateUsername(name).valid || !!userId || isSubmitting
+                  }
                   className="px-3 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors duration-200 text-sm font-medium"
                   title="Generate random user ID"
                 >

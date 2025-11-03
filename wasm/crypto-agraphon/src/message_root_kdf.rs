@@ -47,8 +47,6 @@ pub struct MessageRootKdf {
     pub(crate) cipher_nonce: cipher::Nonce,
     /// Key for next message KDF
     pub(crate) k_next: [u8; 32],
-    /// Seeker key for next message
-    pub(crate) seeker_next: [u8; 32],
 }
 
 impl MessageRootKdf {
@@ -101,8 +99,6 @@ impl MessageRootKdf {
         let mut cipher_key = [0u8; cipher::KEY_SIZE];
         let mut cipher_nonce = [0u8; cipher::NONCE_SIZE];
         let mut k_next = [0u8; 32];
-        let mut seeker_next = [0u8; 32];
-        let mut id = [0u8; 32];
 
         let mut root_kdf = kdf::Extract::new(b"agraphon.message_root_kdf.salt.V1");
         root_kdf.input_item(randomness.as_slice());
@@ -112,7 +108,6 @@ impl MessageRootKdf {
         root_kdf.input_item(ss.as_bytes());
         root_kdf.input_item(ct_static.as_bytes());
         root_kdf.input_item(ss_static.as_bytes());
-        root_kdf.input_item(id.as_slice());
         let root_kdf = root_kdf.finalize();
         root_kdf.expand(
             "agraphon.message_root_kdf.cipher_nonce".as_bytes(),
@@ -123,16 +118,10 @@ impl MessageRootKdf {
             &mut cipher_key,
         );
         root_kdf.expand("agraphon.message_root_kdf.k_next".as_bytes(), &mut k_next);
-        root_kdf.expand(
-            "agraphon.message_root_kdf.seeker_next".as_bytes(),
-            &mut seeker_next,
-        );
-        root_kdf.expand("agraphon.message_root_kdf.id".as_bytes(), &mut id);
         Self {
             cipher_nonce: cipher_nonce.into(),
             cipher_key: cipher_key.into(),
             k_next,
-            seeker_next,
         }
     }
 }
@@ -183,7 +172,6 @@ mod tests {
         assert_eq!(kdf1.cipher_key.as_bytes(), kdf2.cipher_key.as_bytes());
         assert_eq!(kdf1.cipher_nonce.as_bytes(), kdf2.cipher_nonce.as_bytes());
         assert_eq!(kdf1.k_next, kdf2.k_next);
-        assert_eq!(kdf1.seeker_next, kdf2.seeker_next);
     }
 
     #[test]
@@ -304,6 +292,5 @@ mod tests {
         assert_eq!(kdf.cipher_key.as_bytes().len(), cipher::KEY_SIZE);
         assert_eq!(kdf.cipher_nonce.as_bytes().len(), cipher::NONCE_SIZE);
         assert_eq!(kdf.k_next.len(), 32);
-        assert_eq!(kdf.seeker_next.len(), 32);
     }
 }

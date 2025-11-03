@@ -1,0 +1,48 @@
+name: Wasm tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            wasm/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('wasm/Cargo.lock') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build WASM
+        env:
+          SOURCE_DATE_EPOCH: 0
+          BINARYEN_CORES: 1
+        run: npm run wasm:build
+
+      - name: Verify generated files are up-to-date (excluding .wasm binaries)
+        run: |
+          if ! git diff --quiet -- src/assets/generated ':!src/assets/generated/wasm/*.wasm'; then
+            echo "Generated files in src/assets/generated are out of date. Run 'npm run wasm:build' locally and commit the changes." >&2
+            git --no-pager diff -- src/assets/generated ':!src/assets/generated/wasm/*.wasm'
+            exit 1
+          fi
+
+      - name: Run Rust tests via npm
+        run: npm run wasm:test

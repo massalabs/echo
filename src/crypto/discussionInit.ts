@@ -5,8 +5,10 @@
  */
 
 import { db, Discussion, DiscussionMessage } from '../db';
-import { generateUserKeys, getSessionModule } from '../wasm';
-import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
+import { getSessionModule } from '../wasm';
+import { useAccountStore } from '../stores/accountStore';
+import { createMessageProtocol } from '../api/messageProtocol';
+import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 
 /**
  * Discussion Initialization Logic using high-level SessionManager API
@@ -20,7 +22,7 @@ import { getDecryptedWasmKeys } from '../stores/utils/wasmKeys';
  */
 export async function initializeDiscussion(
   contactUserId: string,
-  recipientUserId: string
+  contactPublicKeys: UserPublicKeys
 ): Promise<{
   discussionId: number;
   announcement: Uint8Array;
@@ -28,73 +30,40 @@ export async function initializeDiscussion(
   try {
     const sessionModule = await getSessionModule();
 
-    // Load our decrypted keys via shared helper
-    const { ourPk, ourSk } = await getDecryptedWasmKeys();
-
-    // Use mocked peer public keys
-    const mockUserKeys = await generateUserKeys(recipientUserId);
-    const peerPk = mockUserKeys.public_keys();
-
-    // use zeros for now
-    const seekerPrefix = new Uint8Array(32);
+    const { ourPk, ourSk, userProfile } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+    if (!userProfile?.userId) throw new Error('No authenticated user');
 
     // Establish outgoing session and get announcement bytes
     const announcement = await sessionModule.establishOutgoingSession(
-      peerPk,
+      contactPublicKeys,
       ourPk,
-      ourSk,
-      seekerPrefix
+      ourSk
     );
 
-    // Store discussion in database
+    // Store discussion in database with UI metadata and keep announcement on discussion
     const discussionId = await db.discussions.add({
+      ownerUserId: userProfile.userId,
       contactUserId,
       direction: 'initiated',
       status: 'pending',
-      version: 1,
-      discussionKey: contactUserId,
+      nextSeeker: undefined,
+      initiationAnnouncement: announcement,
+      unreadCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    // Optionally persist the announcement as an initiation message metadata (ciphertext only for now)
-    await db.discussionMessages.add({
-      discussionId,
-      messageType: 'initiation',
-      direction: 'outgoing',
-      ciphertext: announcement,
-      ct: new Uint8Array(0),
-      rand: new Uint8Array(0),
-      nonce: new Uint8Array(12),
-      status: 'sent',
-      timestamp: new Date(),
-    });
+    console.log('Created discussion for contact:', contactUserId);
 
-    // Check if discussion thread already exists
-    const existingThread = await db.discussionThreads
-      .where('contactUserId')
-      .equals(contactUserId)
-      .first();
-
-    if (!existingThread) {
-      // Create discussion thread for the UI only if it doesn't exist
-      await db.discussionThreads.add({
-        contactUserId,
-        lastMessageId: undefined,
-        lastMessageContent: 'Discussion started',
-        lastMessageTimestamp: new Date(),
-        unreadCount: 0,
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      console.log('Created discussion thread for contact:', contactUserId);
-    } else {
-      console.log(
-        'Discussion thread already exists for contact:',
-        contactUserId
-      );
+    // Send the announcement through the message protocol
+    try {
+      const messageProtocol = await createMessageProtocol();
+      await messageProtocol.createOutgoingSession(announcement);
+      console.log('Announcement sent through message protocol');
+    } catch (error) {
+      console.error('Failed to send announcement through protocol:', error);
+      // Don't throw - discussion is created, announcement sending can be retried
     }
 
     return { discussionId, announcement };
@@ -119,7 +88,9 @@ export async function processIncomingInitiation(
   try {
     const sessionModule = await getSessionModule();
 
-    const { ourPk, ourSk } = await getDecryptedWasmKeys();
+    const { ourPk, ourSk, userProfile } = useAccountStore.getState();
+    if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+    if (!userProfile?.userId) throw new Error('No authenticated user');
 
     await sessionModule.feedIncomingAnnouncement(
       announcementData,
@@ -127,13 +98,14 @@ export async function processIncomingInitiation(
       ourSk
     );
 
-    // Store discussion in database
+    // Store discussion in database with UI metadata
     const discussionId = await db.discussions.add({
+      ownerUserId: userProfile.userId,
       contactUserId,
       direction: 'received',
       status: 'active',
-      version: 1,
-      discussionKey: contactUserId,
+      nextSeeker: undefined,
+      unreadCount: 1, // Incoming discussion has 1 unread
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -151,32 +123,7 @@ export async function processIncomingInitiation(
       timestamp: new Date(),
     });
 
-    // Check if discussion thread already exists
-    const existingThread = await db.discussionThreads
-      .where('contactUserId')
-      .equals(contactUserId)
-      .first();
-
-    if (!existingThread) {
-      // Create discussion thread for the UI only if it doesn't exist
-      await db.discussionThreads.add({
-        contactUserId,
-        lastMessageId: undefined,
-        lastMessageContent: 'Discussion started',
-        lastMessageTimestamp: new Date(),
-        unreadCount: 1, // Incoming discussion has 1 unread
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      console.log('Created discussion thread for contact:', contactUserId);
-    } else {
-      console.log(
-        'Discussion thread already exists for contact:',
-        contactUserId
-      );
-    }
+    console.log('Created discussion for contact:', contactUserId);
 
     return { discussionId };
   } catch (error) {

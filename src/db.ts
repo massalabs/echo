@@ -6,6 +6,7 @@ export interface Contact {
   name: string;
   userPublicKeys: Uint8Array;
   avatar?: string;
+  publicKeys: Uint8Array; // Serialized UserPublicKeys bytes (from UserPublicKeys.to_bytes())
   isOnline: boolean;
   lastSeen: Date;
   createdAt: Date;
@@ -13,6 +14,7 @@ export interface Contact {
 
 export interface Message {
   id?: number;
+  ownerUserId: string; // The current user's userId owning this message
   contactUserId: string; // Reference to Contact.userId
   content: string;
   type: 'text' | 'image' | 'file' | 'audio' | 'video';
@@ -23,59 +25,23 @@ export interface Message {
   metadata?: Record<string, unknown>;
 }
 
-export interface DiscussionThread {
-  id?: number;
-  contactUserId: string; // Reference to Contact.userId
-  lastMessageId?: number;
-  lastMessageContent: string;
-  lastMessageTimestamp: Date;
-  unreadCount: number;
-  isPinned: boolean;
-  isArchived: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface UserProfile {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   username: string;
   avatar?: string;
-  wallet: {
-    address: string;
-    publicKey: string;
-  };
-  // WASM user keys (serialized)
-  wasmKeys: {
-    publicKeys: Uint8Array; // bytes from UserPublicKeys.to_bytes()
-    encryptedSecretKeys: ArrayBuffer; // AES-GCM encrypted bytes from UserSecretKeys.to_bytes()
-    secretKeysIv: Uint8Array; // IV used for encryption of secret keys
-  };
-  // Security-related fields (encryption and authentication)
   security: {
-    // Encrypted Massa private key (AES-GCM)
-    encryptedPrivateKey: ArrayBuffer;
-    iv: Uint8Array;
+    encKeySalt: Uint8Array;
 
     // WebAuthn/FIDO2 (biometric) details when used
     webauthn?: {
       credentialId: string;
       publicKey: ArrayBuffer;
-      counter: number;
-      deviceType: 'platform' | 'cross-platform';
-      backedUp: boolean;
-      transports?: string[];
-    };
-
-    // Password-based KDF parameters when used
-    password?: {
-      salt: Uint8Array;
-      kdf: { name: 'PBKDF2'; iterations: 150000; hash: 'SHA-256' };
     };
 
     // Mnemonic backup details
     mnemonicBackup?: {
-      encryptedMnemonic: ArrayBuffer;
-      iv: Uint8Array;
+      encryptedMnemonic: Uint8Array;
+      nonce: Uint8Array;
       createdAt: Date;
       backedUp: boolean;
     };
@@ -94,16 +60,26 @@ export interface Settings {
   updatedAt: Date;
 }
 
-// New interfaces for discussion initialization
+// Unified discussion interface combining protocol state and UI metadata
 export interface Discussion {
   id?: number;
-  contactUserId: string; // Reference to Contact.userId
+  ownerUserId: string; // The current user's userId owning this discussion
+  contactUserId: string; // Reference to Contact.userId - unique per contact
+
+  // Protocol/Encryption fields
   direction: 'initiated' | 'received'; // Whether this user initiated or received the discussion
   status: 'pending' | 'active' | 'closed';
   nextSeeker?: Uint8Array; // The next seeker for sending messages (from SendMessageOutput)
-  version: number;
-  discussionKey: string; // Key for accessing messages in the key-value store
+  initiationAnnouncement?: Uint8Array; // Outgoing announcement bytes when we initiate
   lastSyncTimestamp?: Date; // Last time messages were synced from protocol
+
+  // UI/Display fields
+  lastMessageId?: number;
+  lastMessageContent?: string;
+  lastMessageTimestamp?: Date;
+  unreadCount: number;
+
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
@@ -119,7 +95,7 @@ export interface DiscussionKey {
 
 export interface DiscussionMessage {
   id?: number;
-  discussionId: number;
+  discussionId?: number; // Optional for pending announcements that haven't been processed yet
   messageType: 'initiation' | 'response' | 'regular';
   direction: 'incoming' | 'outgoing';
   ciphertext: Uint8Array; // Encrypted message content
@@ -136,7 +112,6 @@ export class EchoDatabase extends Dexie {
   // Define tables
   contacts!: Table<Contact>;
   messages!: Table<Message>;
-  discussionThreads!: Table<DiscussionThread>;
   userProfile!: Table<UserProfile>;
   settings!: Table<Settings>;
   discussions!: Table<Discussion>;
@@ -146,17 +121,14 @@ export class EchoDatabase extends Dexie {
   constructor() {
     super('EchoDatabase');
 
-    // Define schema with userId as primary key for contacts and userProfile
-    this.version(3).stores({
+    this.version(10).stores({
       contacts: 'userId, name, isOnline, lastSeen, createdAt',
       messages:
-        '++id, contactUserId, type, direction, status, timestamp, encrypted, [contactUserId+status]',
-      discussionThreads:
-        '++id, &contactUserId, lastMessageTimestamp, unreadCount, isPinned, isArchived',
+        '++id, ownerUserId, contactUserId, type, direction, status, timestamp, encrypted, [ownerUserId+contactUserId], [ownerUserId+contactUserId+status]',
       userProfile: 'userId, username, status, lastSeen',
       settings: '++id, key, updatedAt',
       discussions:
-        '++id, contactUserId, direction, status, version, discussionKey, lastSyncTimestamp, createdAt, updatedAt',
+        '++id, ownerUserId, &[ownerUserId+contactUserId], status, [ownerUserId+status], lastSyncTimestamp, unreadCount, lastMessageTimestamp, createdAt, updatedAt',
       discussionKeys: '++id, discussionId, isActive, createdAt',
       discussionMessages:
         '++id, discussionId, messageType, direction, status, timestamp',
@@ -166,18 +138,6 @@ export class EchoDatabase extends Dexie {
     this.contacts.hook('creating', function (_primKey, obj, _trans) {
       obj.createdAt = new Date();
     });
-
-    this.discussionThreads.hook('creating', function (_primKey, obj, _trans) {
-      obj.createdAt = new Date();
-      obj.updatedAt = new Date();
-    });
-
-    this.discussionThreads.hook(
-      'updating',
-      function (modifications, _primKey, _obj, _trans) {
-        (modifications as Record<string, unknown>).updatedAt = new Date();
-      }
-    );
 
     this.userProfile.hook('creating', function (_primKey, obj, _trans) {
       obj.createdAt = new Date();
@@ -228,42 +188,56 @@ export class EchoDatabase extends Dexie {
     return await this.contacts.where('userId').equals(userId).first();
   }
 
-  async getMessagesForContact(
+  async getMessagesForContactByOwner(
+    ownerUserId: string,
     contactUserId: string,
     limit = 50
   ): Promise<Message[]> {
     return await this.messages
-      .where('contactUserId')
-      .equals(contactUserId)
+      .where('[ownerUserId+contactUserId]')
+      .equals([ownerUserId, contactUserId])
       .reverse()
       .limit(limit)
       .toArray();
   }
 
-  async getDiscussionThreads(): Promise<DiscussionThread[]> {
-    return await this.discussionThreads
-      .orderBy('lastMessageTimestamp')
-      .reverse()
+  async getDiscussionsByOwner(ownerUserId: string): Promise<Discussion[]> {
+    const all = await this.discussions
+      .where('ownerUserId')
+      .equals(ownerUserId)
       .toArray();
+    return all.sort((a, b) => {
+      if (a.lastMessageTimestamp && b.lastMessageTimestamp) {
+        return (
+          b.lastMessageTimestamp.getTime() - a.lastMessageTimestamp.getTime()
+        );
+      }
+      if (a.lastMessageTimestamp) return -1;
+      if (b.lastMessageTimestamp) return 1;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
   }
 
-  async getUnreadCount(): Promise<number> {
-    const discussionThreads = await this.discussionThreads.toArray();
-    return discussionThreads.reduce(
-      (total, thread) => total + thread.unreadCount,
-      0
-    );
+  async getUnreadCountByOwner(ownerUserId: string): Promise<number> {
+    const discussions = await this.discussions
+      .where('ownerUserId')
+      .equals(ownerUserId)
+      .toArray();
+    return discussions.reduce((total, d) => total + d.unreadCount, 0);
   }
 
-  async markMessagesAsRead(contactUserId: string): Promise<void> {
+  async markMessagesAsRead(
+    ownerUserId: string,
+    contactUserId: string
+  ): Promise<void> {
     await this.messages
-      .where(['contactUserId', 'status'])
-      .equals([contactUserId, 'delivered'])
+      .where('[ownerUserId+contactUserId+status]')
+      .equals([ownerUserId, contactUserId, 'delivered'])
       .modify({ status: 'read' });
 
-    await this.discussionThreads
-      .where('contactUserId')
-      .equals(contactUserId)
+    await this.discussions
+      .where('[ownerUserId+contactUserId]')
+      .equals([ownerUserId, contactUserId])
       .modify({ unreadCount: 0 });
   }
 
@@ -271,45 +245,44 @@ export class EchoDatabase extends Dexie {
     console.log('Adding message for contact:', message.contactUserId);
     const messageId = await this.messages.add(message);
 
-    // Get existing discussion thread
-    const discussionThread = await this.discussionThreads
-      .where('contactUserId')
-      .equals(message.contactUserId)
+    // Get existing discussion
+    const discussion = await this.discussions
+      .where('[ownerUserId+contactUserId]')
+      .equals([message.ownerUserId, message.contactUserId])
       .first();
 
-    if (discussionThread) {
-      console.log('Updating existing discussion thread:', discussionThread.id);
-      await this.discussionThreads.update(discussionThread.id!, {
+    if (discussion) {
+      console.log('Updating existing discussion:', discussion.id);
+      await this.discussions.update(discussion.id!, {
         lastMessageId: messageId,
         lastMessageContent: message.content,
         lastMessageTimestamp: message.timestamp,
         unreadCount:
           message.direction === 'incoming'
-            ? discussionThread.unreadCount + 1
-            : discussionThread.unreadCount,
+            ? discussion.unreadCount + 1
+            : discussion.unreadCount,
         updatedAt: new Date(),
       });
     } else {
-      // Create new discussion thread using put to handle unique constraint
+      // Note: For new messages, a discussion should already exist from the protocol
+      // If not, we'll create a minimal one (this shouldn't normally happen)
       console.log(
-        'Creating new discussion thread for contact:',
+        'Warning: Creating discussion for contact without protocol setup:',
         message.contactUserId
       );
-      await this.discussionThreads.put({
+      await this.discussions.put({
+        ownerUserId: message.ownerUserId,
         contactUserId: message.contactUserId,
+        direction: message.direction === 'incoming' ? 'received' : 'initiated',
+        status: 'pending',
+        nextSeeker: undefined,
         lastMessageId: messageId,
         lastMessageContent: message.content,
         lastMessageTimestamp: message.timestamp,
         unreadCount: message.direction === 'incoming' ? 1 : 0,
-        isPinned: false,
-        isArchived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      console.log(
-        'Created/updated discussion thread for contact:',
-        message.contactUserId
-      );
     }
 
     return messageId;
@@ -352,8 +325,13 @@ export class EchoDatabase extends Dexie {
    * Get all active discussions with their sync status
    * @returns Array of active discussions
    */
-  async getActiveDiscussions(): Promise<Discussion[]> {
-    return await this.discussions.where('status').equals('active').toArray();
+  async getActiveDiscussionsByOwner(
+    ownerUserId: string
+  ): Promise<Discussion[]> {
+    return await this.discussions
+      .where('[ownerUserId+status]')
+      .equals([ownerUserId, 'active'])
+      .toArray();
   }
 
   /**

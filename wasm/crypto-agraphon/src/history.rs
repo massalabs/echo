@@ -27,15 +27,13 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub struct HistoryItemSelf {
     /// Seeker for this message
-    pub(crate) seeker: [u8; 32],
+    pub(crate) seeker: Vec<u8>,
     /// Unique identifier for this message
     pub(crate) height: u64,
     /// Secret key for decrypting responses (Static or Ephemeral)
     pub(crate) sk_next: kem::SecretKey,
     /// Root key for children messages
     pub(crate) k_next: [u8; 32],
-    /// Seeker seed for message identification
-    pub(crate) seeker_next: [u8; 32],
 }
 
 /// History item representing the peer's most recent message.
@@ -65,8 +63,6 @@ pub struct HistoryItemPeer {
     pub(crate) pk_next: kem::PublicKey,
     /// Their master key after this message
     pub(crate) k_next: [u8; 32],
-    /// Their seeker seed for message identification
-    pub(crate) seeker_next: [u8; 32],
 }
 
 #[cfg(test)]
@@ -82,7 +78,6 @@ mod tests {
         let (sk_next, _) = kem::generate_key_pair(rand);
 
         let k_next = [42u8; 32];
-        let seeker_next = [99u8; 32];
 
         let seeker = [0u8; 32];
 
@@ -90,13 +85,12 @@ mod tests {
             height: 1,
             sk_next,
             k_next,
-            seeker_next,
-            seeker,
+
+            seeker: seeker.to_vec(),
         };
 
         assert_eq!(history_item.height, 1);
         assert_eq!(history_item.k_next, k_next);
-        assert_eq!(history_item.seeker_next, seeker_next);
     }
 
     #[test]
@@ -107,17 +101,14 @@ mod tests {
         let (_, pk_next) = kem::generate_key_pair(rand);
 
         let k_next = [42u8; 32];
-        let seeker_next = [99u8; 32];
 
         let history_item = HistoryItemPeer {
             our_parent_height: 5,
             pk_next,
             k_next,
-            seeker_next,
         };
 
         assert_eq!(history_item.our_parent_height, 5);
         assert_eq!(history_item.k_next, k_next);
-        assert_eq!(history_item.seeker_next, seeker_next);
     }
 }

@@ -22,10 +22,7 @@ export { UserKeys };
  * @param secondaryKey - A 32-byte secondary public key
  * @returns UserKeys object containing public and secret keys
  */
-export async function generateUserKeys(
-  passphrase: string,
-  secondaryKey: Uint8Array = new Uint8Array(32)
-): Promise<UserKeys> {
+export async function generateUserKeys(passphrase: string): Promise<UserKeys> {
   await ensureWasmInitialized();
   // The actual WASM function is synchronous, so we can call it directly
   const keys = _generate_user_keys(passphrase, secondaryKey);

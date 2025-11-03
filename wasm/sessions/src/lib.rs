@@ -87,11 +87,19 @@
 //! ## Basic Example
 //!
 //! ```rust,no_run
-//! use sessions::{SessionManager, SessionManagerConfig};
-//! use auth::{UserPublicKeys, UserSecretKeys, UserId};
+//! use sessions::{SessionManager, SessionManagerConfig, SessionStatus};
+//! use auth::{UserPublicKeys, UserSecretKeys, UserId, derive_keys_from_static_root_secret, StaticRootSecret};
 //!
 //! // Initialize your identity
-//! let (our_pk, our_sk) = auth::generate_user_keypair();
+//! # fn get_peer_public_keys() -> UserPublicKeys { todo!() }
+//! # fn fetch_new_announcements() -> Vec<Vec<u8>> { vec![] }
+//! # fn blockchain_read(_: &[u8]) -> Option<Vec<u8>> { None }
+//! # fn blockchain_write(_: &[u8], _: &[u8]) {}
+//! # fn blockchain_mark_seeker_as_read(_: &[u8]) {}
+//! # fn current_time_millis() -> u128 { 0 }
+//! # fn get_peer_pk(_: &UserId) -> UserPublicKeys { todo!() }
+//! let root_secret = StaticRootSecret::from_passphrase(b"secure passphrase");
+//! let (our_pk, our_sk) = derive_keys_from_static_root_secret(&root_secret);
 //!
 //! // Configure the session manager
 //! let config = SessionManagerConfig {
@@ -108,19 +116,22 @@
 //!
 //! // Establish a session with a peer
 //! let peer_pk: UserPublicKeys = get_peer_public_keys();
-//! let seeker_prefix = b"alice_to_bob_";
-//! let announcement = session_manager.establish_outgoing_session(
+//! let _announcement = session_manager.establish_outgoing_session(
 //!     &peer_pk,
 //!     &our_pk,
 //!     &our_sk,
-//!     seeker_prefix
 //! );
 //! // Publish `announcement` to the blockchain announcement board
 //!
 //! // Main event loop
+//! # fn fetch_new_announcements_fn() -> Vec<Vec<u8>> { vec![] }
+//! # fn blockchain_read_fn(_: &[u8]) -> Option<Vec<u8>> { None }
+//! # fn blockchain_write_fn(_: &[u8], _: &[u8]) {}
+//! # fn blockchain_mark_seeker_as_read_fn(_: &[u8]) {}
+//! # fn get_peer_pk_fn(_: &UserId) -> UserPublicKeys { todo!() }
 //! loop {
 //!     // 1. Process incoming announcements from the blockchain
-//!     for announcement_bytes in fetch_new_announcements() {
+//!     for announcement_bytes in fetch_new_announcements_fn() {
 //!         session_manager.feed_incoming_announcement(
 //!             &announcement_bytes,
 //!             &our_pk,
@@ -133,18 +144,18 @@
 //!     
 //!     // 3. Check for incoming messages using those seekers
 //!     for seeker in seekers {
-//!         if let Some(message_bytes) = blockchain_read(&seeker) {
+//!         if let Some(message_bytes) = blockchain_read_fn(&seeker) {
 //!             if let Some(msg_output) = session_manager.feed_incoming_message_board_read(
 //!                 &seeker,
 //!                 &message_bytes,
 //!                 &our_sk
 //!             ) {
 //!                 // Successfully decrypted a message
-//!                 println!("Received: {:?}", msg_output.message.contents);
+//!                 println!("Received: {:?}", String::from_utf8_lossy(&msg_output.message));
 //!                 
 //!                 // Handle newly acknowledged seekers (for garbage collection)
-//!                 for ack_seeker in msg_output.newly_acknowledged_self_seekers {
-//!                     blockchain_mark_seeker_as_read(&ack_seeker);
+//!                 for ack_seeker in &msg_output.newly_acknowledged_self_seekers {
+//!                     blockchain_mark_seeker_as_read_fn(&ack_seeker);
 //!                 }
 //!             }
 //!         }
@@ -152,24 +163,18 @@
 //!
 //!     // 4. Send outgoing messages
 //!     let peer_id: UserId = peer_pk.derive_id();
-//!     let message = Message {
-//!         timestamp: current_time_millis(),
-//!         contents: b"Hello, peer!".to_vec(),
-//!     };
-//!     if let Some(output) = session_manager.send_message(&peer_id, &message) {
+//!     let message_contents = b"Hello, peer!";
+//!     if let Some(output) = session_manager.send_message(&peer_id, message_contents) {
 //!         // Publish to blockchain message board
-//!         blockchain_write(&output.seeker, &output.ciphertext);
+//!         blockchain_write_fn(&output.seeker, &output.data);
 //!     }
 //!
 //!     // 5. Refresh sessions and send keep-alive messages
 //!     let keep_alive_peers = session_manager.refresh();
 //!     for peer_id in keep_alive_peers {
-//!         let keep_alive_msg = Message {
-//!             timestamp: current_time_millis(),
-//!             contents: vec![],  // Empty message for keep-alive
-//!         };
-//!         if let Some(output) = session_manager.send_message(&peer_id, &keep_alive_msg) {
-//!             blockchain_write(&output.seeker, &output.ciphertext);
+//!         let keep_alive_msg = b"";  // Empty message for keep-alive
+//!         if let Some(output) = session_manager.send_message(&peer_id, keep_alive_msg) {
+//!             blockchain_write_fn(&output.seeker, &output.data);
 //!         }
 //!     }
 //!
@@ -180,32 +185,17 @@
 //!             SessionStatus::Saturated => { /* Too much lag, wait for acks */ },
 //!             SessionStatus::PeerRequested => {
 //!                 // Peer wants session, respond with our announcement
-//!                 let announcement = session_manager.establish_outgoing_session(
-//!                     &get_peer_pk(&peer_id),
+//!                 let _announcement = session_manager.establish_outgoing_session(
+//!                     &get_peer_pk_fn(&peer_id),
 //!                     &our_pk,
 //!                     &our_sk,
-//!                     &generate_seeker_prefix(&peer_id)
 //!                 );
-//!                 blockchain_publish_announcement(&announcement);
 //!             },
 //!             _ => { /* Handle other states */ },
 //!         }
 //!     }
-//!
-//!     std::thread::sleep(std::time::Duration::from_secs(1));
+//! #   break; // Exit loop for doc test
 //! }
-//!
-//! # fn get_peer_public_keys() -> UserPublicKeys { todo!() }
-//! # fn fetch_new_announcements() -> Vec<Vec<u8>> { vec![] }
-//! # fn blockchain_read(seeker: &[u8]) -> Option<Vec<u8>> { None }
-//! # fn blockchain_write(seeker: &[u8], data: &[u8]) {}
-//! # fn blockchain_mark_seeker_as_read(seeker: &[u8]) {}
-//! # fn current_time_millis() -> u128 { 0 }
-//! # fn get_peer_pk(peer_id: &UserId) -> UserPublicKeys { todo!() }
-//! # fn generate_seeker_prefix(peer_id: &UserId) -> Vec<u8> { vec![] }
-//! # fn blockchain_publish_announcement(ann: &[u8]) {}
-//! # use sessions::SessionStatus;
-//! # use sessions::Message;
 //! ```
 //!
 //! ## Session Lifecycle
@@ -221,5 +211,6 @@ mod session;
 mod session_manager;
 mod utils;
 
-pub use session::{FeedIncomingMessageOutput, Message, SendOutgoingMessageOutput};
+pub use session::{FeedIncomingMessageOutput, SendOutgoingMessageOutput};
+pub use session::{IncomingInitiationRequest, OutgoingInitiationRequest, Session};
 pub use session_manager::{SessionManager, SessionManagerConfig, SessionStatus};

@@ -6,20 +6,13 @@ import {
   EncryptedMessage,
   IMessageProtocol,
   MessageProtocolResponse,
-  AnnouncementPayload,
 } from './types';
 
 type EncryptedMessageWire = {
   seeker: number[];
   ciphertext: number[];
-  ct: number[];
-  rand: number[];
-  nonce: number[];
   timestamp: string | number;
-} & Omit<
-  EncryptedMessage,
-  'seeker' | 'ciphertext' | 'ct' | 'rand' | 'nonce' | 'timestamp'
->;
+};
 
 export class RestMessageProtocol implements IMessageProtocol {
   constructor(
@@ -46,12 +39,8 @@ export class RestMessageProtocol implements IMessageProtocol {
 
       // Convert timestamp strings back to Date objects and arrays to Uint8Array
       return response.data.map<EncryptedMessage>(msg => ({
-        ...msg,
         seeker: new Uint8Array(msg.seeker),
         ciphertext: new Uint8Array(msg.ciphertext),
-        ct: new Uint8Array(msg.ct),
-        rand: new Uint8Array(msg.rand),
-        nonce: new Uint8Array(msg.nonce),
         timestamp: new Date(msg.timestamp),
       }));
     } catch (error) {
@@ -61,10 +50,18 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   async sendMessage(
-    discussionKey: string,
+    seeker: Uint8Array,
     message: EncryptedMessage
   ): Promise<void> {
-    const url = `${this.baseUrl}/messages/${encodeURIComponent(discussionKey)}`;
+    // Encode seeker as base64url (URL-safe base64) for URL
+    const binaryString = Array.from(seeker)
+      .map(byte => String.fromCharCode(byte))
+      .join('');
+    const seekerBase64 = btoa(binaryString)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+    const url = `${this.baseUrl}/messages/${encodeURIComponent(seekerBase64)}`;
 
     try {
       const response = await this.makeRequest<void>(url, {
@@ -73,11 +70,9 @@ export class RestMessageProtocol implements IMessageProtocol {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...message,
+          seeker: Array.from(message.seeker),
           ciphertext: Array.from(message.ciphertext),
-          ct: Array.from(message.ct),
-          rand: Array.from(message.rand),
-          nonce: Array.from(message.nonce),
+          timestamp: message.timestamp.toISOString(),
         }),
       });
 
@@ -91,15 +86,14 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an outgoing session announcement produced by WASM
-  async createOutgoingSession(payload: AnnouncementPayload): Promise<void> {
+  async createOutgoingSession(announcement: Uint8Array): Promise<void> {
     const url = `${this.baseUrl}/sessions/outgoing`;
 
     const response = await this.makeRequest<void>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(payload.announcement),
-        auth_blob: payload.authBlob,
+        announcement: Array.from(announcement),
       }),
     });
 
@@ -109,15 +103,14 @@ export class RestMessageProtocol implements IMessageProtocol {
   }
 
   // Broadcast an incoming session response produced by WASM
-  async feedIncomingAnnouncement(payload: AnnouncementPayload): Promise<void> {
+  async feedIncomingAnnouncement(announcement: Uint8Array): Promise<void> {
     const url = `${this.baseUrl}/sessions/incoming`;
 
     const response = await this.makeRequest<void>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        announcement: Array.from(payload.announcement),
-        auth_blob: payload.authBlob,
+        announcement: Array.from(announcement),
       }),
     });
 

@@ -15,7 +15,7 @@ interface WalletProps {
 }
 
 const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
-  const { userProfile } = useAccountStore();
+  const { account } = useAccountStore();
   const tokens = useWalletStore.use.tokens();
   const isLoading = useWalletStore.use.isLoading();
   const refreshBalances = useWalletStore.use.refreshBalances();
@@ -38,7 +38,7 @@ const Wallet: React.FC<WalletProps> = ({ onTabChange }) => {
     setIsSendModalOpen(false);
   }, []);
 
-  const fullAddress = userProfile?.wallet?.address ?? '';
+  const fullAddress = account?.address?.toString() ?? '';
   const displayAddress = formatMassaAddress(fullAddress);
 
   return (

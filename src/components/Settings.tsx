@@ -18,6 +18,7 @@ enum SettingsView {
 const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   const {
     userProfile,
+    account,
     hasMnemonicBackup,
     getMnemonicBackupInfo,
     resetAccount,
@@ -26,10 +27,10 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCopyAddress = async () => {
-    if (!userProfile?.wallet?.address) return;
+    if (!account?.address) return;
 
     try {
-      await navigator.clipboard.writeText(userProfile.wallet.address);
+      await navigator.clipboard.writeText(account.address.toString());
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
@@ -89,8 +90,8 @@ const Settings: React.FC<SettingsProps> = ({ onTabChange }) => {
                 </h3>
                 <div className="flex items-center gap-2">
                   <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400">
-                    {userProfile?.wallet?.address
-                      ? formatMassaAddress(userProfile.wallet.address)
+                    {account?.address
+                      ? formatMassaAddress(account.address.toString())
                       : 'AU121243124312431243'}
                   </p>
                   <button
