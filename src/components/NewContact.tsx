@@ -100,10 +100,12 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
       }
       setError(null);
     } catch (e) {
-      setError('Failed to process imported contact: ' + e);
+      setError(
+        `Failed to process imported contact: ${e instanceof Error ? e.message : String(e)}`
+      );
     }
   }, [fileContact, validateName, validateUserId]);
-  
+
   const handleGenerate = useCallback(async () => {
     const nameIsValid = validateUsername(name).valid;
     if (!nameIsValid || userId || isSubmitting) return;
@@ -275,7 +277,7 @@ const NewContact: React.FC<NewContactProps> = ({ onCancel, onCreated }) => {
                       </svg>
                       <span>Import</span>
                     </label>
-                    <Popover message="You can setup a discussion with a Gossip user by importing it's .yaml file" />
+                    <Popover message="You can setup a discussion with a Gossip user by importing its .yaml file" />
                   </div>
                 </div>
               )}

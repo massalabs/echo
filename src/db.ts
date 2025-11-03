@@ -4,7 +4,6 @@ import Dexie, { Table } from 'dexie';
 export interface Contact {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   name: string;
-  userPublicKeys: Uint8Array;
   avatar?: string;
   publicKeys: Uint8Array; // Serialized UserPublicKeys bytes (from UserPublicKeys.to_bytes())
   isOnline: boolean;

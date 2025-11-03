@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 
@@ -10,12 +10,8 @@ type ShareTab = 'files' | 'qr';
 
 const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<ShareTab>('files');
-  const { userProfile } = useAccountStore();
+  const { ourPk, userProfile } = useAccountStore();
   const { exportFileContact, isLoading, error } = useFileShareContact();
-  const canExport = useMemo(
-    () => !!userProfile?.wasmKeys?.publicKeys,
-    [userProfile]
-  );
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
@@ -93,13 +89,13 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
               </p>
               <button
                 onClick={() => {
-                  if (!canExport || !userProfile) return;
+                  if (!ourPk) return;
                   exportFileContact({
-                    userPubKeys: userProfile.wasmKeys.publicKeys,
-                    userName: userProfile.username,
+                    userPubKeys: ourPk.to_bytes(),
+                    userName: userProfile?.username,
                   });
                 }}
-                disabled={!canExport || isLoading}
+                disabled={!ourPk || isLoading}
                 className="w-full h-[54px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
               >
                 Download
