@@ -166,17 +166,30 @@ export class AnnouncementService {
       );
 
       if (!contact) {
-        // check for number of contacts with the same name
-        const newRequestCount = await db.contacts
-          .where('name')
-          .equals(`New Request`)
-          .count();
+        // Find all contacts with names starting with "New Request"
+        // and extract the maximum number suffix
+        const newRequestContacts = await db.contacts
+          .where('ownerUserId')
+          .equals(ownerUserId)
+          .filter(contact => contact.name.startsWith('New Request'))
+          .toArray();
+
+        // Extract numbers from names like "New Request 1", "New Request 2", etc.
+        const numbers = newRequestContacts
+          .map(c => {
+            const match = c.name.match(/^New Request (\d+)$/);
+            return match ? parseInt(match[1], 10) : 0;
+          })
+          .filter(n => n > 0);
+
+        const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
+        const nextNumber = maxNumber + 1;
 
         await db.contacts.add({
           ownerUserId,
           userId: contactUserIdString,
           // TODO: Add a better name for the new request
-          name: `New Request ${newRequestCount + 1}`,
+          name: `New Request ${nextNumber}`,
           publicKeys: announcerPkeys.to_bytes(),
           avatar: undefined,
           isOnline: false,
