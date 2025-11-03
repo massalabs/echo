@@ -27,24 +27,13 @@ export interface UserProfile {
   userId: string; // 32-byte user ID (base58 encoded) - primary key
   username: string;
   avatar?: string;
-  // WASM user keys are NOT persisted; kept in-memory in the account store
-  // Security-related fields (encryption and authentication)
   security: {
-    // No Massa private key stored; only auth metadata and optional mnemonic backup
+    encKeySalt: Uint8Array;
 
     // WebAuthn/FIDO2 (biometric) details when used
     webauthn?: {
       credentialId: string;
       publicKey: ArrayBuffer;
-      counter: number;
-      deviceType: 'platform' | 'cross-platform';
-      backedUp: boolean;
-      transports?: string[];
-    };
-
-    // Password-based KDF parameters when used
-    password?: {
-      salt: Uint8Array;
     };
 
     // Mnemonic backup details
