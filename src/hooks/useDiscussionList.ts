@@ -122,7 +122,7 @@ export const useDiscussionList = () => {
       if (appState !== 'main') setAppState('main');
       return;
     }
-    if (!userProfile && appState === 'loading') {
+    if (appState === 'loading') {
       checkExistingAccount();
     }
   }, [
