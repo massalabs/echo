@@ -56,8 +56,7 @@ export const useMessages = ({
       setIsSyncing(true);
 
       // Fetch new encrypted messages
-      const service = await messageService.getInstance();
-      const fetchResult = await service.fetchNewMessages(discussionId);
+      const fetchResult = await messageService.fetchNewMessages(discussionId);
 
       if (fetchResult.success && fetchResult.newMessagesCount > 0) {
         // Reload messages to show the new ones (decryption handled elsewhere)
@@ -85,70 +84,16 @@ export const useMessages = ({
       setIsSending(true);
 
       try {
-        const currentDiscussion = await db.getDiscussionByOwnerAndContact(
-          userProfile.userId,
-          contact.userId
+        const result = await messageService.sendMessage(
+          contact.userId,
+          content
         );
 
-        if (!currentDiscussion) {
-          throw new Error('Discussion not found');
+        if (result.message) {
+          setMessages(prev => [...prev, result.message!]);
         }
 
-        // Create message record with sending status
-        const message: Omit<Message, 'id'> = {
-          ownerUserId: userProfile.userId,
-          contactUserId: contact.userId,
-          content,
-          type: 'text',
-          direction: 'outgoing',
-          // TODO: handle failed to send message (lost connection, etc.)
-          status: 'sending',
-          timestamp: new Date(),
-          encrypted: true, // TODO: Do we need this field as every message should be encrypted?
-        };
-
-        const messageId = await db.addMessage(message);
-
-        setMessages(prev => [...prev, { ...message, id: messageId }]);
-
-        // Send through protocol API using the resolved discussion
-        try {
-          const service = await messageService.getInstance();
-
-          // ------------------------------------------------------------
-          // Use nextSeeker directly, or create a placeholder if not available
-          const seeker = currentDiscussion.nextSeeker || new Uint8Array(32);
-          // Create a mock encrypted message payload for protocol
-          const messageProtocol = await service.getMessageProtocol();
-          await messageProtocol.sendMessage(seeker, {
-            seeker,
-            ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-            timestamp: new Date(),
-          });
-
-          // Update message status to sent
-          await db.messages.update(messageId, { status: 'sent' });
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === messageId ? { ...msg, status: 'sent' } : msg
-            )
-          );
-
-          console.log('Message sent successfully through protocol API');
-        } catch (protocolError) {
-          console.error(
-            'Failed to send message through protocol:',
-            protocolError
-          );
-
-          // Update message status to failed
-          await db.messages.update(messageId, { status: 'failed' });
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === messageId ? { ...msg, status: 'failed' } : msg
-            )
-          );
-
+        if (!result.success) {
           return false;
         }
 

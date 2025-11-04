@@ -10,6 +10,7 @@ import {
 import { encodeToBase64, decodeFromBase64 } from '../../utils/base64';
 
 const BULLETIN_ENDPOINT = '/bulletin';
+const MESSAGES_ENDPOINT = '/messages';
 
 type EncryptedMessageWire = {
   seeker: number[];
@@ -25,7 +26,7 @@ export class RestMessageProtocol implements IMessageProtocol {
   ) {}
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
-    const url = `${this.baseUrl}/messages/query`;
+    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/query`;
 
     try {
       const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
@@ -60,14 +61,8 @@ export class RestMessageProtocol implements IMessageProtocol {
     message: EncryptedMessage
   ): Promise<void> {
     // Encode seeker as base64url (URL-safe base64) for URL
-    const binaryString = Array.from(seeker)
-      .map(byte => String.fromCharCode(byte))
-      .join('');
-    const seekerBase64 = btoa(binaryString)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-    const url = `${this.baseUrl}/messages/${encodeURIComponent(seekerBase64)}`;
+    const seekerBase64 = encodeToBase64(seeker);
+    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}`;
 
     try {
       const response = await this.makeRequest<void>(url, {
@@ -76,8 +71,8 @@ export class RestMessageProtocol implements IMessageProtocol {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          seeker: Array.from(message.seeker),
-          ciphertext: Array.from(message.ciphertext),
+          seeker: seekerBase64,
+          ciphertext: encodeToBase64(message.ciphertext),
           timestamp: message.timestamp.toISOString(),
         }),
       });

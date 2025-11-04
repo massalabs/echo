@@ -5,20 +5,24 @@
  * This service works both in the main app context and Service Worker context.
  */
 
-import { db } from '../db';
+import { db, Message } from '../db';
 import {
-  EncryptedMessage,
   IMessageProtocol,
   createMessageProtocol,
 } from '../api/messageProtocol';
-import bs58check from 'bs58check';
 import { useAccountStore } from '../stores/accountStore';
-import { generateUserKeys, SessionModule } from '../wasm';
+import { generateUserKeys, SessionModule, getSessionModule } from '../wasm';
 import { announcementService } from './announcement';
 
 export interface MessageResult {
   success: boolean;
   newMessagesCount: number;
+  error?: string;
+}
+
+export interface SendMessageResult {
+  success: boolean;
+  message?: Message;
   error?: string;
 }
 
@@ -186,248 +190,70 @@ export class MessageService {
     }
   }
 
-  // =========================
-  // Simulation helpers (test/dev)
-  // =========================
-
-  // simulateIncomingDiscussion moved to AnnouncementService
-
   /**
-   * Simulate receiving a message for an existing discussion
-   * @param discussionId - The discussion ID to simulate a message for
-   * @returns Result with count of new messages created
+   * Create a text message, persist it as sending, send via protocol, and update status.
+   * Returns the created message (with final status) on success/failure.
    */
-  async simulateReceivedMessage(discussionId: number): Promise<MessageResult> {
+  async sendMessage(
+    contactUserId: string,
+    content: string
+  ): Promise<SendMessageResult> {
     try {
-      console.log('Simulating received message for discussion:', discussionId);
+      const ownerUserId = useAccountStore.getState().userProfile?.userId;
+      if (!ownerUserId)
+        return { success: false, error: 'No authenticated user' };
+      if (!content) return { success: false, error: 'Empty content' };
 
-      const { ourPk } = useAccountStore.getState();
-      if (!ourPk) throw new Error('WASM public keys unavailable');
-      const ourUserId = ourPk.derive_id();
-
-      // Get the discussion to access the session
-      const discussion = await db.discussions.get(discussionId);
-      if (!discussion) {
-        return {
-          success: false,
-          newMessagesCount: 0,
-          error: 'Discussion not found',
-        };
-      }
-      console.log(discussion);
-      const contactUserId = discussion.contactUserId;
-
-      // Retrieve the contact to get its identifier
-      const ownerUserId2 = useAccountStore.getState().userProfile?.userId;
-      if (!ownerUserId2) throw new Error('No authenticated user');
-      const contact = await db.getContactByOwnerAndUserId(
-        ownerUserId2,
+      const discussion = await db.getDiscussionByOwnerAndContact(
+        ownerUserId,
         contactUserId
       );
-      if (!contact) {
+      if (!discussion) return { success: false, error: 'Discussion not found' };
+
+      // Create message with sending status
+      const messageBase: Omit<import('../db').Message, 'id'> = {
+        ownerUserId,
+        contactUserId,
+        content,
+        type: 'text',
+        direction: 'outgoing',
+        status: 'sending',
+        timestamp: new Date(),
+        encrypted: true,
+      };
+
+      const messageId = await db.addMessage(messageBase);
+
+      // Try sending via protocol
+      try {
+        const seeker = discussion.nextSeeker || new Uint8Array(32);
+        const messageProtocol = await this.getMessageProtocol();
+        await messageProtocol.sendMessage(seeker, {
+          seeker,
+          ciphertext: new Uint8Array(128),
+          timestamp: new Date(),
+        });
+
+        await db.messages.update(messageId, { status: 'sent' });
+        return {
+          success: true,
+          message: { ...messageBase, id: messageId, status: 'sent' },
+        };
+      } catch (error) {
+        await db.messages.update(messageId, { status: 'failed' });
         return {
           success: false,
-          newMessagesCount: 0,
-          error: 'Contact not found',
+          error: error instanceof Error ? error.message : 'Send failed',
+          message: { ...messageBase, id: messageId, status: 'failed' },
         };
       }
-
-      const contactIdentity = await generateUserKeys(
-        `test_user_${contact.name}`
-      );
-      // Get the peer ID from the contact's public keys
-      const contactPublicKeys = contactIdentity.public_keys();
-      const contactSecretKeys = contactIdentity.secret_keys();
-      // create a local session module instance for testing
-      const sessionModule = new SessionModule();
-
-      // if there is no message yet, respond to the anouncement
-      const messages = await db.messages
-        .where('contactUserId')
-        .equals(contactUserId)
-        .filter(m => m.direction === 'incoming')
-        .toArray();
-      if (messages.length === 0) {
-        if (!discussion.initiationAnnouncement) {
-          throw new Error('No initiation announcement found');
-        }
-
-        sessionModule.feedIncomingAnnouncement(
-          discussion.initiationAnnouncement,
-          contactPublicKeys,
-          contactSecretKeys
-        );
-        sessionModule.establishOutgoingSession(
-          ourPk,
-          contactPublicKeys,
-          contactSecretKeys
-        );
-      }
-
-      const peerList = sessionModule.peerList();
-      console.log(
-        'peers',
-        peerList.map(p => bs58check.encode(p))
-      );
-      console.log('peer status', sessionModule.peerSessionStatus(ourUserId));
-
-      // Create a new Message with test content using sendMessage
-      const testContent =
-        'This is a simulated received message for testing purposes.';
-      const messageContent = new TextEncoder().encode(testContent);
-
-      // Use sendMessage to create a properly encrypted message
-      const sendOutput = sessionModule.sendMessage(ourUserId, messageContent);
-      if (!sendOutput) {
-        throw new Error('sendMessage returned null');
-      }
-
-      // Now we have a properly encrypted message with seeker and ciphertext
-      const { seeker, data: ciphertext } = sendOutput;
-
-      // Create message object matching simplified EncryptedMessage interface
-      const mockMessage: EncryptedMessage = {
-        seeker,
-        ciphertext,
-        timestamp: new Date(),
-      };
-
-      // Add to mock protocol's message store so it can be fetched and decrypted
-      const messageProtocol = await this.getMessageProtocol();
-      await messageProtocol.sendMessage(seeker, mockMessage);
-
-      console.log('msg sent', seeker);
-
-      // try {
-      // console.log(
-      //   'Attempting to decrypt simulated message with seeker:',
-      //   Array.from(seeker).slice(0, 8)
-      // );
-      // const out = await sessionModule.feedIncomingMessageBoardRead(
-      //   seeker,
-      //   ciphertext,
-      //   ourSk
-      // );
-
-      // if (out) {
-      //   console.log('WASM decryption successful, creating message');
-      //   const decoder = new TextDecoder();
-      //   const content = decoder.decode(out.message.contents);
-
-      //   // Create a regular message entry for the UI
-      //   const messageId = await db.addMessage({
-      //     contactUserId: discussion.contactUserId,
-      //     content,
-      //     type: 'text',
-      //     direction: 'incoming',
-      //     status: 'delivered',
-      //     timestamp: mockMessage.timestamp,
-      //     encrypted: true,
-      //     metadata: { simulated: true },
-      //   });
-      //   console.log(
-      //     'Created message with ID:',
-      //     messageId,
-      //     'for contact:',
-      //     discussion.contactUserId
-      //   );
-
-      //   // Discussion metadata (last message, unread) is maintained by db.addMessage
-
-      //   // Update discussion with new seeker from acknowledged_seekers
-      //   if (
-      //     out.acknowledged_seekers &&
-      //     out.acknowledged_seekers.length > 0
-      //   ) {
-      //     const newSeeker = out.acknowledged_seekers[0];
-      //     await db.discussions.update(discussionId, {
-      //       nextSeeker: newSeeker,
-      //       updatedAt: new Date(),
-      //     });
-      //   }
-      // } else {
-      //   console.log('WASM decryption returned null, using fallback');
-      //   throw new Error('WASM decryption returned null');
-      // }
-      // } catch (error) {
-      //   console.error('Failed to decrypt simulated message:', error);
-      //   console.log(
-      //     'Using fallback: creating simple message without decryption'
-      //   );
-      //   // Fallback: create a simple message without decryption
-      //   const messageId = await db.addMessage({
-      //     contactUserId: discussion.contactUserId,
-      //     content: 'This is a simulated received message for testing purposes.',
-      //     type: 'text',
-      //     direction: 'incoming',
-      //     status: 'delivered',
-      //     timestamp: new Date(),
-      //     encrypted: false,
-      //     metadata: { simulated: true },
-      //   });
-      //   console.log(
-      //     'Created fallback message with ID:',
-      //     messageId,
-      //     'for contact:',
-      //     discussion.contactUserId
-      //   );
-      // }
-
-      console.log(
-        'Successfully simulated received message for discussion:',
-        discussionId
-      );
-      return {
-        success: true,
-        newMessagesCount: 1,
-      };
     } catch (error) {
-      console.error('Failed to simulate received message:', error);
       return {
         success: false,
-        newMessagesCount: 0,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
-
-  // =========================
-  // Private helpers
-  // =========================
-
-  // Announcement processing moved to AnnouncementService
-
-  /**
-   * Check if there are new encrypted messages for a discussion
-   * @param discussionId - The discussion ID
-   * @returns True if there are new encrypted messages
-   */
-  async hasNewEncryptedMessages(discussionId: number): Promise<boolean> {
-    try {
-      const encryptedMessages = await db.discussionMessages
-        .where('discussionId')
-        .equals(discussionId)
-        .filter(msg => msg.direction === 'incoming')
-        .count();
-
-      return encryptedMessages > 0;
-    } catch (error) {
-      console.error('Failed to check for new encrypted messages:', error);
-      return false;
-    }
-  }
 }
 
-// Export singleton instance - will be created lazily when first accessed
-let _MessageService: MessageService | null = null;
-
-export const messageService = {
-  async getInstance(): Promise<MessageService> {
-    if (!_MessageService) {
-      _MessageService = new MessageService();
-      // Initialize the message protocol (now synchronous with mock)
-      await _MessageService.getMessageProtocol();
-    }
-    return _MessageService;
-  },
-};
+export const messageService = new MessageService();
