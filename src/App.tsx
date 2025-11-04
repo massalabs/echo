@@ -2,7 +2,13 @@ import React, { useEffect, useCallback, useState } from 'react';
 import { useAccountStore } from './stores/accountStore';
 import { db, UserProfile } from './db';
 import OnboardingFlow from './components/OnboardingFlow';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  HashRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from 'react-router-dom';
 import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
 import PWABadge from './PWABadge.tsx';
 import DebugOverlay from './components/ui/DebugOverlay.tsx';
@@ -25,6 +31,7 @@ import Settings from './pages/Settings';
 import Wallet from './pages/Wallet';
 
 const AppContent: React.FC = () => {
+  const navigate = useNavigate();
   const { isInitialized, isLoading, setLoading, userProfile } =
     useAccountStore();
   const [showImport, setShowImport] = useState(false);
@@ -121,12 +128,12 @@ const AppContent: React.FC = () => {
   // Ensure we default to /welcome if hash is empty when unauthenticated
   useEffect(() => {
     if (isInitialized && !userProfile && !isLoading) {
-      const currentHash = window.location.hash.slice(1) || '/';
-      if (currentHash === '/' || currentHash === '') {
-        window.location.hash = '#/welcome';
+      const currentPath = window.location.hash.slice(1) || '/';
+      if (currentPath === '/' || currentPath === '') {
+        navigate('/welcome', { replace: true });
       }
     }
-  }, [isInitialized, userProfile, isLoading]);
+  }, [isInitialized, userProfile, isLoading, navigate]);
 
   // Show global loader only during initial boot, not during sign-in.
   if (isLoading && !isInitialized && !userProfile) {
@@ -192,8 +199,9 @@ const AppContent: React.FC = () => {
     return (
       <OnboardingFlow
         onComplete={() => {
-          // When onboarding is complete, set isInitialized to true to trigger DiscussionList
+          // When onboarding is complete, mark initialized and navigate to setup
           useAccountStore.setState({ isInitialized: true });
+          navigate('/setup');
         }}
         onImportMnemonic={() => setShowImport(true)}
       />
@@ -210,7 +218,7 @@ const AppContent: React.FC = () => {
             key="welcomeback-router"
             onCreateNewAccount={() => {
               setLoginError(null); // Clear error when navigating to setup
-              window.location.hash = '#/setup';
+              navigate('/setup');
             }}
             onAccountSelected={() => {
               // Only navigate if userProfile is actually set (successful login)
@@ -230,7 +238,7 @@ const AppContent: React.FC = () => {
             onComplete={() => {
               useAccountStore.setState({ isInitialized: true });
               // After account creation, go to discussions
-              window.location.hash = '#/';
+              navigate('/', { replace: true });
             }}
             onBack={() => {
               // If there is at least one account, go back to welcome; otherwise go to onboarding
@@ -239,7 +247,7 @@ const AppContent: React.FC = () => {
                 .hasExistingAccount()
                 .then(hasAny => {
                   if (hasAny) {
-                    window.location.hash = '#/welcome';
+                    navigate('/welcome');
                   } else {
                     useAccountStore.setState({ isInitialized: false });
                   }
