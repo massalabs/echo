@@ -138,10 +138,10 @@ const AppContent: React.FC = () => {
   // Show global loader only during initial boot, not during sign-in.
   if (isLoading && !isInitialized && !userProfile) {
     return (
-      <div className="min-h-screen-mobile bg-white flex items-center justify-center">
+      <div className="min-h-screen-mobile bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600">Loading...</p>
+          <div className="w-8 h-8 border-2 border-border border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );

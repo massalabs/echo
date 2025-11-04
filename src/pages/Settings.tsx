@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import BaseModal from '../components/ui/BaseModal';
+import PageHeader from '../components/ui/PageHeader';
+import SettingsButton from '../components/ui/SettingsButton';
 import { useAccountStore } from '../stores/accountStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
@@ -56,38 +58,34 @@ const Settings = (): React.ReactElement => {
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
         {/* Header */}
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-semibold text-black dark:text-white">
-            SETTINGS
-          </h1>
-        </div>
+        <PageHeader title="Settings" showLogo />
 
         {/* Account Profile Section */}
         <div className="px-4 mb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 relative">
-            <div className="flex items-start gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <div className="flex items-start gap-4 mb-4">
               <img
                 src={appLogo}
-                className="w-[74px] h-[74px] rounded-tl-lg object-cover"
+                className="w-16 h-16 rounded-lg object-cover"
                 alt="Profile"
               />
-              <div className="flex-1">
-                <h3 className="text-base font-bold text-black dark:text-white mb-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-semibold text-black dark:text-white mb-2">
                   {userProfile?.username || 'Account name'}
                 </h3>
                 <div className="flex items-center gap-2">
-                  <p className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                     {account?.address
                       ? formatMassaAddress(account.address.toString())
                       : 'AU121243124312431243'}
                   </p>
                   <button
                     onClick={handleCopyAddress}
-                    className="p-1 text-[#b2b2b2] dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex-shrink-0"
                     title={copySuccess ? 'Copied!' : 'Copy full address'}
                   >
                     <svg
-                      className="w-3 h-3"
+                      className="w-4 h-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -103,159 +101,145 @@ const Settings = (): React.ReactElement => {
                 </div>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-base font-semibold text-black dark:text-white">
-                Account settings
-              </span>
+          </div>
+        </div>
+
+        {/* Settings Options */}
+        <div className="px-4 pb-20 space-y-2">
+          {/* Account Backup Button */}
+          <SettingsButton
+            icon={
               <svg
-                className="w-6 h-6 text-black dark:text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                className="w-5 h-5"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 5l7 7-7 7"
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                 />
               </svg>
-            </div>
-            <div className="mt-4 h-px bg-gray-300 dark:bg-gray-600"></div>
-          </div>
-        </div>
-
-        {/* Settings Options */}
-        <div className="px-4 space-y-2">
-          {/* Account Backup Button */}
-          <button
+            }
+            label="Account Backup"
             onClick={() => setActiveView(SettingsView.SHOW_ACCOUNT_BACKUP)}
-            className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 text-black dark:text-white mr-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="text-base font-semibold text-black dark:text-white">
-              Account Backup
-            </span>
-            {hasMnemonic && mnemonicBackupInfo?.backedUp && (
-              <div className="ml-auto w-2 h-2 bg-green-500 rounded-full"></div>
-            )}
-          </button>
+            badge={
+              hasMnemonic && mnemonicBackupInfo?.backedUp ? (
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              ) : undefined
+            }
+          />
 
           {/* Share Contact Button */}
-          <button
+          <SettingsButton
+            icon={
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
+                />
+              </svg>
+            }
+            label="Share Contact"
             onClick={() => setActiveView(SettingsView.SHARE_CONTACT)}
-            className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 text-black dark:text-white mr-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
-              />
-            </svg>
-            <span className="text-base font-semibold text-black dark:text-white">
-              Share Contact
-            </span>
-          </button>
+          />
 
-          {/* Additional Settings Buttons */}
-          <button className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <svg
-              className="w-5 h-5 text-black dark:text-white mr-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="text-base font-semibold text-black dark:text-white">
-              Security
-            </span>
-          </button>
+          {/* Security Button */}
+          <SettingsButton
+            icon={
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            }
+            label="Security"
+            onClick={() => {}}
+            disabled
+          />
 
-          <button className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <svg
-              className="w-5 h-5 text-black dark:text-white mr-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="text-base font-semibold text-black dark:text-white">
-              Notifications
-            </span>
-          </button>
+          {/* Notifications Button */}
+          <SettingsButton
+            icon={
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+            }
+            label="Notifications"
+            onClick={() => {}}
+            disabled
+          />
 
-          <button className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <svg
-              className="w-5 h-5 text-black dark:text-white mr-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
-            <span className="text-base font-semibold text-black dark:text-white">
-              Privacy
-            </span>
-          </button>
+          {/* Privacy Button */}
+          <SettingsButton
+            icon={
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            }
+            label="Privacy"
+            onClick={() => {}}
+            disabled
+          />
 
           {/* Logout Button */}
-          <button
+          <SettingsButton
+            icon={
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+            }
+            label="Logout"
             onClick={handleResetAccount}
-            className="w-full bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 text-red-500 dark:text-red-400 mr-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
-            <span className="text-base font-semibold text-red-500 dark:text-red-400">
-              Logout
-            </span>
-          </button>
+            variant="danger"
+          />
         </div>
       </div>
       <BaseModal

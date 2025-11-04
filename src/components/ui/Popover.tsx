@@ -12,9 +12,9 @@ const Popover: React.FC<PopoverProps> = ({
   const [showPopover, setShowPopover] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Close popover when clicking outside
+  // Close popover when clicking outside or touching outside (mobile support)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (
         popoverRef.current &&
         !popoverRef.current.contains(event.target as Node)
@@ -24,9 +24,12 @@ const Popover: React.FC<PopoverProps> = ({
     };
 
     if (showPopover) {
+      // Support both mouse and touch events for mobile
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleClickOutside);
       };
     }
   }, [showPopover]);
@@ -36,7 +39,7 @@ const Popover: React.FC<PopoverProps> = ({
       <button
         type="button"
         onClick={() => setShowPopover(!showPopover)}
-        className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 transition-colors"
+        className="w-6 h-6 flex items-center justify-center rounded-full bg-secondary hover:bg-secondary/80 active:bg-secondary/60 text-muted-foreground transition-colors touch-manipulation"
         aria-label={ariaLabel}
       >
         <svg
@@ -54,11 +57,11 @@ const Popover: React.FC<PopoverProps> = ({
         </svg>
       </button>
       {showPopover && (
-        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 w-64 max-w-[calc(100vw-2rem)] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-          <p className="text-sm text-gray-700 dark:text-gray-300">{message}</p>
+        <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 w-64 max-w-[calc(100vw-2rem)] p-3 bg-card border border-border rounded-lg shadow-lg pointer-events-auto">
+          <p className="text-sm text-foreground">{message}</p>
           {/* Arrow pointing to help button */}
-          <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-gray-200 dark:border-r-gray-700"></div>
-          <div className="absolute left-0 top-1/2 -translate-x-0.5 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-white dark:border-r-gray-800"></div>
+          <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-border"></div>
+          <div className="absolute left-0 top-1/2 -translate-x-0.5 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-r-4 border-r-card"></div>
         </div>
       )}
     </div>

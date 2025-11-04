@@ -40,8 +40,8 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
         className={`${
           isPendingIncoming || isPendingOutgoing
             ? 'cursor-not-allowed opacity-95'
-            : 'cursor-pointer hover:ring-1 hover:ring-gray-200 dark:hover:ring-gray-700'
-        } bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 transition-colors`}
+            : 'cursor-pointer hover:ring-1 hover:ring-border'
+        } bg-card border border-border rounded-xl px-4 py-3 transition-colors`}
         {...(!(isPendingIncoming || isPendingOutgoing)
           ? {
               onClick: () => onSelect(discussion),
@@ -54,21 +54,21 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
           <ContactAvatar contact={contact} size={12} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <h3 className="text-sm font-medium text-foreground truncate">
                 {contact.name}
               </h3>
               <div className="flex items-center gap-2">
                 {isPendingOutgoing && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    Waiting acceptance
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent text-accent-foreground border border-border">
+                    Waiting approval
                   </span>
                 )}
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   {lastMessage && formatRelativeTime(lastMessage.timestamp)}
                 </p>
                 {!isPendingIncoming && !isPendingOutgoing && (
                   <svg
-                    className="w-4 h-4 text-gray-400"
+                    className="w-4 h-4 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -85,7 +85,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
             </div>
             {isPendingIncoming ? (
               <>
-                <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400 break-all">
+                <p className="mt-2 text-[11px] text-muted-foreground break-all">
                   User Id: {formatUserId(contact.userId)}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
@@ -95,7 +95,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                       setProposedName(contact.name || '');
                       setIsNameModalOpen(true);
                     }}
-                    className="px-2.5 py-1 text-xs font-medium rounded border border-green-600 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    className="px-2.5 py-1 text-xs font-medium rounded border border-primary text-primary hover:bg-primary/10"
                   >
                     Accept
                   </button>
@@ -104,12 +104,12 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                       e.stopPropagation();
                       setIsRefuseModalOpen(true);
                     }}
-                    className="px-2.5 py-1 text-xs font-medium rounded border border-gray-400 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="px-2.5 py-1 text-xs font-medium rounded border border-border text-foreground hover:bg-accent"
                   >
                     Refuse
                   </button>
                   {discussion.unreadCount > 0 && (
-                    <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full">
+                    <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-destructive-foreground bg-destructive rounded-full">
                       {discussion.unreadCount}
                     </span>
                   )}
@@ -143,7 +143,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   title="Refuse connection?"
                 >
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <p className="text-sm text-foreground">
                       Refusing will close this discussion request.
                     </p>
                     <div className="flex gap-3">
@@ -152,13 +152,13 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                           setIsRefuseModalOpen(false);
                           onRefuse(discussion);
                         }}
-                        className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
+                        className="flex-1 h-11 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-semibold"
                       >
                         Refuse
                       </button>
                       <button
                         onClick={() => setIsRefuseModalOpen(false)}
-                        className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+                        className="flex-1 h-11 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 font-semibold"
                       >
                         Cancel
                       </button>
@@ -168,11 +168,11 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
               </>
             ) : (
               <div className="flex items-center justify-between mt-1">
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                <p className="text-sm text-muted-foreground truncate">
                   {lastMessage?.content || ''}
                 </p>
                 {discussion.unreadCount > 0 && (
-                  <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-500 rounded-full">
+                  <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-destructive-foreground bg-destructive rounded-full">
                     {discussion.unreadCount}
                   </span>
                 )}

@@ -12,35 +12,35 @@ const Discussions: React.FC = () => {
 
   if (stores.isLoading || state.appState === 'loading') {
     return (
-      <div className="min-h-screen-mobile bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen-mobile bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+          <div className="w-16 h-16 border-4 border-border border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-background">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         <DiscussionHeader />
 
         <div className="px-4 pb-20 flex-1 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h2 className="text-lg font-medium text-black dark:text-white">
+          <div className="bg-card rounded-lg">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h2 className="text-lg font-medium text-foreground">
                 Discussions
               </h2>
               <button
                 onClick={handlers.handleRefresh}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+                className="text-xs text-primary hover:text-primary/80 underline"
               >
                 Refresh
               </button>
             </div>
 
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="divide-y divide-border">
               {state.discussions.filter(d => d.status !== 'closed').length ===
               0 ? (
                 <EmptyDiscussions />
@@ -90,10 +90,10 @@ const Discussions: React.FC = () => {
 
         <button
           onClick={() => navigate('/new-discussion')}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-purple-600 dark:bg-purple-700 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 dark:hover:bg-purple-800 transition-colors"
+          className="fixed bottom-24 right-4 w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
         >
           <svg
-            className="w-6 h-6 text-white"
+            className="w-6 h-6 text-primary-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

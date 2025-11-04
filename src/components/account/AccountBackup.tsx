@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
 import { Bip39BackupDisplay } from '../../crypto/bip39';
+import PageHeader from '../ui/PageHeader';
+import TabSwitcher from '../ui/TabSwitcher';
 
 interface AccountBackupProps {
   onBack: () => void;
@@ -64,116 +66,89 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto">
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <h1 className="text-2xl font-semibold text-black dark:text-white">
-              Account Backup
-            </h1>
-          </div>
-        </div>
+        <PageHeader title="Account Backup" onBack={onBack} />
 
         <div className="px-4 pb-20 space-y-6">
-          {/* Toggle */}
-          <div className="w-full p-1 bg-gray-100 dark:bg-gray-800 rounded-lg relative h-10 flex items-center">
-            <div
-              className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow transition-transform duration-200 ease-out ${
-                method === 'mnemonic' ? 'translate-x-0' : 'translate-x-full'
-              }`}
-              aria-hidden="true"
+          {/* Tabs */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <TabSwitcher
+              options={[
+                {
+                  value: 'mnemonic',
+                  label: 'Mnemonic',
+                },
+                {
+                  value: 'privateKey',
+                  label: 'Private Key',
+                },
+              ]}
+              value={method}
+              onChange={setMethod}
             />
-            <button
-              type="button"
-              onClick={() => setMethod('mnemonic')}
-              className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-                method === 'mnemonic'
-                  ? 'text-black dark:text-white'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}
-              aria-pressed={method === 'mnemonic'}
-              disabled={!userProfile?.security?.mnemonicBackup}
-            >
-              Mnemonic
-            </button>
-            <button
-              type="button"
-              onClick={() => setMethod('privateKey')}
-              className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-                method === 'privateKey'
-                  ? 'text-black dark:text-white'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}
-              aria-pressed={method === 'privateKey'}
-            >
-              Private Key
-            </button>
           </div>
 
           {/* Input/auth */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
             {requiresPassword ? (
               <>
-                <label className="block text-base font-semibold text-black dark:text-white mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Enter your password
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-[15px] font-medium mb-4 text-black dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
                   placeholder="Enter your password"
                 />
                 {(error || passwordError) && (
-                  <div className="text-[15px] font-medium text-red-600 dark:text-red-400 mb-2">
+                  <div className="text-sm text-red-600 dark:text-red-400 mb-4">
                     {error || passwordError}
                   </div>
                 )}
                 <button
                   onClick={handleShow}
                   disabled={isLoading || !password.trim()}
-                  className="w-full h-[54px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                  className="w-full h-[54px] bg-purple-600 dark:bg-purple-700 text-white rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
-                  {isLoading ? 'Authenticating...' : 'Show Backup'}
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    'Show Backup'
+                  )}
                 </button>
               </>
             ) : (
               <button
                 onClick={handleShow}
                 disabled={isLoading}
-                className="w-full h-[54px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-base font-semibold text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                className="w-full h-[54px] bg-purple-600 dark:bg-purple-700 text-white rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Authenticating...' : 'Show Backup'}
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Authenticating...</span>
+                  </>
+                ) : (
+                  'Show Backup'
+                )}
               </button>
             )}
           </div>
 
           {/* Display */}
           {method === 'mnemonic' && mnemonicInfo && (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
                 <h4 className="text-base font-semibold text-black dark:text-white">
                   24-Word Mnemonic
                 </h4>
                 <button
                   onClick={() => copyText(mnemonicInfo?.mnemonic)}
-                  className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors flex items-center gap-2"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex items-center gap-2"
                 >
                   <svg
                     className="w-4 h-4"
@@ -191,12 +166,12 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   Copy
                 </button>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <p className="text-[15px] font-mono text-black dark:text-white break-all leading-relaxed">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
                   {mnemonicInfo?.mnemonic}
                 </p>
               </div>
-              <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
+              <p className="text-xs text-yellow-700 dark:text-yellow-400">
                 Never share this information. Anyone with it can access your
                 account.
               </p>
@@ -204,14 +179,14 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
           )}
 
           {method === 'privateKey' && privateKeyString && (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
                 <h4 className="text-base font-semibold text-black dark:text-white">
                   Private Key
                 </h4>
                 <button
                   onClick={() => copyText(privateKeyString)}
-                  className="text-[15px] font-medium text-[#b2b2b2] dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors flex items-center gap-2"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex items-center gap-2"
                 >
                   <svg
                     className="w-4 h-4"
@@ -229,12 +204,12 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   Copy
                 </button>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <p className="text-[15px] font-mono text-black dark:text-white break-all leading-relaxed">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
                   {privateKeyString}
                 </p>
               </div>
-              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <p className="text-xs text-yellow-800 dark:text-yellow-300 leading-relaxed">
                   <strong>⚠️ Warning:</strong> This Massa private key cannot be
                   used to restore your Echo account. Use this only for external
@@ -242,7 +217,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   use the 24-word mnemonic phrase.
                 </p>
               </div>
-              <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
+              <p className="text-xs text-yellow-700 dark:text-yellow-400">
                 Never share this information. Anyone with it can access your
                 account.
               </p>

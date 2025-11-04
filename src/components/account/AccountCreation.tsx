@@ -3,6 +3,8 @@ import appLogo from '../../assets/echo_face.svg';
 import { useAccountStore } from '../../stores/accountStore';
 import { addDebugLog } from '../ui/debugLogs';
 import { validatePassword, validateUsername } from '../../utils/validation';
+import PageHeader from '../ui/PageHeader';
+import TabSwitcher from '../ui/TabSwitcher';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -128,225 +130,216 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   };
 
   return (
-    <div className="min-h-screen-mobile bg-white dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="w-full max-w-sm mx-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <h1 className="text-xl font-semibold text-black dark:text-white">
-              Create Account
-            </h1>
-          </div>
-        </div>
+        <PageHeader title="Create Account" onBack={onBack} />
 
-        <div className="flex flex-col items-center justify-center p-4">
+        <div className="px-4 pb-20">
           {/* Logo */}
-          <div className="text-center mb-8">
-            <img
-              src={appLogo}
-              className="w-32 h-32 mx-auto mb-6 rounded-full object-cover"
-              alt="Echo logo"
-            />
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4">
+            <div className="text-center">
+              <div className="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <img
+                  src={appLogo}
+                  className="w-16 h-16 object-contain filter drop-shadow-lg"
+                  alt="Echo logo"
+                />
+              </div>
+              <h2 className="text-lg font-semibold text-black dark:text-white mb-2">
+                Welcome to Echo
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Create your secure account to get started
+              </p>
+            </div>
           </div>
 
           {/* Authentication Method Toggle */}
           {webauthnSupported && platformAvailable && (
-            <div className="w-full mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <div className="flex items-center justify-center mb-3">
-                <p className="flex text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Authentication Method:
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4">
+              <div className="mb-4">
+                <p className="text-sm font-medium text-black dark:text-white mb-3">
+                  Authentication Method
                 </p>
-              </div>
-              {/* Segmented toggle */}
-              <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg p-1 h-10 flex items-center">
-                {/* Moving thumb */}
-                <div
-                  className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-800 shadow transition-transform duration-200 ease-out ${
-                    usePassword ? 'translate-x-full' : 'translate-x-0'
-                  }`}
-                  aria-hidden="true"
+                <TabSwitcher
+                  options={[
+                    {
+                      value: 'biometrics',
+                      label: 'Biometrics',
+                      icon: (
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                      ),
+                    },
+                    {
+                      value: 'password',
+                      label: 'Password',
+                      icon: (
+                        <svg
+                          className="w-4 h-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ),
+                    },
+                  ]}
+                  value={usePassword ? 'password' : 'biometrics'}
+                  onChange={value => setUsePassword(value === 'password')}
                 />
-                <button
-                  type="button"
-                  onClick={() => setUsePassword(false)}
-                  className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-                    !usePassword
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                  aria-pressed={!usePassword}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                  Biometrics
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUsePassword(true)}
-                  className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-                    usePassword
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                  aria-pressed={usePassword}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Password
-                </button>
               </div>
             </div>
           )}
 
           {/* WebAuthn Support Check */}
           {(!webauthnSupported || !platformAvailable) && (
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-800">
               <p className="text-blue-600 dark:text-blue-400 text-sm">
-                Biometric authentication is not supported in this device. Using
+                Biometric authentication is not supported on this device. Using
                 password authentication instead.
               </p>
             </div>
           )}
 
           {/* Account Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <input
-                type="text"
-                value={username}
-                onChange={handleUsernameChange}
-                placeholder="Enter username"
-                className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 ${
-                  usernameError
-                    ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
-                    : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
-                }`}
-                maxLength={20}
-                disabled={isCreating}
-              />
-              {usernameError && (
-                <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                  {usernameError}
-                </p>
-              )}
-            </div>
-
-            {/* Password field - only show when using password authentication */}
-            {usePassword && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
+                <label className="block text-sm font-medium text-black dark:text-white mb-2">
+                  Username
+                </label>
                 <input
-                  type="password"
-                  value={password}
-                  onChange={handlePasswordChange}
-                  placeholder="Enter password"
-                  className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 ${
-                    passwordError
+                  type="text"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  placeholder="Enter username"
+                  className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 ${
+                    usernameError
                       ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
                       : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
                   }`}
+                  maxLength={20}
                   disabled={isCreating}
                 />
-                {passwordError && (
+                {usernameError && (
                   <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                    {passwordError}
+                    {usernameError}
                   </p>
                 )}
               </div>
-            )}
 
-            {/* Authentication Info */}
-            <div
-              className={`p-4 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800`}
-            >
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <svg
-                    className="h-5 w-5 text-green-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+              {/* Password field - only show when using password authentication */}
+              {usePassword && (
+                <div>
+                  <label className="block text-sm font-medium text-black dark:text-white mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter password"
+                    className={`w-full h-12 px-4 rounded-lg border-2 text-sm focus:outline-none transition-colors text-black dark:text-white bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 ${
+                      passwordError
+                        ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-500'
+                        : 'border-gray-200 dark:border-gray-600 focus:border-gray-400 dark:focus:border-gray-500'
+                    }`}
+                    disabled={isCreating}
+                  />
+                  {passwordError && (
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                      {passwordError}
+                    </p>
+                  )}
                 </div>
-                <div className="ml-3">
-                  <p className={`text-sm text-green-700 dark:text-green-300`}>
-                    {usePassword
-                      ? 'Your account will be secured using a password. Make sure to choose a strong password.'
-                      : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello).'}
+              )}
+
+              {/* Authentication Info */}
+              <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 mt-0.5">
+                    <svg
+                      className="h-5 w-5 text-green-500"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
+                      {usePassword
+                        ? 'Your account will be secured using a password. Make sure to choose a strong password.'
+                        : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello).'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-red-600 dark:text-red-400 text-sm">
+                    {error}
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                  {error}
-                </p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={!canSubmit || isCreating || accountCreationStarted}
-              className={`w-full h-12 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
-                canSubmit && !isCreating && !accountCreationStarted
-                  ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
-                  : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {isCreating || accountCreationStarted ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
               )}
-            </button>
-          </form>
+
+              <button
+                type="submit"
+                disabled={!canSubmit || isCreating || accountCreationStarted}
+                className={`w-full h-[54px] rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                  canSubmit && !isCreating && !accountCreationStarted
+                    ? 'bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-800'
+                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {isCreating || accountCreationStarted ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    <span>Create Account</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

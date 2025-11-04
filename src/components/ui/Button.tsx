@@ -28,13 +28,12 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary:
-      'bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white focus:ring-blue-500',
+      'bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground focus:ring-ring',
     secondary:
-      'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 disabled:bg-gray-100 dark:disabled:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:text-gray-400 dark:disabled:text-gray-500 focus:ring-gray-500',
+      'bg-secondary hover:bg-secondary/80 disabled:bg-muted text-secondary-foreground disabled:text-muted-foreground focus:ring-ring',
     danger:
-      'bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white focus:ring-red-500',
-    ghost:
-      'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 focus:ring-gray-500',
+      'bg-destructive hover:bg-destructive/90 disabled:bg-destructive/50 text-destructive-foreground focus:ring-ring',
+    ghost: 'bg-transparent hover:bg-accent text-foreground focus:ring-ring',
   };
 
   const sizeClasses = {

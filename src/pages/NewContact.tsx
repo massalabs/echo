@@ -13,8 +13,8 @@ import { isValidUserId } from '../utils/addressUtils';
 import { validateUsername } from '../utils/validation';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
-import Popover from '../components/ui/Popover';
 import BaseModal from '../components/ui/BaseModal';
+import TabSwitcher from '../components/ui/TabSwitcher';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
 import { useDiscussionList } from '../hooks/useDiscussionList';
@@ -227,58 +227,14 @@ const NewContact: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-5">
             {/* Import Tabs */}
             <div className="space-y-4">
-              <div className="w-full p-1 bg-gray-100 dark:bg-gray-800 rounded-lg relative h-10 flex items-center">
-                <div
-                  className={`absolute top-1 bottom-1 w-1/2 rounded-md bg-white dark:bg-gray-700 shadow transition-transform duration-200 ease-out ${
-                    activeImportTab === 'file'
-                      ? 'translate-x-0'
-                      : 'translate-x-full'
-                  }`}
-                  aria-hidden="true"
-                />
-                <button
-                  type="button"
-                  onClick={() => setActiveImportTab('file')}
-                  className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-                    activeImportTab === 'file'
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                  aria-pressed={activeImportTab === 'file'}
-                >
-                  Import from file
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveImportTab('qr')}
-                  className={`relative z-10 flex-1 h-8 inline-flex items-center justify-center gap-2 text-xs font-medium rounded-md transition-colors ${
-                    activeImportTab === 'qr'
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                  aria-pressed={activeImportTab === 'qr'}
-                >
-                  Import from QR code
-                </button>
-              </div>
-
-              {activeImportTab === 'file' && (
-                <div className="p-4">
-                  <p className="text-[15px] font-medium text-[#4a4a4a] dark:text-gray-300 mb-4">
-                    Import a contact from a .yaml file
-                  </p>
-                  <div className="flex justify-center items-center gap-2 relative">
-                    <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-200 text-sm font-medium cursor-pointer">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".yaml,.yml"
-                        className="hidden"
-                        onChange={handleFileImport}
-                        disabled={isImportingFileContact}
-                      />
+              <TabSwitcher
+                options={[
+                  {
+                    value: 'file',
+                    label: 'From File',
+                    icon: (
                       <svg
-                        className="w-5 h-5"
+                        className="w-4 h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -287,21 +243,122 @@ const NewContact: React.FC = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                         />
                       </svg>
-                      <span>Import</span>
+                    ),
+                  },
+                  {
+                    value: 'qr',
+                    label: 'From QR',
+                    icon: (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2.01M19 8h2.01M12 19h.01M12 4h.01"
+                        />
+                      </svg>
+                    ),
+                  },
+                ]}
+                value={activeImportTab}
+                onChange={setActiveImportTab}
+              />
+
+              {activeImportTab === 'file' && (
+                <div className="p-6">
+                  <div className="text-center mb-6">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <svg
+                        className="w-6 h-6 text-primary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      Import a contact from a .yaml file
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      You can setup a discussion with a Gossip user by importing
+                      its .yaml file
+                    </p>
+                  </div>
+                  <div className="flex justify-center">
+                    <label className="flex items-center justify-center gap-3 px-6 py-3 bg-primary text-primary-foreground rounded-xl transition-all duration-200 text-sm font-semibold cursor-pointer hover:bg-primary/90 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full max-w-xs">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".yaml,.yml"
+                        className="hidden"
+                        onChange={handleFileImport}
+                        disabled={isImportingFileContact}
+                      />
+                      {isImportingFileContact ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                          <span>Importing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                            />
+                          </svg>
+                          <span>Choose .yaml file</span>
+                        </>
+                      )}
                     </label>
-                    <Popover message="You can setup a discussion with a Gossip user by importing its .yaml file" />
                   </div>
                 </div>
               )}
 
               {activeImportTab === 'qr' && (
-                <div className="p-4">
-                  <p className="text-[15px] font-medium text-[#4a4a4a] dark:text-gray-300">
-                    Import from QR code (coming soon).
-                  </p>
+                <div className="p-6">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <svg
+                        className="w-6 h-6 text-muted-foreground"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2.01M19 8h2.01M12 19h.01M12 4h.01"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-base font-medium text-foreground mb-1">
+                      Import from QR code
+                    </p>
+                    <p className="text-sm text-muted-foreground">Coming soon</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -339,7 +396,7 @@ const NewContact: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 User ID
               </label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                 <input
                   type="text"
                   value={userId}
@@ -349,7 +406,7 @@ const NewContact: React.FC = () => {
                   }}
                   onBlur={e => validateUserId(e.target.value)}
                   placeholder="Enter base58check encoded user ID"
-                  className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                  className={`flex-1 min-w-0 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
                     userIdError
                       ? 'border-red-500 dark:border-red-500'
                       : 'border-gray-300 dark:border-gray-600'
@@ -363,7 +420,7 @@ const NewContact: React.FC = () => {
                   disabled={
                     !validateUsername(name).valid || !!userId || isSubmitting
                   }
-                  className="px-3 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+                  className="px-4 py-3 bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap"
                   title="Generate random user ID"
                 >
                   Generate
