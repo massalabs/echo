@@ -6,6 +6,7 @@
  */
 
 import { db, Message } from '../db';
+import bs58check from 'bs58check';
 import {
   IMessageProtocol,
   createMessageProtocol,
@@ -13,6 +14,7 @@ import {
 import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, SessionModule, getSessionModule } from '../wasm';
 import { announcementService } from './announcement';
+import { strToBytes } from '@massalabs/massa-web3';
 
 export interface MessageResult {
   success: boolean;
@@ -35,9 +37,9 @@ export class MessageService {
     }
   }
 
-  async getMessageProtocol(): Promise<IMessageProtocol> {
+  getMessageProtocol(): IMessageProtocol {
     if (!this._messageProtocol) {
-      this._messageProtocol = await createMessageProtocol();
+      this._messageProtocol = createMessageProtocol();
     }
     return this._messageProtocol;
   }
@@ -74,7 +76,7 @@ export class MessageService {
         try {
           const out = session.feedIncomingMessageBoardRead(
             seeker,
-            encryptedMsg.ciphertext,
+            encryptedMsg.data,
             ourSk
           );
           if (!out) continue;
@@ -211,7 +213,7 @@ export class MessageService {
       if (!discussion) return { success: false, error: 'Discussion not found' };
 
       // Create message with sending status
-      const messageBase: Omit<import('../db').Message, 'id'> = {
+      const messageBase: Omit<Message, 'id'> = {
         ownerUserId,
         contactUserId,
         content,
@@ -226,15 +228,25 @@ export class MessageService {
 
       // Try sending via protocol
       try {
-        const seeker = discussion.nextSeeker || new Uint8Array(32);
-        const messageProtocol = await this.getMessageProtocol();
-        await messageProtocol.sendMessage(seeker, {
-          seeker,
-          ciphertext: new Uint8Array(128),
+        const sessionModule = await getSessionModule();
+        const peerId = bs58check.decode(contactUserId);
+        const contentBytes = strToBytes(content);
+        const sendOutput = await sessionModule.sendMessage(
+          peerId,
+          contentBytes
+        );
+
+        if (!sendOutput) throw new Error('WASM sendMessage returned null');
+
+        const messageProtocol = this.getMessageProtocol();
+        await messageProtocol.sendMessage(sendOutput.seeker, {
+          seeker: sendOutput.seeker,
+          data: sendOutput.data,
           timestamp: new Date(),
         });
 
         await db.messages.update(messageId, { status: 'sent' });
+
         return {
           success: true,
           message: { ...messageBase, id: messageId, status: 'sent' },

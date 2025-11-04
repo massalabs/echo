@@ -4,7 +4,7 @@
 
 export interface EncryptedMessage {
   seeker: Uint8Array;
-  ciphertext: Uint8Array;
+  data: Uint8Array;
   timestamp: Date;
 }
 
