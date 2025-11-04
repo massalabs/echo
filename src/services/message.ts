@@ -16,13 +16,13 @@ import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, SessionModule } from '../wasm';
 import { announcementService } from './announcement';
 
-export interface MessageReceptionResult {
+export interface MessageResult {
   success: boolean;
   newMessagesCount: number;
   error?: string;
 }
 
-export class MessageReceptionService {
+export class MessageService {
   private _messageProtocol: IMessageProtocol | null = null;
 
   constructor(messageProtocol?: IMessageProtocol) {
@@ -43,9 +43,7 @@ export class MessageReceptionService {
    * @param discussionId - The discussion ID
    * @returns Result with count of new messages fetched
    */
-  async fetchNewMessages(
-    discussionId: number
-  ): Promise<MessageReceptionResult> {
+  async fetchNewMessages(discussionId: number): Promise<MessageResult> {
     try {
       // Get the discussion from database
       const discussion = await db.discussions.get(discussionId);
@@ -135,7 +133,7 @@ export class MessageReceptionService {
    * Fetch messages for all active discussions
    * @returns Result with total count of new messages fetched
    */
-  async fetchAllDiscussions(): Promise<MessageReceptionResult> {
+  async fetchAllDiscussions(): Promise<MessageResult> {
     try {
       const ownerUserId = useAccountStore.getState().userProfile?.userId;
       if (!ownerUserId) throw new Error('No authenticated user');
@@ -199,9 +197,7 @@ export class MessageReceptionService {
    * @param discussionId - The discussion ID to simulate a message for
    * @returns Result with count of new messages created
    */
-  async simulateReceivedMessage(
-    discussionId: number
-  ): Promise<MessageReceptionResult> {
+  async simulateReceivedMessage(discussionId: number): Promise<MessageResult> {
     try {
       console.log('Simulating received message for discussion:', discussionId);
 
@@ -423,15 +419,15 @@ export class MessageReceptionService {
 }
 
 // Export singleton instance - will be created lazily when first accessed
-let _messageReceptionService: MessageReceptionService | null = null;
+let _MessageService: MessageService | null = null;
 
-export const messageReceptionService = {
-  async getInstance(): Promise<MessageReceptionService> {
-    if (!_messageReceptionService) {
-      _messageReceptionService = new MessageReceptionService();
+export const messageService = {
+  async getInstance(): Promise<MessageService> {
+    if (!_MessageService) {
+      _MessageService = new MessageService();
       // Initialize the message protocol (now synchronous with mock)
-      await _messageReceptionService.getMessageProtocol();
+      await _MessageService.getMessageProtocol();
     }
-    return _messageReceptionService;
+    return _MessageService;
   },
 };
