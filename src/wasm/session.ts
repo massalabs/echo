@@ -5,159 +5,210 @@
  * using SessionManagerWrapper and related WASM classes.
  */
 
-import { ensureWasmInitialized } from './loader';
 import {
-  SessionConfig,
   SessionManagerWrapper,
   UserPublicKeys,
   UserSecretKeys,
   ReceiveMessageOutput,
   SendMessageOutput,
   SessionStatus,
+  EncryptionKey,
+  SessionConfig,
 } from '../assets/generated/wasm/echo_wasm';
+import { UserProfile } from '../db';
 
 export class SessionModule {
   private sessionManager: SessionManagerWrapper | null = null;
-  private sessionConfig: SessionConfig | null = null;
+  private onPersist?: () => void; // Callback for automatic persistence
 
-  async init(): Promise<void> {
-    await ensureWasmInitialized();
-    // Create session configuration with default settings
-    this.sessionConfig = SessionConfig.new_default();
-    this.sessionManager = new SessionManagerWrapper(this.sessionConfig);
+  constructor(onPersist?: () => void) {
+    const sessionConfig = SessionConfig.new_default();
+    this.sessionManager = new SessionManagerWrapper(sessionConfig);
+    this.onPersist = onPersist;
+  }
+
+  /**
+   * Set the persistence callback
+   */
+  setOnPersist(callback: () => void): void {
+    this.onPersist = callback;
+  }
+
+  /**
+   * Helper to trigger persistence after state changes
+   */
+  private persistIfNeeded(): void {
+    if (this.onPersist) {
+      this.onPersist();
+    }
+  }
+
+  /**
+   * Initialize session from an encrypted blob
+   */
+  load(profile: UserProfile, encryptionKey: EncryptionKey): void {
+    // Clean up existing session if any
+    this.cleanup();
+
+    this.sessionManager = SessionManagerWrapper.from_encrypted_blob(
+      profile.session,
+      encryptionKey
+    );
+  }
+
+  /**
+   * Serialize session to an encrypted blob
+   */
+  toEncryptedBlob(key: EncryptionKey): Uint8Array {
+    if (!this.sessionManager) {
+      throw new Error('Session manager is not initialized');
+    }
+
+    return this.sessionManager.to_encrypted_blob(key);
   }
 
   cleanup(): void {
     this.sessionManager?.free();
     this.sessionManager = null;
-    this.sessionConfig?.free();
-    this.sessionConfig = null;
   }
 
   /**
    * Establish an outgoing session with a peer via the underlying WASM wrapper
    */
-  async establishOutgoingSession(
+  establishOutgoingSession(
     peerPk: UserPublicKeys,
     ourPk: UserPublicKeys,
     ourSk: UserSecretKeys
-  ): Promise<Uint8Array> {
+  ): Uint8Array {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
-    // sessionManager is set after init
 
-    return this.sessionManager!.establish_outgoing_session(
+    const result = this.sessionManager.establish_outgoing_session(
       peerPk,
       ourPk,
       ourSk
     );
+
+    this.persistIfNeeded();
+    return result;
   }
 
   /**
    * Feed an incoming announcement into the session manager
    */
-  async feedIncomingAnnouncement(
+  feedIncomingAnnouncement(
     announcementBytes: Uint8Array,
     ourPk: UserPublicKeys,
     ourSk: UserSecretKeys
-  ): Promise<UserPublicKeys | undefined> {
+  ): UserPublicKeys | undefined {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.feed_incoming_announcement(
+    const result = this.sessionManager.feed_incoming_announcement(
       announcementBytes,
       ourPk,
       ourSk
     );
+
+    this.persistIfNeeded();
+    return result;
   }
 
   /**
    * Get the list of message board read keys (seekers) to monitor
    */
-  async getMessageBoardReadKeys(): Promise<Array<Uint8Array>> {
+  getMessageBoardReadKeys(): Array<Uint8Array> {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.get_message_board_read_keys();
+    return this.sessionManager.get_message_board_read_keys();
   }
 
   /**
    * Process an incoming ciphertext from the message board
    */
-  async feedIncomingMessageBoardRead(
+  feedIncomingMessageBoardRead(
     seeker: Uint8Array,
     ciphertext: Uint8Array,
     ourSk: UserSecretKeys
-  ): Promise<ReceiveMessageOutput | undefined> {
+  ): ReceiveMessageOutput | undefined {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.feed_incoming_message_board_read(
+    const result = this.sessionManager.feed_incoming_message_board_read(
       seeker,
       ciphertext,
       ourSk
     );
+
+    this.persistIfNeeded();
+    return result;
   }
 
   /**
    * Send a message to a peer
    */
-  async sendMessage(
+  sendMessage(
     peerId: Uint8Array,
     message: Uint8Array
-  ): Promise<SendMessageOutput | undefined> {
+  ): SendMessageOutput | undefined {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.send_message(peerId, message);
+    const result = this.sessionManager.send_message(peerId, message);
+    this.persistIfNeeded();
+    return result;
   }
 
   /**
    * List all known peer IDs
    */
-  async peerList(): Promise<Array<Uint8Array>> {
+  peerList(): Array<Uint8Array> {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.peer_list();
+    return this.sessionManager.peer_list();
   }
 
   /**
    * Get the session status for a peer
    */
-  async peerSessionStatus(peerId: Uint8Array): Promise<SessionStatus> {
+  peerSessionStatus(peerId: Uint8Array): SessionStatus {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.peer_session_status(peerId);
+    return this.sessionManager.peer_session_status(peerId);
   }
 
   /**
    * Discard a peer and all associated session state
    */
-  async peerDiscard(peerId: Uint8Array): Promise<void> {
+  peerDiscard(peerId: Uint8Array): void {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    this.sessionManager!.peer_discard(peerId);
+    this.sessionManager.peer_discard(peerId);
+    this.persistIfNeeded();
   }
 
   /**
    * Refresh sessions, returning peer IDs that need keep-alive messages
    */
-  async refresh(): Promise<Array<Uint8Array>> {
+  refresh(): Array<Uint8Array> {
     if (!this.sessionManager) {
-      await this.init();
+      throw new Error('Session manager is not initialized');
     }
 
-    return this.sessionManager!.refresh();
+    const result = this.sessionManager.refresh();
+    this.persistIfNeeded();
+    return result;
   }
 }

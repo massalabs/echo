@@ -12,16 +12,10 @@ export async function auth(
   profile: UserProfile,
   password?: string
 ): Promise<AuthResult> {
-  if (!profile.security.mnemonicBackup) {
-    throw new Error(
-      'Mnemonic backup is not available for this account. Please create a new account to use the backup feature.'
-    );
-  }
-
   const salt = profile.security.encKeySalt;
   if (!salt || salt.length < 8) {
     throw new Error(
-      'Biometric account is missing KDF salt. Please re-authenticate and re-create your account after updating the app.'
+      'Account is missing encryption key salt. Please re-authenticate and re-create your account after updating the app.'
     );
   }
 

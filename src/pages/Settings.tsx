@@ -15,13 +15,8 @@ enum SettingsView {
 }
 
 const Settings = (): React.ReactElement => {
-  const {
-    userProfile,
-    account,
-    hasMnemonicBackup,
-    getMnemonicBackupInfo,
-    resetAccount,
-  } = useAccountStore();
+  const { userProfile, account, getMnemonicBackupInfo, resetAccount } =
+    useAccountStore();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -43,7 +38,6 @@ const Settings = (): React.ReactElement => {
   };
 
   const mnemonicBackupInfo = getMnemonicBackupInfo();
-  const hasMnemonic = hasMnemonicBackup();
 
   // Show sub-views based on activeView
   switch (activeView) {
@@ -129,7 +123,7 @@ const Settings = (): React.ReactElement => {
             label="Account Backup"
             onClick={() => setActiveView(SettingsView.SHOW_ACCOUNT_BACKUP)}
             badge={
-              hasMnemonic && mnemonicBackupInfo?.backedUp ? (
+              mnemonicBackupInfo?.backedUp ? (
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               ) : undefined
             }

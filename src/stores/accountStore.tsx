@@ -19,20 +19,26 @@ import {
 import { useAppStore } from './appStore';
 import { useWalletStore } from './walletStore';
 import { createSelectors } from './utils/createSelectors';
-import { generateUserKeys, EncryptionKey, generateNonce } from '../wasm';
+import {
+  generateUserKeys,
+  EncryptionKey,
+  generateNonce,
+  SessionModule,
+} from '../wasm';
 import {
   UserPublicKeys,
   UserSecretKeys,
 } from '../assets/generated/wasm/echo_wasm';
 import bs58check from 'bs58check';
 import { getActiveOrFirstProfile } from './utils/getAccount';
-import { getSessionModule } from '../wasm/loader';
+import { ensureWasmInitialized } from '../wasm/loader';
 import { auth } from './utils/auth';
 
 async function createProfileFromAccount(
   username: string,
   userId: string,
-  security: UserProfile['security']
+  security: UserProfile['security'],
+  session: Uint8Array
 ): Promise<UserProfile> {
   const existing = await db.userProfile.get(userId);
   if (existing) {
@@ -42,8 +48,7 @@ async function createProfileFromAccount(
       ...security,
       webauthn: security.webauthn ?? existing.security.webauthn,
       encKeySalt: security.encKeySalt ?? existing.security.encKeySalt,
-      mnemonicBackup:
-        security.mnemonicBackup ?? existing.security.mnemonicBackup,
+      mnemonicBackup: security.mnemonicBackup,
     };
 
     const updatedProfile: UserProfile = {
@@ -51,6 +56,7 @@ async function createProfileFromAccount(
       // Preserve existing username if already set; do not silently overwrite
       username: existing.username || username,
       security: mergedSecurity,
+      session,
       status: existing.status ?? 'online',
       lastSeen: new Date(),
       updatedAt: new Date(),
@@ -63,6 +69,7 @@ async function createProfileFromAccount(
     userId,
     username,
     security,
+    session,
     status: 'online',
     lastSeen: new Date(),
     createdAt: new Date(),
@@ -77,7 +84,8 @@ async function provisionAccount(
   username: string,
   userId: string,
   mnemonic: string | undefined,
-  opts: { useBiometrics: boolean; password?: string }
+  opts: { useBiometrics: boolean; password?: string },
+  session: SessionModule
 ): Promise<{ profile: UserProfile; encryptionKey: EncryptionKey }> {
   let built:
     | { security: UserProfile['security']; encryptionKey: EncryptionKey }
@@ -93,10 +101,14 @@ async function provisionAccount(
     built = await buildSecurityFromPassword(mnemonic, password);
   }
 
+  // Serialize and encrypt the session
+  const sessionBlob = session.toEncryptedBlob(built.encryptionKey);
+
   const profile = await createProfileFromAccount(
     username,
     userId,
-    built.security
+    built.security,
+    sessionBlob
   );
   return { profile, encryptionKey: built.encryptionKey };
 }
@@ -112,17 +124,18 @@ async function buildSecurityFromPassword(
   const salt = (await generateNonce()).to_bytes();
   const key = await deriveKey(password, salt);
 
-  let mnemonicBackup: UserProfile['security']['mnemonicBackup'] | undefined;
-  if (mnemonic) {
-    const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
-      await encrypt(mnemonic, key);
-    mnemonicBackup = {
-      encryptedMnemonic,
-      nonce: nonceForBackup,
-      createdAt: new Date(),
-      backedUp: false,
-    };
+  if (!mnemonic) {
+    throw new Error('Mnemonic is required for account creation');
   }
+
+  const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
+    await encrypt(mnemonic, key);
+  const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
+    encryptedMnemonic,
+    nonce: nonceForBackup,
+    createdAt: new Date(),
+    backedUp: false,
+  };
 
   const security: UserProfile['security'] = {
     encKeySalt: salt,
@@ -151,17 +164,18 @@ async function buildSecurityFromWebAuthn(
   const derivedKey = await deriveKey(seedHash, salt);
 
   // Encrypt mnemonic with derived key using AEAD (store nonce with ciphertext)
-  let mnemonicBackup: UserProfile['security']['mnemonicBackup'] | undefined;
-  if (mnemonic) {
-    const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
-      await encrypt(mnemonic, derivedKey);
-    mnemonicBackup = {
-      encryptedMnemonic,
-      nonce: nonceForBackup,
-      createdAt: new Date(),
-      backedUp: false,
-    };
+  if (!mnemonic) {
+    throw new Error('Mnemonic is required for account creation');
   }
+
+  const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
+    await encrypt(mnemonic, derivedKey);
+  const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
+    encryptedMnemonic,
+    nonce: nonceForBackup,
+    createdAt: new Date(),
+    backedUp: false,
+  };
 
   const security: UserProfile['security'] = {
     webauthn: {
@@ -187,6 +201,8 @@ interface AccountState {
   // In-memory WASM keys (not persisted)
   ourPk?: UserPublicKeys | null;
   ourSk?: UserSecretKeys | null;
+  // WASM session module
+  session: SessionModule | null;
   initializeAccountWithBiometrics: (username: string) => Promise<void>;
   initializeAccount: (username: string, password: string) => Promise<void>;
   loadAccount: (password?: string, userId?: string) => Promise<void>;
@@ -206,12 +222,14 @@ interface AccountState {
   }>;
   getMnemonicBackupInfo: () => { createdAt: Date; backedUp: boolean } | null;
   markMnemonicBackupComplete: () => Promise<void>;
-  hasMnemonicBackup: () => boolean;
 
   // Account detection methods
   hasExistingAccount: () => Promise<boolean>;
   getExistingAccountInfo: () => Promise<UserProfile | null>;
   getAllAccounts: () => Promise<UserProfile[]>;
+
+  // Session persistence
+  persistSession: () => Promise<void>;
 }
 
 const useAccountStoreBase = create<AccountState>((set, get) => ({
@@ -226,6 +244,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   provider: null,
   ourPk: null,
   ourSk: null,
+  session: null,
   // Actions
   initializeAccount: async (username: string, password: string) => {
     try {
@@ -242,6 +261,12 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         PrivateKey.fromBytes(userSecretKeys.massa_secret_key)
       );
 
+      // Initialize WASM and create session
+      await ensureWasmInitialized();
+      const session = new SessionModule(() => {
+        get().persistSession();
+      });
+
       const { profile, encryptionKey } = await provisionAccount(
         username,
         userId,
@@ -249,7 +274,8 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         {
           useBiometrics: false,
           password,
-        }
+        },
+        session
       );
 
       set({
@@ -258,6 +284,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         account,
         ourPk: userPublicKeys,
         ourSk: userSecretKeys,
+        session,
         isInitialized: true,
         isLoading: false,
       });
@@ -292,11 +319,18 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         PrivateKey.fromBytes(massaSecretKey)
       );
 
+      // Initialize WASM and create session
+      await ensureWasmInitialized();
+      const session = new SessionModule(() => {
+        get().persistSession();
+      });
+
       const { profile, encryptionKey } = await provisionAccount(
         username,
         userId,
         mnemonic,
-        opts
+        opts,
+        session
       );
 
       set({
@@ -305,6 +339,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         encryptionKey,
         ourPk: userPublicKeys,
         ourSk: userSecretKeys,
+        session,
         isInitialized: true,
         isLoading: false,
       });
@@ -332,6 +367,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       }
 
       const { mnemonic, encryptionKey } = await auth(profile, password);
+
       const keys = await generateUserKeys(mnemonic);
       const ourPk = keys.public_keys();
       const ourSk = keys.secret_keys();
@@ -339,18 +375,27 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         PrivateKey.fromBytes(ourSk.massa_secret_key)
       );
 
+      // Initialize WASM and load session from profile
+      await ensureWasmInitialized();
+      const session = new SessionModule(() => {
+        get().persistSession();
+      });
+
+      session.load(profile, encryptionKey);
+
       set({
         userProfile: profile,
         account,
         encryptionKey,
         ourPk,
         ourSk,
+        session,
         isInitialized: true,
         isLoading: false,
       });
+
       try {
-        const sessionModule = await getSessionModule();
-        await sessionModule.refresh();
+        session.refresh();
       } catch (e) {
         console.error('Session refresh after login failed:', e);
       }
@@ -364,6 +409,13 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
   resetAccount: async () => {
     try {
       set({ isLoading: true });
+
+      // Cleanup session
+      const state = get();
+      if (state.session) {
+        state.session.cleanup();
+      }
+
       // Delete only the current account, not all accounts
       const currentProfile = await getActiveOrFirstProfile();
       if (currentProfile?.userId != null) {
@@ -383,6 +435,9 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
         account: null,
         userProfile: null,
         encryptionKey: null,
+        ourPk: null,
+        ourSk: null,
+        session: null,
         isLoading: false,
         isInitialized: hasAnyAccount,
       });
@@ -426,63 +481,38 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
 
       // Generate a BIP39 mnemonic and create account from it
       const mnemonic = generateMnemonic(256);
-
       const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
       const userIdBytes = userPublicKeys.derive_id();
       const userId = bs58check.encode(userIdBytes);
 
-      const massaSecretKey = keys.secret_keys().massa_secret_key;
       const account = await Account.fromPrivateKey(
-        PrivateKey.fromBytes(massaSecretKey)
+        PrivateKey.fromBytes(keys.secret_keys().massa_secret_key)
       );
 
-      // Create WebAuthn credential
-      const webauthnKey = await createWebAuthnCredential(
-        `Gossip-${username}-${userId}`
-      );
-      const { credentialId, publicKey } = webauthnKey;
+      // Initialize WASM and create session
+      await ensureWasmInitialized();
+      const session = new SessionModule(() => {
+        get().persistSession();
+      });
 
-      // Encrypt mnemonic with WebCrypto AES-GCM using WebAuthn-derived key
-      // Use derived EncryptionKey already returned in provisionAccount path; here still creating profile
-      const seed = credentialId + Buffer.from(publicKey).toString('base64');
-      const salt = (await generateNonce()).to_bytes();
-      const derivedKey = await deriveKey(seed, salt);
-      const { encryptedData: encryptedMnemonic, nonce: nonce } = await encrypt(
-        mnemonic,
-        derivedKey
-      );
-
-      const newProfile: UserProfile = {
-        userId,
+      const { profile, encryptionKey } = await provisionAccount(
         username,
-        security: {
-          webauthn: {
-            credentialId,
-            publicKey,
-          },
-          encKeySalt: salt,
-          mnemonicBackup: {
-            encryptedMnemonic,
-            nonce,
-            createdAt: new Date(),
-            backedUp: false,
-          },
+        userId,
+        mnemonic,
+        {
+          useBiometrics: true,
         },
-        status: 'online',
-        lastSeen: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      await db.userProfile.add(newProfile);
+        session
+      );
 
       set({
-        userProfile: newProfile,
-        encryptionKey: derivedKey,
+        userProfile: profile,
+        encryptionKey,
         account,
         ourPk: userPublicKeys,
         ourSk: keys.secret_keys(),
+        session,
         isInitialized: true,
         isLoading: false,
         platformAuthenticatorAvailable: platformAvailable,
@@ -529,7 +559,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
 
   getMnemonicBackupInfo: () => {
     const state = get();
-    const mnemonicBackup = state.userProfile?.security?.mnemonicBackup;
+    const mnemonicBackup = state.userProfile?.security.mnemonicBackup;
     if (!mnemonicBackup) return null;
 
     return {
@@ -542,8 +572,8 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
     try {
       const state = get();
       const profile = state.userProfile;
-      if (!profile || !profile.security?.mnemonicBackup) {
-        throw new Error('No mnemonic backup found');
+      if (!profile) {
+        throw new Error('No user profile found');
       }
 
       const updatedProfile = {
@@ -563,11 +593,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       console.error('Error marking mnemonic backup as complete:', error);
       throw error;
     }
-  },
-
-  hasMnemonicBackup: () => {
-    const state = get();
-    return !!state.userProfile?.security?.mnemonicBackup;
   },
 
   // Account detection methods
@@ -601,6 +626,38 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
     } catch (error) {
       console.error('Error getting all accounts:', error);
       return [];
+    }
+  },
+
+  persistSession: async () => {
+    const state = get();
+    const { session, userProfile, encryptionKey } = state;
+
+    if (!session || !userProfile || !encryptionKey) {
+      console.warn(
+        'No session, user profile, or encryption key to persist, skipping persistence'
+      );
+      return; // Nothing to persist
+    }
+
+    try {
+      // Serialize the session
+      const sessionBlob = session.toEncryptedBlob(encryptionKey);
+
+      // Update the profile with the new session blob
+      const updatedProfile = {
+        ...userProfile,
+        session: sessionBlob,
+        updatedAt: new Date(),
+      };
+
+      await db.userProfile.update(userProfile.userId, updatedProfile);
+
+      // Update the store with the new profile
+      set({ userProfile: updatedProfile });
+    } catch (error) {
+      console.error('Error persisting session:', error);
+      // Don't throw - persistence failures shouldn't break the app
     }
   },
 }));

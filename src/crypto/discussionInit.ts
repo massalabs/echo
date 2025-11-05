@@ -7,7 +7,6 @@
  */
 
 import { Contact, db, Discussion, DiscussionMessage } from '../db';
-import { getSessionModule } from '../wasm';
 import { useAccountStore } from '../stores/accountStore';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 import { announcementService } from '../services/announcement';
@@ -26,14 +25,13 @@ export async function initializeDiscussion(contact: Contact): Promise<{
   announcement: Uint8Array;
 }> {
   try {
-    const sessionModule = await getSessionModule();
-
-    const { ourPk, ourSk, userProfile } = useAccountStore.getState();
+    const { ourPk, ourSk, userProfile, session } = useAccountStore.getState();
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
     if (!userProfile?.userId) throw new Error('No authenticated user');
+    if (!session) throw new Error('Session module not initialized');
 
     // Establish outgoing session and get announcement bytes
-    const announcement = await sessionModule.establishOutgoingSession(
+    const announcement = session.establishOutgoingSession(
       UserPublicKeys.from_bytes(contact.publicKeys),
       ourPk,
       ourSk
@@ -75,9 +73,9 @@ export async function acceptDiscussionRequest(
   discussion: Discussion
 ): Promise<void> {
   try {
-    const sessionModule = await getSessionModule();
-    const { ourPk, ourSk } = useAccountStore.getState();
+    const { ourPk, ourSk, session } = useAccountStore.getState();
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+    if (!session) throw new Error('Session module not initialized');
 
     const contact = await db.getContactByOwnerAndUserId(
       discussion.ownerUserId,
@@ -87,7 +85,7 @@ export async function acceptDiscussionRequest(
     if (!contact) throw new Error('Contact not found');
 
     // establish outgoing session and get announcement bytes
-    const announcement = await sessionModule.establishOutgoingSession(
+    const announcement = session.establishOutgoingSession(
       UserPublicKeys.from_bytes(contact.publicKeys),
       ourPk,
       ourSk
@@ -129,17 +127,12 @@ export async function processIncomingAnnouncement(
   discussionId: number;
 }> {
   try {
-    const sessionModule = await getSessionModule();
-
-    const { ourPk, ourSk, userProfile } = useAccountStore.getState();
+    const { ourPk, ourSk, userProfile, session } = useAccountStore.getState();
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
     if (!userProfile?.userId) throw new Error('No authenticated user');
+    if (!session) throw new Error('Session module not initialized');
 
-    await sessionModule.feedIncomingAnnouncement(
-      announcementData,
-      ourPk,
-      ourSk
-    );
+    session.feedIncomingAnnouncement(announcementData, ourPk, ourSk);
 
     // If we already have a pending initiated discussion with this contact,
     // upgrade it to active instead of creating a duplicate.

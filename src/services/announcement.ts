@@ -9,7 +9,6 @@ import { notificationService } from './notifications';
 import bs58check from 'bs58check';
 import { processIncomingAnnouncement } from '../crypto/discussionInit';
 import { useAccountStore } from '../stores/accountStore';
-import { getSessionModule } from '../wasm';
 import {
   IMessageProtocol,
   createMessageProtocol,
@@ -169,11 +168,11 @@ export class AnnouncementService {
     contactUserId?: string;
     error?: string;
   }> {
-    const { ourPk, ourSk } = useAccountStore.getState();
+    const { ourPk, ourSk, session } = useAccountStore.getState();
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
+    if (!session) throw new Error('Session module not initialized');
     try {
-      const sessionModule = await getSessionModule();
-      const announcerPkeys = await sessionModule.feedIncomingAnnouncement(
+      const announcerPkeys = session.feedIncomingAnnouncement(
         announcementData,
         ourPk,
         ourSk

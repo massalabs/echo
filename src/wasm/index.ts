@@ -8,15 +8,11 @@
 // Export modules
 export { SessionModule } from './session';
 
-// Export initialization functions and session module
+// Export initialization functions
 export {
   initializeWasm,
   ensureWasmInitialized,
   startWasmInitialization,
-  getInitializationStatus,
-  getInitializationPromise,
-  getSessionModule,
-  cleanupWasmModules,
 } from './loader';
 
 // Export specialized WASM functionality

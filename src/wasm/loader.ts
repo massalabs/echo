@@ -7,7 +7,6 @@
  */
 
 import init from '../assets/generated/wasm/echo_wasm';
-import { SessionModule } from './session';
 
 /**
  * WASM Initialization State
@@ -16,18 +15,6 @@ let isInitializing = false;
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 let initError: Error | null = null;
-
-/**
- * Get the initialization status
- */
-export function getInitializationStatus() {
-  return {
-    isInitialized,
-    isInitializing,
-    hasError: !!initError,
-    error: initError,
-  };
-}
 
 /**
  * Initialize WASM modules if not already initialized
@@ -88,50 +75,4 @@ export function startWasmInitialization(): void {
   initializeWasm().catch(error => {
     console.error('[WASM] Background initialization error:', error);
   });
-}
-
-/**
- * Get initialization promise (for components that need to wait)
- */
-export function getInitializationPromise(): Promise<void> {
-  if (isInitialized) {
-    return Promise.resolve();
-  }
-
-  if (initializationPromise) {
-    return initializationPromise;
-  }
-
-  // If no initialization has started yet, start it now
-  return initializeWasm();
-}
-
-/**
- * Get or create the session module
- */
-let sessionModuleInstance: SessionModule | null = null;
-
-export async function getSessionModule(): Promise<SessionModule> {
-  if (sessionModuleInstance) {
-    return sessionModuleInstance;
-  }
-
-  // Ensure WASM core is initialized
-  await ensureWasmInitialized();
-
-  // Create and initialize the session module
-  sessionModuleInstance = new SessionModule();
-  await sessionModuleInstance.init();
-
-  return sessionModuleInstance;
-}
-
-/**
- * Cleanup WASM modules
- */
-export async function cleanupWasmModules(): Promise<void> {
-  if (sessionModuleInstance) {
-    sessionModuleInstance.cleanup();
-    sessionModuleInstance = null;
-  }
 }

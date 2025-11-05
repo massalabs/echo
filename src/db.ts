@@ -39,13 +39,14 @@ export interface UserProfile {
     };
 
     // Mnemonic backup details
-    mnemonicBackup?: {
+    mnemonicBackup: {
       encryptedMnemonic: Uint8Array;
       nonce: Uint8Array;
       createdAt: Date;
       backedUp: boolean;
     };
   };
+  session: Uint8Array;
   bio?: string;
   status: 'online' | 'away' | 'busy' | 'offline';
   lastSeen: Date;
