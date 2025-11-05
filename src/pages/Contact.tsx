@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import { formatMassaAddress } from '../utils/addressUtils';
+import { formatUserId } from '../utils/addressUtils';
 
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import ContactAvatar from '../components/avatar/ContactAvatar';
@@ -42,20 +42,19 @@ const Contact: React.FC = () => {
     setIsNameModalOpen(true);
   }, [displayName]);
 
-  const handleSaveName = useCallback(async () => {
-    if (!ownerUserId || !contact) return;
-    const result = await updateContactName(
-      ownerUserId,
-      contact.userId,
-      proposedName
-    );
-    if (!result.ok) {
-      setNameError(result.message);
-      return;
-    }
-    setDisplayName(result.trimmedName);
-    setIsNameModalOpen(false);
-  }, [ownerUserId, proposedName, contact]);
+  const handleSaveName = useCallback(
+    async (name: string) => {
+      if (!ownerUserId || !contact) return;
+      const result = await updateContactName(ownerUserId, contact.userId, name);
+      if (!result.ok) {
+        setNameError(result.message);
+        return;
+      }
+      setDisplayName(result.trimmedName);
+      setIsNameModalOpen(false);
+    },
+    [ownerUserId, contact]
+  );
 
   if (!contact) {
     return (
@@ -109,12 +108,34 @@ const Contact: React.FC = () => {
             <div className="flex items-center gap-4">
               <ContactAvatar contact={contact} size={14} />
               <div className="min-w-0 flex-1">
-                <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
-                  {displayName}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
+                    {displayName}
+                  </p>
+                  <button
+                    onClick={handleOpenEditName}
+                    disabled={!canEditName}
+                    className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Edit contact name"
+                  >
+                    <svg
+                      className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </button>
+                </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {formatMassaAddress(contact.userId)}
+                    {formatUserId(contact.userId)}
                   </p>
                   <CopyClipboard text={contact.userId} title="Copy user ID" />
                 </div>
@@ -122,16 +143,6 @@ const Contact: React.FC = () => {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-2">
-              <Button
-                onClick={handleOpenEditName}
-                disabled={!canEditName}
-                variant="outline"
-                size="custom"
-                fullWidth
-                className="h-[46px] rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-black dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Edit name
-              </Button>
               <Button
                 onClick={() =>
                   exportFileContact({
@@ -175,7 +186,7 @@ const Contact: React.FC = () => {
               return;
             }
             setProposedName(name);
-            await handleSaveName();
+            await handleSaveName(name);
           }}
         />
       </div>

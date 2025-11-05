@@ -24,7 +24,7 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
   const navigate = useNavigate();
 
   const {
-    handlers: { handleAcceptDiscussionRequest },
+    handlers: { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest },
   } = useDiscussionList();
 
   return (
@@ -81,7 +81,7 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
                       await handleAcceptDiscussionRequest(d, newName);
                       navigate(`/discussion/${d.contactUserId}`);
                     }}
-                    onRefuse={() => {}}
+                    onRefuse={() => handleRefuseDiscussionRequest(discussion)}
                   />
                 </div>
               );
