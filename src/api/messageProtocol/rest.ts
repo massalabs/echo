@@ -27,19 +27,31 @@ export class RestMessageProtocol implements IMessageProtocol {
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
-    const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
-    });
-    if (!response.success || !response.data)
-      throw new Error(response.error || 'Failed to fetch messages');
+    try {
+      const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Backend expects exactly { seekers: string[] }
+        body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
+      });
 
-    return response.data.map(item => ({
-      seeker: decodeFromBase64(item.seeker),
-      ciphertext: decodeFromBase64(item.ciphertext),
-      timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-    }));
+      console.log('response', response);
+      console.log('response.data', response.data);
+      console.log('response.success', response.success);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch messages');
+      }
+
+      return response.data.map(item => ({
+        seeker: decodeFromBase64(item.seeker),
+        ciphertext: decodeFromBase64(item.ciphertext),
+        timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+      }));
+    } catch (error) {
+      console.log('-----------Failed to fetch messages in rest.ts', error);
+      throw error;
+    }
   }
 
   async sendMessage(
@@ -129,7 +141,17 @@ export class RestMessageProtocol implements IMessageProtocol {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          // Try to include server-provided error details for easier debugging
+          let errorDetail = '';
+          try {
+            const text = await response.text();
+            if (text) errorDetail = ` | Body: ${text}`;
+          } catch (_) {
+            // ignore body read errors
+          }
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText} | URL: ${url}${errorDetail}`
+          );
         }
 
         const data = await response.json();

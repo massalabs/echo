@@ -69,6 +69,14 @@ export class MessageService {
       if (!ourSk) throw new Error('WASM secret keys unavailable');
       const seekers = session.getMessageBoardReadKeys();
 
+      // Nothing to fetch when there are no seeker keys
+      if (!seekers || seekers.length === 0) {
+        return {
+          success: true,
+          newMessagesCount: 0,
+        };
+      }
+
       let storedCount = 0;
       // Fetch in one shot for all seekers
       const encryptedMessages = await messageProtocol.fetchMessages(seekers);
