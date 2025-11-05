@@ -5,6 +5,7 @@ import DiscussionListItem from '../components/discussions/DiscussionListItem';
 import DebugPanel from '../components/ui/DebugPanel';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import { useNavigate } from 'react-router-dom';
+import Button from '../components/ui/Button';
 
 const Discussions: React.FC = () => {
   const { stores, state, selectors, handlers } = useDiscussionList();
@@ -32,12 +33,14 @@ const Discussions: React.FC = () => {
               <h2 className="text-lg font-medium text-foreground">
                 Discussions
               </h2>
-              <button
+              <Button
                 onClick={handlers.handleRefresh}
-                className="text-xs text-primary hover:text-primary/80 underline"
+                variant="link"
+                size="custom"
+                className="text-xs"
               >
                 Refresh
-              </button>
+              </Button>
             </div>
 
             <div className="divide-y divide-border">
@@ -88,9 +91,11 @@ const Discussions: React.FC = () => {
           </div>
         </div>
 
-        <button
+        <Button
           onClick={() => navigate('/new-discussion')}
-          className="fixed bottom-24 right-4 w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+          variant="primary"
+          size="custom"
+          className="fixed bottom-24 right-4 w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
         >
           <svg
             className="w-6 h-6 text-primary-foreground"
@@ -105,7 +110,7 @@ const Discussions: React.FC = () => {
               d="M12 4v16m8-8H4"
             />
           </svg>
-        </button>
+        </Button>
       </div>
     </div>
   );

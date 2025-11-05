@@ -1,6 +1,7 @@
 import './PWABadge.css';
 
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import Button from './components/ui/Button';
 
 function PWABadge() {
   // check for updates every hour
@@ -44,16 +45,23 @@ function PWABadge() {
           </div>
           <div className="PWABadge-buttons">
             {needRefresh && (
-              <button
+              <Button
                 className="PWABadge-toast-button"
                 onClick={() => updateServiceWorker(true)}
+                variant="ghost"
+                size="custom"
               >
                 Reload
-              </button>
+              </Button>
             )}
-            <button className="PWABadge-toast-button" onClick={() => close()}>
+            <Button
+              className="PWABadge-toast-button"
+              onClick={() => close()}
+              variant="ghost"
+              size="custom"
+            >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       )}

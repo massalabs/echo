@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import Button from './Button';
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -46,9 +47,11 @@ const BaseModal: React.FC<BaseModalProps> = ({
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             {title}
           </h2>
-          <button
+          <Button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            variant="circular"
+            size="custom"
+            className="w-8 h-8 flex items-center justify-center"
           >
             <svg
               className="w-5 h-5 text-gray-500"
@@ -63,7 +66,7 @@ const BaseModal: React.FC<BaseModalProps> = ({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* Content */}

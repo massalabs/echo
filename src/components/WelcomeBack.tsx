@@ -3,6 +3,7 @@ import { useAccountStore } from '../stores/accountStore';
 import { UserProfile } from '../db';
 import AccountSelection from './account/AccountSelection';
 import AccountImport from './account/AccountImport';
+import Button from './ui/Button';
 
 // Persist the last selected account across re-renders/remounts
 let globalSelectedAccountId: string | null = null;
@@ -323,17 +324,16 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                         Biometric support not detected. We will try anyway.
                       </p>
                     )}
-                  <button
+                  <Button
                     onClick={handleBiometricAuth}
                     disabled={isLoading}
-                    className="w-full h-[54px] bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 text-white text-base font-semibold rounded-xl hover:from-emerald-600 hover:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transform hover:scale-[1.02] active:scale-[0.98]"
+                    loading={isLoading}
+                    variant="gradient-emerald"
+                    size="custom"
+                    fullWidth
+                    className="h-[54px] text-base font-semibold rounded-xl flex items-center justify-center gap-2"
                   >
-                    {isLoading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Authenticating...</span>
-                      </>
-                    ) : (
+                    {!isLoading && (
                       <>
                         <svg
                           className="w-5 h-5"
@@ -351,7 +351,7 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                         <span>Sign In with Biometrics</span>
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -411,18 +411,17 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                       disabled={isLoading}
                     />
                   </div>
-                  <button
+                  <Button
                     type="button"
-                    onClick={e => handlePasswordAuth(e)}
+                    onClick={() => handlePasswordAuth()}
                     disabled={isLoading || !password.trim()}
-                    className="w-full h-[54px] bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white text-base font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 dark:hover:from-blue-700 dark:hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transform hover:scale-[1.02] active:scale-[0.98]"
+                    loading={isLoading}
+                    variant="gradient-blue"
+                    size="custom"
+                    fullWidth
+                    className="h-[54px] text-base font-semibold rounded-xl flex items-center justify-center gap-2"
                   >
-                    {isLoading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Signing In...</span>
-                      </>
-                    ) : (
+                    {!isLoading && (
                       <>
                         <svg
                           className="w-5 h-5"
@@ -440,7 +439,7 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
                         <span>Sign In</span>
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -469,24 +468,33 @@ const WelcomeBack: React.FC<WelcomeBackProps> = React.memo(
 
             {/* Account Options */}
             <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button
+              <Button
                 onClick={handleChangeAccount}
-                className="w-full h-12 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-12 rounded-xl text-sm font-semibold"
               >
                 Switch Account
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={onCreateNewAccount}
-                className="w-full h-12 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-12 rounded-xl text-sm font-semibold"
               >
                 Create New Account
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setShowAccountImport(true)}
-                className="w-full h-12 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-12 rounded-xl text-sm font-semibold"
               >
                 Import Account
-              </button>
+              </Button>
             </div>
           </div>
         </div>

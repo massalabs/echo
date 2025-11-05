@@ -1,5 +1,6 @@
 import React from 'react';
 import appLogo from '../../assets/echo_face.svg';
+import Button from './Button';
 
 interface PageHeaderProps {
   title: string;
@@ -19,9 +20,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {onBack && (
-            <button
+            <Button
               onClick={onBack}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              variant="circular"
+              size="custom"
+              className="w-8 h-8 flex items-center justify-center"
             >
               <svg
                 className="w-5 h-5 text-gray-600 dark:text-gray-300"
@@ -36,7 +39,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
-            </button>
+            </Button>
           )}
           {showLogo && (
             <img

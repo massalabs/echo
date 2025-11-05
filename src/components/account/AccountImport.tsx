@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
 import { validateMnemonic } from '../../crypto/bip39';
 import { validatePassword } from '../../utils/validation';
+import Button from '../ui/Button';
 
 interface AccountImportProps {
   onBack: () => void;
@@ -126,13 +127,16 @@ const AccountImport: React.FC<AccountImportProps> = ({
       )}
 
       <div className="space-y-3">
-        <button
+        <Button
           onClick={handleMnemonicSubmit}
           disabled={isImporting || !mnemonic.trim()}
-          className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          variant="primary"
+          size="custom"
+          fullWidth
+          className="h-12 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
         >
           Continue
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -271,24 +275,21 @@ const AccountImport: React.FC<AccountImportProps> = ({
       )}
 
       <div className="space-y-3">
-        <button
+        <Button
           onClick={handleImport}
           disabled={
             isImporting ||
             !username.trim() ||
             (!useBiometrics && !validatePassword(password).valid)
           }
-          className="w-full h-12 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          loading={isImporting}
+          variant="primary"
+          size="custom"
+          fullWidth
+          className="h-12 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
         >
-          {isImporting ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Importing Account...
-            </>
-          ) : (
-            'Import Account'
-          )}
-        </button>
+          {!isImporting && 'Import Account'}
+        </Button>
       </div>
     </div>
   );
@@ -299,9 +300,11 @@ const AccountImport: React.FC<AccountImportProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-4">
-            <button
+            <Button
               onClick={onBack}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+              variant="ghost"
+              size="custom"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
             >
               <svg
                 className="w-6 h-6"
@@ -316,7 +319,7 @@ const AccountImport: React.FC<AccountImportProps> = ({
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
-            </button>
+            </Button>
             <h1 className="text-xl font-semibold text-black dark:text-white">
               Import Account
             </h1>

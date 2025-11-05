@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
 import { UserProfile } from '../../db';
 import { formatDate } from '../../utils/timeUtils';
+import Button from '../ui/Button';
 
 interface AccountSelectionProps {
   onBack: () => void;
@@ -115,9 +116,11 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-4">
-            <button
+            <Button
               onClick={onBack}
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+              variant="ghost"
+              size="custom"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
             >
               <svg
                 className="w-6 h-6"
@@ -132,7 +135,7 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
-            </button>
+            </Button>
             <h1 className="text-xl font-semibold text-black dark:text-white">
               Select Account
             </h1>
@@ -171,12 +174,15 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
                 You don't have any accounts yet. Create a new account to get
                 started.
               </p>
-              <button
+              <Button
                 onClick={onCreateNewAccount}
-                className="w-full h-12 bg-blue-600 dark:bg-blue-700 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                variant="primary"
+                size="custom"
+                fullWidth
+                className="h-12 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white text-sm font-medium rounded-lg"
               >
                 Create New Account
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -232,12 +238,15 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
               {/* Authentication happens on WelcomeBack after selection */}
 
               {/* Create New Account Button */}
-              <button
+              <Button
                 onClick={onCreateNewAccount}
-                className="w-full h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-12 rounded-lg text-sm font-medium"
               >
                 Create New Account
-              </button>
+              </Button>
             </div>
           )}
         </div>

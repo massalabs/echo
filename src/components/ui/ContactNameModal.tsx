@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import BaseModal from './BaseModal';
+import Button from './Button';
 
 interface ContactNameModalProps {
   isOpen: boolean;
@@ -64,26 +65,32 @@ const ContactNameModal: React.FC<ContactNameModalProps> = ({
           )}
         </div>
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={handleConfirm}
+            variant="primary"
+            size="custom"
             className="flex-1 h-11 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold"
           >
             {confirmLabel}
-          </button>
+          </Button>
           {showSkip ? (
-            <button
+            <Button
               onClick={onSkip}
+              variant="secondary"
+              size="custom"
               className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
             >
               Skip
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={onClose}
+              variant="secondary"
+              size="custom"
               className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
             >
               Cancel
-            </button>
+            </Button>
           )}
         </div>
       </div>

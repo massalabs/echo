@@ -5,6 +5,7 @@ import { formatUserId } from '../utils/addressUtils';
 import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useAccountStore } from '../stores/accountStore';
 import { useDiscussionList } from '../hooks/useDiscussionList';
+import Button from '../components/ui/Button';
 
 const NewDiscussion: React.FC = () => {
   const { handlers } = useDiscussionList();
@@ -54,10 +55,12 @@ const NewDiscussion: React.FC = () => {
             <h2 className="text-center text-base font-semibold text-gray-900 dark:text-white">
               New discussion
             </h2>
-            <button
+            <Button
               onClick={handleClose}
               aria-label="Close"
-              className="absolute right-3 top-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              variant="circular"
+              size="custom"
+              className="absolute right-3 top-3 w-8 h-8 flex items-center justify-center"
             >
               <svg
                 className="w-5 h-5 text-gray-600 dark:text-gray-300"
@@ -72,14 +75,16 @@ const NewDiscussion: React.FC = () => {
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* Actions: New group / New contact */}
           <div className="px-4 pt-4">
             <div className="space-y-3">
-              <button
+              <Button
                 onClick={() => {}}
+                variant="ghost"
+                size="custom"
                 className="w-full flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left"
               >
                 <span className="inline-flex w-6 h-6 items-center justify-center">
@@ -100,10 +105,12 @@ const NewDiscussion: React.FC = () => {
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                   New group
                 </span>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 onClick={onNewContact}
+                variant="ghost"
+                size="custom"
                 className="w-full flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left"
               >
                 <span className="inline-flex w-6 h-6 items-center justify-center">
@@ -124,7 +131,7 @@ const NewDiscussion: React.FC = () => {
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                   New contact
                 </span>
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -159,9 +166,11 @@ const NewDiscussion: React.FC = () => {
                 {filteredContacts.map(contact => {
                   return (
                     <li key={contact.userId}>
-                      <button
+                      <Button
                         onClick={() => onSelectRecipient(contact)}
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                        variant="ghost"
+                        size="custom"
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left"
                       >
                         <ContactAvatar contact={contact} size={10} />
                         <div className="flex-1 min-w-0">
@@ -172,7 +181,7 @@ const NewDiscussion: React.FC = () => {
                             {formatUserId(contact.userId)}
                           </p>
                         </div>
-                      </button>
+                      </Button>
                     </li>
                   );
                 })}

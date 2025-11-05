@@ -6,6 +6,7 @@ import {
   clearDebugLogs,
   DebugLog,
 } from './debugLogs';
+import Button from './Button';
 
 const DebugOverlay: React.FC = () => {
   const [logs, setLogs] = useState<DebugLog[]>([]);
@@ -71,12 +72,14 @@ const DebugOverlay: React.FC = () => {
 
   if (!isVisible) {
     return (
-      <button
+      <Button
         onClick={() => setIsVisible(true)}
+        variant="primary"
+        size="custom"
         className="fixed top-2 right-2 z-50 bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium shadow-lg"
       >
         Show Debug
-      </button>
+      </Button>
     );
   }
 
@@ -86,33 +89,41 @@ const DebugOverlay: React.FC = () => {
         <div className="flex justify-between items-center p-3 border-b">
           <h3 className="font-semibold text-sm">Debug Console</h3>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={copyLogsToClipboard}
+              variant="outline"
+              size="custom"
               className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 border border-blue-600 rounded"
             >
               Copy
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowRawText(!showRawText)}
+              variant="outline"
+              size="custom"
               className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 border border-purple-600 rounded"
             >
               {showRawText ? 'Pretty' : 'Raw'}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 clearDebugLogs();
                 setLogs([]);
               }}
+              variant="outline"
+              size="custom"
               className="text-xs text-gray-600 hover:text-gray-800 px-2 py-1 border rounded"
             >
               Clear
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setIsVisible(false)}
+              variant="outline"
+              size="custom"
               className="text-xs text-gray-600 hover:text-gray-800 px-2 py-1 border rounded"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-3 text-xs font-mono">

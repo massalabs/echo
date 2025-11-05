@@ -5,6 +5,7 @@ import { formatRelativeTime } from '../../utils/timeUtils';
 import { formatUserId } from '../../utils/addressUtils';
 import BaseModal from '../ui/BaseModal';
 import ContactNameModal from '../ui/ContactNameModal';
+import Button from '../ui/Button';
 
 export type LastMessageInfo = { content: string; timestamp: Date } | undefined;
 
@@ -89,25 +90,29 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   User Id: {formatUserId(contact.userId)}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <button
+                  <Button
                     onClick={e => {
-                      e.stopPropagation();
+                      e?.stopPropagation();
                       setProposedName(contact.name || '');
                       setIsNameModalOpen(true);
                     }}
+                    variant="primary"
+                    size="custom"
                     className="px-2.5 py-1 text-xs font-medium rounded border border-primary text-primary hover:bg-primary/10"
                   >
                     Accept
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={e => {
-                      e.stopPropagation();
+                      e?.stopPropagation();
                       setIsRefuseModalOpen(true);
                     }}
+                    variant="outline"
+                    size="custom"
                     className="px-2.5 py-1 text-xs font-medium rounded border border-border text-foreground hover:bg-accent"
                   >
                     Refuse
-                  </button>
+                  </Button>
                   {discussion.unreadCount > 0 && (
                     <span className="ml-auto inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold leading-none text-destructive-foreground bg-destructive rounded-full">
                       {discussion.unreadCount}
@@ -147,21 +152,25 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                       Refusing will close this discussion request.
                     </p>
                     <div className="flex gap-3">
-                      <button
+                      <Button
                         onClick={() => {
                           setIsRefuseModalOpen(false);
                           onRefuse(discussion);
                         }}
-                        className="flex-1 h-11 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-semibold"
+                        variant="danger"
+                        size="custom"
+                        className="flex-1 h-11 rounded-lg font-semibold"
                       >
                         Refuse
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => setIsRefuseModalOpen(false)}
-                        className="flex-1 h-11 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 font-semibold"
+                        variant="secondary"
+                        size="custom"
+                        className="flex-1 h-11 rounded-lg font-semibold"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </BaseModal>

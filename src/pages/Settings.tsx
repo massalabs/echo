@@ -7,6 +7,7 @@ import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
 import ShareContact from '../components/settings/ShareContact';
+import Button from '../components/ui/Button';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -79,9 +80,11 @@ const Settings = (): React.ReactElement => {
                       ? formatMassaAddress(account.address.toString())
                       : 'AU121243124312431243'}
                   </p>
-                  <button
+                  <Button
                     onClick={handleCopyAddress}
-                    className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex-shrink-0"
+                    variant="ghost"
+                    size="custom"
+                    className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex-shrink-0"
                     title={copySuccess ? 'Copied!' : 'Copy full address'}
                   >
                     <svg
@@ -97,7 +100,7 @@ const Settings = (): React.ReactElement => {
                         d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                       />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -252,7 +255,7 @@ const Settings = (): React.ReactElement => {
             This will delete all your data and cannot be undone.
           </p>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={async () => {
                 setIsResetModalOpen(false);
                 try {
@@ -261,16 +264,20 @@ const Settings = (): React.ReactElement => {
                   console.error('Failed to reset account:', error);
                 }
               }}
-              className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
+              variant="danger"
+              size="custom"
+              className="flex-1 h-11 rounded-lg font-semibold"
             >
               Reset
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setIsResetModalOpen(false)}
+              variant="secondary"
+              size="custom"
               className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       </BaseModal>

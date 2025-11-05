@@ -310,9 +310,12 @@ const SendModal: React.FC<SendModalProps> = ({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Network Fee
         </label>
-        <button
+        <Button
           onClick={() => setShowFeeConfig(true)}
-          className="w-full flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          variant="ghost"
+          size="custom"
+          fullWidth
+          className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
         >
           <span className="text-sm text-gray-900 dark:text-white">
             {getFeeDisplayText()}
@@ -330,7 +333,7 @@ const SendModal: React.FC<SendModalProps> = ({
               d="M9 5l7 7-7 7"
             />
           </svg>
-        </button>
+        </Button>
       </div>
 
       {/* Amount */}
@@ -351,12 +354,14 @@ const SendModal: React.FC<SendModalProps> = ({
             min="0"
             className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
           />
-          <button
+          <Button
             onClick={handleMaxAmount}
-            className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
+            variant="primary"
+            size="custom"
+            className="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl"
           >
             MAX
-          </button>
+          </Button>
         </div>
         <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
           <span>

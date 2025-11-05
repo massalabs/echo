@@ -4,6 +4,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import { announcementService } from '../../services/announcement';
 import { formatMassaAddress } from '../../utils/addressUtils';
 import { useDiscussionList } from '../../hooks/useDiscussionList';
+import Button from './Button';
 
 const DebugPanel: React.FC = () => {
   const { userProfile, account, resetAccount } = useAccountStore();
@@ -109,33 +110,41 @@ const DebugPanel: React.FC = () => {
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
         Status: {userProfile?.status}
       </p>
-      <button
+      <Button
         onClick={handleResetAccount}
-        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+        variant="link"
+        size="custom"
+        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
       >
         Reset Account (for testing)
-      </button>
+      </Button>
       <br />
-      <button
+      <Button
         onClick={handleResetAllAccounts}
-        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+        variant="link"
+        size="custom"
+        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
       >
         Reset All Accounts (wipe local storage)
-      </button>
+      </Button>
       <br />
-      <button
+      <Button
         onClick={handleResetAllDiscussionsAndMessages}
-        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline"
+        variant="link"
+        size="custom"
+        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
       >
         Reset Discussions, Messages & Contacts (DB only)
-      </button>
+      </Button>
       <br />
-      <button
+      <Button
         onClick={handleSimulateIncomingDiscussion}
-        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+        variant="link"
+        size="custom"
+        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
       >
         Simulate Incoming Discussion (test)
-      </button>
+      </Button>
     </div>
   );
 };

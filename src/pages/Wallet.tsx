@@ -8,6 +8,7 @@ import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
 import { formatMassaAddress } from '../utils/addressUtils';
 import { formatAmount } from '../hooks/temp/parseAmount';
+import Button from '../components/ui/Button';
 // no-op
 
 const Wallet: React.FC = () => {
@@ -45,11 +46,13 @@ const Wallet: React.FC = () => {
           <h1 className="text-2xl font-semibold text-black dark:text-white">
             WALLET
           </h1>
-          <button
+          <Button
             onClick={handleRefresh}
             disabled={isLoading || isRefreshing}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+            variant="icon"
+            size="custom"
             title="Refresh balance and prices"
+            className="p-2"
           >
             <svg
               className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${isRefreshing ? '-animate-spin' : ''}`}
@@ -64,7 +67,7 @@ const Wallet: React.FC = () => {
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* Address */}
@@ -72,14 +75,16 @@ const Wallet: React.FC = () => {
           <div className="px-6 -mt-2">
             <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
               <span className="uppercase tracking-wide">Address</span>
-              <button
+              <Button
                 type="button"
                 onClick={() => navigator.clipboard.writeText(fullAddress)}
-                className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer active:bg-gray-300 dark:active:bg-gray-700"
+                variant="ghost"
+                size="custom"
+                className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-700"
                 title="Copy address"
               >
                 {displayAddress}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -95,8 +100,10 @@ const Wallet: React.FC = () => {
         <div className="px-6 py-4">
           <div className="flex justify-center gap-6">
             {/* Send Button */}
-            <button
+            <Button
               onClick={() => setIsSendModalOpen(true)}
+              variant="ghost"
+              size="custom"
               className="flex flex-col items-center hover:opacity-80 transition-opacity"
             >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
@@ -105,11 +112,13 @@ const Wallet: React.FC = () => {
               <span className="text-xs font-medium text-black dark:text-white">
                 send
               </span>
-            </button>
+            </Button>
 
             {/* Receive Button */}
-            <button
+            <Button
               onClick={() => setIsReceiveModalOpen(true)}
+              variant="ghost"
+              size="custom"
               className="flex flex-col items-center hover:opacity-80 transition-opacity"
             >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
@@ -118,13 +127,15 @@ const Wallet: React.FC = () => {
               <span className="text-xs font-medium text-black dark:text-white">
                 receive
               </span>
-            </button>
+            </Button>
 
             {/* Swap Button */}
-            <button
+            <Button
               onClick={() =>
                 alert('Swap functionality will be implemented soon!')
               }
+              variant="ghost"
+              size="custom"
               className="flex flex-col items-center hover:opacity-80 transition-opacity"
             >
               <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
@@ -133,7 +144,7 @@ const Wallet: React.FC = () => {
               <span className="text-xs font-medium text-black dark:text-white">
                 swap
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 

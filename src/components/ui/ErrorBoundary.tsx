@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import Button from './Button';
 
 interface Props {
   children: ReactNode;
@@ -33,12 +34,14 @@ class ErrorBoundary extends Component<Props, State> {
             <p className="text-gray-600 mb-4">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
-            <button
+            <Button
               onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              variant="primary"
+              size="md"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
             >
               Reload Page
-            </button>
+            </Button>
           </div>
         </div>
       );

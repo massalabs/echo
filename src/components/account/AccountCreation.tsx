@@ -5,6 +5,7 @@ import { addDebugLog } from '../ui/debugLogs';
 import { validatePassword, validateUsername } from '../../utils/validation';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
+import Button from '../ui/Button';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -305,21 +306,20 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={!canSubmit || isCreating || accountCreationStarted}
-                className={`w-full h-[54px] rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                loading={isCreating || accountCreationStarted}
+                variant="primary"
+                size="custom"
+                fullWidth
+                className={`h-[54px] rounded-lg font-medium flex items-center justify-center gap-2 ${
                   canSubmit && !isCreating && !accountCreationStarted
-                    ? 'bg-purple-600 dark:bg-purple-700 text-white hover:bg-purple-700 dark:hover:bg-purple-800'
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    ? 'bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white'
+                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                 }`}
               >
-                {isCreating || accountCreationStarted ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Creating Account...</span>
-                  </>
-                ) : (
+                {!(isCreating || accountCreationStarted) && (
                   <>
                     <svg
                       className="w-5 h-5"
@@ -337,7 +337,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                     <span>Create Account</span>
                   </>
                 )}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

@@ -18,6 +18,7 @@ import TabSwitcher from '../components/ui/TabSwitcher';
 import { generateUserKeys } from '../wasm';
 import bs58check from 'bs58check';
 import { useDiscussionList } from '../hooks/useDiscussionList';
+import Button from '../components/ui/Button';
 
 const NewContact: React.FC = () => {
   const navigate = useNavigate();
@@ -192,9 +193,11 @@ const NewContact: React.FC = () => {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 onClick={handleBack}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                variant="circular"
+                size="custom"
+                className="w-8 h-8 flex items-center justify-center"
               >
                 <svg
                   className="w-5 h-5 text-gray-600 dark:text-gray-300"
@@ -209,7 +212,7 @@ const NewContact: React.FC = () => {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-              </button>
+              </Button>
               <img
                 src={appLogo}
                 className="w-9 h-9 rounded object-cover"
@@ -412,7 +415,7 @@ const NewContact: React.FC = () => {
                       : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
-                <button
+                <Button
                   type="button"
                   onClick={async () => {
                     await handleGenerate();
@@ -420,11 +423,13 @@ const NewContact: React.FC = () => {
                   disabled={
                     !validateUsername(name).valid || !!userId || isSubmitting
                   }
-                  className="px-4 py-3 bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 whitespace-nowrap"
+                  variant="primary"
+                  size="custom"
+                  className="px-4 py-3 bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium whitespace-nowrap"
                   title="Generate random user ID"
                 >
                   Generate
-                </button>
+                </Button>
               </div>
               {userIdError && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -442,13 +447,17 @@ const NewContact: React.FC = () => {
               </div>
             )}
 
-            <button
+            <Button
               onClick={handleSubmit}
               disabled={!isValid || isSubmitting}
-              className="w-full bg-purple-600 dark:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              loading={isSubmitting}
+              variant="primary"
+              size="custom"
+              fullWidth
+              className="bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white py-3 px-4 rounded-lg font-medium"
             >
-              {isSubmitting ? 'Saving…' : 'Save contact'}
-            </button>
+              {!isSubmitting && 'Save contact'}
+            </Button>
           </div>
         </div>
       </div>
@@ -463,21 +472,25 @@ const NewContact: React.FC = () => {
             Your changes will be lost.
           </p>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={() => {
                 setIsDiscardModalOpen(false);
                 navigate('/');
               }}
-              className="flex-1 h-11 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold"
+              variant="danger"
+              size="custom"
+              className="flex-1 h-11 rounded-lg font-semibold"
             >
               Discard
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setIsDiscardModalOpen(false)}
+              variant="secondary"
+              size="custom"
               className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       </BaseModal>

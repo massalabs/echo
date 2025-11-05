@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import appLogo from '../assets/echo_face.svg';
+import Button from './ui/Button';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -96,9 +97,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         {/* Create Your Account CTAs */}
         {steps[currentStep].title === "Let's Get Started! 🚀" && (
           <div className="space-y-4 mb-6">
-            <button
+            <Button
               onClick={onComplete}
-              className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-base font-semibold rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              variant="gradient-blue"
+              size="custom"
+              fullWidth
+              className="h-14 text-base font-semibold rounded-2xl flex items-center justify-center gap-2"
             >
               <svg
                 className="w-5 h-5"
@@ -114,14 +118,17 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                 />
               </svg>
               Create New Account
-            </button>
+            </Button>
             {onImportMnemonic && (
-              <button
+              <Button
                 onClick={onImportMnemonic}
-                className="w-full h-14 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-base font-medium rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-14 border-2 border-gray-300 dark:border-gray-600 text-base font-medium rounded-2xl"
               >
                 Import from Mnemonic
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -129,21 +136,21 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         {/* Navigation */}
         {steps[currentStep].title !== "Let's Get Started! 🚀" && (
           <div className="flex justify-between items-center">
-            <button
+            <Button
               onClick={prevStep}
-              className={`px-6 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                currentStep === 0
-                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+              variant="ghost"
+              size="sm"
               disabled={currentStep === 0}
+              className={`${currentStep === 0 ? 'opacity-50' : ''}`}
             >
               Back
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={nextStep}
-              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md shadow-blue-500/30 hover:shadow-lg hover:shadow-blue-500/40 transform hover:scale-105 active:scale-95 flex items-center gap-2"
+              variant="gradient-blue"
+              size="sm"
+              className="px-8 flex items-center gap-2"
             >
               {currentStep === steps.length - 2 ? 'Get Started' : 'Next'}
               <svg
@@ -159,7 +166,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   d="M9 5l7 7-7 7"
                 />
               </svg>
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import Button from './Button';
 
 const BottomNavigation: React.FC = () => {
   const navigate = useNavigate();
@@ -16,9 +17,11 @@ const BottomNavigation: React.FC = () => {
     <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 h-[76px] flex items-center justify-center pb-safe shadow-lg">
       <div className="flex items-center justify-center space-x-16">
         {/* Wallet Button */}
-        <button
+        <Button
           onClick={() => navigate('/wallet')}
-          className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 ${
+          variant="circular"
+          size="custom"
+          className={`w-12 h-12 flex items-center justify-center transition-all duration-200 ${
             activeTab === 'wallet'
               ? 'bg-purple-100 dark:bg-purple-900/30'
               : 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -41,12 +44,14 @@ const BottomNavigation: React.FC = () => {
               d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-        </button>
+        </Button>
 
         {/* Discussions Button */}
-        <button
+        <Button
           onClick={() => navigate('/')}
-          className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 ${
+          variant="circular"
+          size="custom"
+          className={`w-12 h-12 flex items-center justify-center transition-all duration-200 ${
             activeTab === 'discussions'
               ? 'bg-purple-100 dark:bg-purple-900/30'
               : 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -69,12 +74,14 @@ const BottomNavigation: React.FC = () => {
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
             />
           </svg>
-        </button>
+        </Button>
 
         {/* Settings Button */}
-        <button
+        <Button
           onClick={() => navigate('/settings')}
-          className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 ${
+          variant="circular"
+          size="custom"
+          className={`w-12 h-12 flex items-center justify-center transition-all duration-200 ${
             activeTab === 'settings'
               ? 'bg-purple-100 dark:bg-purple-900/30'
               : 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -103,7 +110,7 @@ const BottomNavigation: React.FC = () => {
               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-        </button>
+        </Button>
       </div>
     </div>
   );

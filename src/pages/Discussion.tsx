@@ -10,6 +10,7 @@ import { useDiscussionList } from '../hooks/useDiscussionList';
 import DiscussionHeader from '../components/discussions/DiscussionHeader';
 import DiscussionListItem from '../components/discussions/DiscussionListItem';
 import EmptyDiscussions from '../components/discussions/EmptyDiscussions';
+import Button from '../components/ui/Button';
 
 const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const navigate = useNavigate();
@@ -120,9 +121,11 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
         <div className="h-[72px] flex items-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 shadow-sm">
           <div className="flex items-center w-full px-5">
             {/* Back button */}
-            <button
+            <Button
               onClick={onBack}
-              className="w-11 h-11 flex items-center justify-center mr-2 hover:bg-gray-100 dark:hover:bg-gray-800/50 active:scale-95 transition-all duration-200 rounded-full group"
+              variant="circular"
+              size="custom"
+              className="w-11 h-11 flex items-center justify-center mr-2 group"
             >
               <svg
                 className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
@@ -137,7 +140,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                   d="M15 19l-7-7 7-7"
                 />
               </svg>
-            </button>
+            </Button>
 
             {/* Contact info */}
             <div className="flex items-center flex-1 min-w-0">
@@ -184,28 +187,31 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
               {/* Action buttons */}
               {discussion && (
                 <div className="flex items-center gap-2 ml-2">
-                  <button
+                  <Button
                     onClick={syncMessages}
                     disabled={isSyncing}
-                    className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800/50 active:scale-95 transition-all duration-200 rounded-full disabled:opacity-50"
+                    loading={isSyncing}
+                    variant="circular"
+                    size="custom"
+                    className="w-9 h-9 flex items-center justify-center"
                     title="Sync messages"
                   >
-                    <svg
-                      className={`w-5 h-5 text-gray-600 dark:text-gray-400 ${
-                        isSyncing ? 'animate-spin' : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                  </button>
+                    {!isSyncing && (
+                      <svg
+                        className="w-5 h-5 text-gray-600 dark:text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                    )}
+                  </Button>
                 </div>
               )}
             </div>
@@ -367,15 +373,16 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                   } as React.CSSProperties
                 }
               />
-              <button
+              <Button
                 onClick={handleSendMessage}
                 disabled={!newMessage.trim() || isSending || isInitializing}
-                className="w-8 h-8 md:w-9 md:h-9 flex-shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 disabled:shadow-none disabled:opacity-50"
+                loading={isSending || isInitializing}
+                variant="gradient-blue"
+                size="custom"
+                className="w-8 h-8 md:w-9 md:h-9 flex-shrink-0 rounded-full flex items-center justify-center shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30"
                 title="Send message"
               >
-                {isSending || isInitializing ? (
-                  <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : (
+                {!(isSending || isInitializing) && (
                   <svg
                     className="w-4 h-4 md:w-5 md:h-5"
                     fill="none"
@@ -390,7 +397,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                     />
                   </svg>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -480,9 +487,11 @@ const Discussion: React.FC = () => {
           </div>
         </div>
 
-        <button
+        <Button
           onClick={() => navigate('/new-discussion')}
-          className="mx-4 mb-4 h-12 bg-primary rounded-lg flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors text-primary-foreground font-medium"
+          variant="primary"
+          size="custom"
+          className="mx-4 mb-4 h-12 rounded-lg flex items-center justify-center shadow-lg font-medium"
         >
           <svg
             className="w-5 h-5 mr-2"
@@ -498,7 +507,7 @@ const Discussion: React.FC = () => {
             />
           </svg>
           New Discussion
-        </button>
+        </Button>
       </div>
 
       {/* Discussion Content - Always visible, full width on mobile */}

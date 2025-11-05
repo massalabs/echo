@@ -3,6 +3,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import { useFileShareContact } from '../../hooks/useFileShareContact';
 import TabSwitcher from '../ui/TabSwitcher';
 import PageHeader from '../ui/PageHeader';
+import Button from '../ui/Button';
 
 interface ShareContactProps {
   onBack: () => void;
@@ -66,7 +67,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                   to talk to.
                 </p>
               </div>
-              <button
+              <Button
                 onClick={() => {
                   if (!ourPk) return;
                   exportFileContact({
@@ -75,14 +76,13 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                   });
                 }}
                 disabled={!ourPk || isLoading}
-                className="w-full h-[54px] bg-purple-600 dark:bg-purple-700 text-white rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                loading={isLoading}
+                variant="primary"
+                size="custom"
+                fullWidth
+                className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
               >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Exporting...</span>
-                  </>
-                ) : (
+                {!isLoading && (
                   <>
                     <svg
                       className="w-5 h-5"
@@ -100,7 +100,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                     <span>Download</span>
                   </>
                 )}
-              </button>
+              </Button>
               {error && (
                 <div className="mt-4 text-sm text-red-600 dark:text-red-400 text-center">
                   {error}

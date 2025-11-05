@@ -6,6 +6,7 @@ import { useFileShareContact } from '../hooks/useFileShareContact';
 import { useAccountStore } from '../stores/accountStore';
 import ContactNameModal from '../components/ui/ContactNameModal';
 import { updateContactName } from '../utils/contacts';
+import Button from '../components/ui/Button';
 
 const Contact: React.FC = () => {
   const { userId } = useParams();
@@ -74,9 +75,11 @@ const Contact: React.FC = () => {
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         <div className="px-4 py-3 flex items-center gap-3">
-          <button
+          <Button
             onClick={onBack}
-            className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
+            variant="ghost"
+            size="custom"
+            className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
           >
             <svg
               className="w-6 h-6"
@@ -91,7 +94,7 @@ const Contact: React.FC = () => {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-          </button>
+          </Button>
           <h1 className="text-xl font-semibold text-black dark:text-white">
             Contact
           </h1>
@@ -112,14 +115,17 @@ const Contact: React.FC = () => {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-2">
-              <button
+              <Button
                 onClick={handleOpenEditName}
                 disabled={!canEditName}
-                className="w-full h-[46px] rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-black dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-[46px] rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-black dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Edit name
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() =>
                   exportFileContact({
                     userPubKeys: contact.publicKeys,
@@ -127,10 +133,13 @@ const Contact: React.FC = () => {
                   })
                 }
                 disabled={isLoading}
-                className="w-full h-[46px] rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-black dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-60"
+                variant="outline"
+                size="custom"
+                fullWidth
+                className="h-[46px] rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-black dark:text-white font-semibold hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Export contact (.yaml)
-              </button>
+              </Button>
               {!canStart && (
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   {disc?.status === 'pending' &&

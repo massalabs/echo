@@ -3,6 +3,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import { Bip39BackupDisplay } from '../../crypto/bip39';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
+import Button from '../ui/Button';
 
 interface AccountBackupProps {
   onBack: () => void;
@@ -106,36 +107,30 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     {error || passwordError}
                   </div>
                 )}
-                <button
+                <Button
                   onClick={handleShow}
                   disabled={isLoading || !password.trim()}
-                  className="w-full h-[54px] bg-purple-600 dark:bg-purple-700 text-white rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  loading={isLoading}
+                  variant="primary"
+                  size="custom"
+                  fullWidth
+                  className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Authenticating...</span>
-                    </>
-                  ) : (
-                    'Show Backup'
-                  )}
-                </button>
+                  {!isLoading && 'Show Backup'}
+                </Button>
               </>
             ) : (
-              <button
+              <Button
                 onClick={handleShow}
                 disabled={isLoading}
-                className="w-full h-[54px] bg-purple-600 dark:bg-purple-700 text-white rounded-lg font-medium hover:bg-purple-700 dark:hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                loading={isLoading}
+                variant="primary"
+                size="custom"
+                fullWidth
+                className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
               >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Authenticating...</span>
-                  </>
-                ) : (
-                  'Show Backup'
-                )}
-              </button>
+                {!isLoading && 'Show Backup'}
+              </Button>
             )}
           </div>
 
@@ -146,9 +141,11 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 <h4 className="text-base font-semibold text-black dark:text-white">
                   24-Word Mnemonic
                 </h4>
-                <button
+                <Button
                   onClick={() => copyText(mnemonicInfo?.mnemonic)}
-                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex items-center gap-2"
+                  variant="ghost"
+                  size="custom"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex items-center gap-2 p-0"
                 >
                   <svg
                     className="w-4 h-4"
@@ -164,7 +161,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     />
                   </svg>
                   Copy
-                </button>
+                </Button>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
                 <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
@@ -184,9 +181,11 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 <h4 className="text-base font-semibold text-black dark:text-white">
                   Private Key
                 </h4>
-                <button
+                <Button
                   onClick={() => copyText(privateKeyString)}
-                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors flex items-center gap-2"
+                  variant="ghost"
+                  size="custom"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex items-center gap-2 p-0"
                 >
                   <svg
                     className="w-4 h-4"
@@ -202,7 +201,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     />
                   </svg>
                   Copy
-                </button>
+                </Button>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
                 <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
