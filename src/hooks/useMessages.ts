@@ -7,8 +7,6 @@ import { notificationService } from '../services/notifications';
 interface UseMessagesProps {
   contact: Contact;
   discussionId?: number;
-  onDiscussionRequired?: () => Promise<boolean>;
-  onMessageSent?: () => void;
 }
 
 export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {

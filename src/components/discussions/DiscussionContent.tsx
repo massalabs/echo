@@ -12,7 +12,6 @@ import toast from 'react-hot-toast';
 const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const navigate = useNavigate();
   const onBack = () => navigate('/');
-  const onDiscussionCreated: (() => void) | undefined = undefined;
   const [newMessage, setNewMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -22,7 +21,6 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
     discussion,
     isInitializing,
     isLoading: isDiscussionLoading,
-    ensureDiscussionExists,
   } = useDiscussion({ contact });
 
   const {
@@ -36,8 +34,6 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   } = useMessages({
     contact,
     discussionId: discussion?.id,
-    onDiscussionRequired: ensureDiscussionExists,
-    onMessageSent: onDiscussionCreated,
   });
 
   const scrollToBottom = useCallback(() => {
