@@ -1,24 +1,25 @@
 import React, { useState } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
-import { Bip39BackupDisplay } from '../../crypto/bip39';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
 import Button from '../ui/Button';
+import { Account } from '@massalabs/massa-web3';
 
 interface AccountBackupProps {
   onBack: () => void;
 }
 
 const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
-  const { userProfile, showMnemonicBackup, showPrivateKey } = useAccountStore();
+  const { userProfile, showBackup } = useAccountStore();
   const [method, setMethod] = useState<'mnemonic' | 'privateKey'>('mnemonic');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [mnemonicInfo, setMnemonicInfo] = useState<Bip39BackupDisplay | null>(
-    null
-  );
+  const [backupInfo, setBackupInfo] = useState<{
+    mnemonic: string;
+    account: Account;
+  } | null>(null);
   const [privateKeyString, setPrivateKeyString] = useState<string | null>(null);
 
   const requiresPassword = !userProfile?.security?.webauthn?.credentialId;
@@ -33,18 +34,11 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
         setPasswordError('Password is required');
         return;
       }
-
-      if (method === 'mnemonic') {
-        const data = await showMnemonicBackup(
-          requiresPassword ? password : undefined
-        );
-        setMnemonicInfo(data);
-      } else {
-        const pk = await showPrivateKey(
-          requiresPassword ? password : undefined
-        );
-        setPrivateKeyString(pk);
-      }
+      const backupInfo = await showBackup(
+        requiresPassword ? password : undefined
+      );
+      setBackupInfo(backupInfo);
+      setPrivateKeyString(backupInfo.account.privateKey.toString());
     } catch (e) {
       const message =
         e instanceof Error ? e.message : 'Failed to show backup information';
@@ -89,60 +83,63 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
           </div>
 
           {/* Input/auth */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-            {requiresPassword ? (
-              <>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Enter your password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
-                  placeholder="Enter your password"
-                />
-                {(error || passwordError) && (
-                  <div className="text-sm text-red-600 dark:text-red-400 mb-4">
-                    {error || passwordError}
-                  </div>
-                )}
+          {((method === 'mnemonic' && !backupInfo) ||
+            (method === 'privateKey' && !privateKeyString)) && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+              {requiresPassword ? (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Enter your password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
+                    placeholder="Enter your password"
+                  />
+                  {(error || passwordError) && (
+                    <div className="text-sm text-red-600 dark:text-red-400 mb-4">
+                      {error || passwordError}
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleShow}
+                    disabled={isLoading || !password.trim()}
+                    loading={isLoading}
+                    variant="primary"
+                    size="custom"
+                    fullWidth
+                    className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                  >
+                    {!isLoading && 'Show Backup'}
+                  </Button>
+                </>
+              ) : (
                 <Button
                   onClick={handleShow}
-                  disabled={isLoading || !password.trim()}
+                  disabled={isLoading}
                   loading={isLoading}
-                  variant="gradient-blue"
+                  variant="primary"
                   size="custom"
                   fullWidth
-                  className="h-11 rounded-xl text-sm font-medium"
+                  className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
                 >
                   {!isLoading && 'Show Backup'}
                 </Button>
-              </>
-            ) : (
-              <Button
-                onClick={handleShow}
-                disabled={isLoading}
-                loading={isLoading}
-                variant="gradient-blue"
-                size="custom"
-                fullWidth
-                className="h-11 rounded-xl text-sm font-medium"
-              >
-                {!isLoading && 'Show Backup'}
-              </Button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Display */}
-          {method === 'mnemonic' && mnemonicInfo && (
+          {method === 'mnemonic' && backupInfo && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-base font-semibold text-black dark:text-white">
                   24-Word Mnemonic
                 </h4>
                 <Button
-                  onClick={() => copyText(mnemonicInfo?.mnemonic)}
+                  onClick={() => copyText(backupInfo.mnemonic)}
                   variant="ghost"
                   size="custom"
                   className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex items-center gap-2 p-0"
@@ -165,7 +162,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
                 <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
-                  {mnemonicInfo?.mnemonic}
+                  {backupInfo.mnemonic}
                 </p>
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-400">

@@ -1,0 +1,64 @@
+import { EncryptionKey } from '../../assets/generated/wasm/echo_wasm';
+import { validateMnemonic } from '../../crypto/bip39';
+import { decrypt, deriveKey } from '../../crypto/encryption';
+import { authenticateWithWebAuthn } from '../../crypto/webauthn';
+import { UserProfile } from '../../db';
+
+export interface AuthResult {
+  mnemonic: string;
+  encryptionKey: EncryptionKey;
+}
+export async function auth(
+  profile: UserProfile,
+  password?: string
+): Promise<AuthResult> {
+  if (!profile.security.mnemonicBackup) {
+    throw new Error(
+      'Mnemonic backup is not available for this account. Please create a new account to use the backup feature.'
+    );
+  }
+
+  const salt = profile.security.encKeySalt;
+  if (!salt || salt.length < 8) {
+    throw new Error(
+      'Biometric account is missing KDF salt. Please re-authenticate and re-create your account after updating the app.'
+    );
+  }
+
+  let enKeySeed: string;
+  // Check if this is a biometric account
+  if (profile.security.webauthn?.credentialId) {
+    // For biometric accounts, authenticate with WebAuthn first (gate UI)
+    await authenticateWithWebAuthn(profile.security.webauthn.credentialId);
+    // Derive EncryptionKey from public WebAuthn fields
+    enKeySeed =
+      profile.security.webauthn.credentialId +
+      Buffer.from(profile.security.webauthn.publicKey).toString('base64');
+  } else if (password) {
+    enKeySeed = password;
+  } else {
+    throw new Error('Invalid authentication method or missing password');
+  }
+
+  try {
+    const encryptionKey = await deriveKey(enKeySeed, salt);
+    const mnemonic = await decrypt(
+      profile.security.mnemonicBackup.encryptedMnemonic,
+      profile.security.mnemonicBackup.nonce,
+      encryptionKey
+    );
+
+    if (!validateMnemonic(mnemonic)) {
+      throw new Error('Failed to validate mnemonic');
+    }
+
+    return {
+      mnemonic,
+      encryptionKey,
+    };
+  } catch (error) {
+    throw new Error(
+      `Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
