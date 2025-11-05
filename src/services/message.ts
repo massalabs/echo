@@ -62,12 +62,12 @@ export class MessageService {
       }
 
       // Get seekers and decrypt messages per seeker using WASM
-      const messageProtocol = await this.getMessageProtocol();
+      const messageProtocol = this.getMessageProtocol();
       const { session, ourSk } = useAccountStore.getState();
       if (!session) throw new Error('Session module not initialized');
       if (!ourSk) throw new Error('WASM secret keys unavailable');
 
-      const seekers = session.getMessageBoardReadKeys(); // TODO: use discussion.nextSeeker instead
+      const seekers = session.getMessageBoardReadKeys(); // TODO: I don't think it's the most efficient way
 
       // Nothing to fetch when there are no seeker keys
       if (!seekers || seekers.length === 0) {
