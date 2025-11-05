@@ -23,6 +23,10 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const {
+    handlers: { handleAcceptDiscussionRequest },
+  } = useDiscussionList();
+
   return (
     <div className="bg-card rounded-lg">
       <div className="px-6 py-4 border-b border-border flex justify-between items-center">
@@ -80,7 +84,10 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
                     isPendingIncoming={isPendingIncoming}
                     isPendingOutgoing={isPendingOutgoing}
                     onSelect={d => onSelect(d.contactUserId)}
-                    onAccept={d => navigate(`/discussion/${d.contactUserId}`)}
+                    onAccept={async (d, newName) => {
+                      await handleAcceptDiscussionRequest(d, newName);
+                      navigate(`/discussion/${d.contactUserId}`);
+                    }}
                     onRefuse={() => {}}
                   />
                 </div>
