@@ -12,7 +12,6 @@ import {
   createMessageProtocol,
 } from '../api/messageProtocol';
 import { useAccountStore } from '../stores/accountStore';
-import { generateUserKeys, SessionModule, getSessionModule } from '../wasm';
 import { announcementService } from './announcement';
 import { strToBytes } from '@massalabs/massa-web3';
 import { SessionStatus } from '../assets/generated/wasm/echo_wasm';
@@ -239,7 +238,8 @@ export class MessageService {
 
       // Try sending via protocol
       try {
-        const sessionModule = await getSessionModule();
+        const session = useAccountStore.getState().session;
+        if (!session) throw new Error('Session module not initialized');
         const peerId = bs58check.decode(contactUserId);
         const contentBytes = strToBytes(content);
 
@@ -252,17 +252,14 @@ export class MessageService {
         }
 
         // Ensure session is active before sending
-        const status = await sessionModule.peerSessionStatus(peerId);
+        const status = session.peerSessionStatus(peerId);
         if (status !== SessionStatus.Active) {
           const statusName =
             SessionStatus[status as unknown as number] ?? String(status);
           return { success: false, error: `Session not ready: ${statusName}` };
         }
 
-        const sendOutput = await sessionModule.sendMessage(
-          peerId,
-          contentBytes
-        );
+        const sendOutput = session.sendMessage(peerId, contentBytes);
 
         if (!sendOutput) throw new Error('WASM sendMessage returned null');
 
