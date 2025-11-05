@@ -234,9 +234,12 @@ impl SessionManager {
             crypto_aead::Nonce::from(nonce_bytes)
         };
 
+        // get ciphertext (everything after the nonce)
+        let ciphertext = encrypted_blob.get(crypto_aead::NONCE_SIZE..)?;
+
         // decrypt
         let decrypted_blob =
-            Zeroizing::new(crypto_aead::decrypt(key, &nonce, encrypted_blob, b"")?);
+            Zeroizing::new(crypto_aead::decrypt(key, &nonce, ciphertext, b"")?);
 
         // deserialize
         let session_manager: Self =
@@ -1170,5 +1173,133 @@ mod tests {
             alice_manager.peer_session_status(&charlie_id),
             SessionStatus::PeerRequested
         ));
+    }
+
+    fn generate_test_key() -> crypto_aead::Key {
+        let mut key_bytes = [0u8; crypto_aead::KEY_SIZE];
+        crypto_rng::fill_buffer(&mut key_bytes);
+        crypto_aead::Key::from(key_bytes)
+    }
+
+    #[test]
+    fn test_encryption_decryption_empty_session() {
+        // Test encrypting and decrypting an empty session manager
+        let config = create_test_config();
+        let manager = SessionManager::new(config);
+
+        // Generate an encryption key
+        let key = generate_test_key();
+
+        // Encrypt the session
+        let encrypted_blob = manager
+            .to_encrypted_blob(&key)
+            .expect("Encryption should succeed");
+
+        println!("Empty session encrypted blob length: {}", encrypted_blob.len());
+        println!("Encrypted blob (first 16 bytes): {:?}", &encrypted_blob[..16.min(encrypted_blob.len())]);
+
+        // Decrypt the session
+        let decrypted_manager = SessionManager::from_encrypted_blob(&encrypted_blob, &key)
+            .expect("Decryption should succeed");
+
+        // Verify the decrypted manager has the same config
+        assert_eq!(
+            manager.config.max_incoming_announcement_age_millis,
+            decrypted_manager.config.max_incoming_announcement_age_millis
+        );
+        assert_eq!(manager.peers.len(), decrypted_manager.peers.len());
+    }
+
+    #[test]
+    fn test_encryption_decryption_with_sessions() {
+        // Test encrypting and decrypting a session manager with active sessions
+        let (alice_pk, alice_sk) = generate_test_keypair();
+        let (bob_pk, _bob_sk) = generate_test_keypair();
+
+        let mut manager = SessionManager::new(create_test_config());
+
+        // Establish a session
+        let announcement = manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk);
+        println!("Announcement length: {}", announcement.len());
+
+        // Generate an encryption key
+        let key = generate_test_key();
+
+        // Encrypt the session
+        let encrypted_blob = manager
+            .to_encrypted_blob(&key)
+            .expect("Encryption should succeed");
+
+        println!("Session with peers encrypted blob length: {}", encrypted_blob.len());
+        println!("Encrypted blob (first 16 bytes): {:?}", &encrypted_blob[..16.min(encrypted_blob.len())]);
+
+        // Decrypt the session
+        let decrypted_manager = SessionManager::from_encrypted_blob(&encrypted_blob, &key)
+            .expect("Decryption should succeed");
+
+        // Verify the decrypted manager has the same state
+        assert_eq!(manager.peers.len(), decrypted_manager.peers.len());
+
+        let bob_id = bob_pk.derive_id();
+        assert!(matches!(
+            decrypted_manager.peer_session_status(&bob_id),
+            SessionStatus::SelfRequested
+        ));
+    }
+
+    #[test]
+    fn test_encryption_with_wrong_key_fails() {
+        // Test that decryption with wrong key fails
+        let config = create_test_config();
+        let manager = SessionManager::new(config);
+
+        // Generate two different keys
+        let key1 = generate_test_key();
+        let key2 = generate_test_key();
+
+        // Encrypt with key1
+        let encrypted_blob = manager
+            .to_encrypted_blob(&key1)
+            .expect("Encryption should succeed");
+
+        // Try to decrypt with key2 (should fail)
+        let result = SessionManager::from_encrypted_blob(&encrypted_blob, &key2);
+        assert!(result.is_none(), "Decryption with wrong key should fail");
+    }
+
+    #[test]
+    fn test_encryption_key_from_bytes_roundtrip() {
+        // Test that we can recreate a key from bytes and decrypt successfully
+        let config = create_test_config();
+        let manager = SessionManager::new(config);
+
+        // Generate a key
+        let original_key = generate_test_key();
+        let key_bytes = original_key.as_bytes();
+
+        println!("Original key bytes (first 16): {:?}", &key_bytes[..16]);
+        println!("Key length: {}", key_bytes.len());
+
+        // Encrypt with original key
+        let encrypted_blob = manager
+            .to_encrypted_blob(&original_key)
+            .expect("Encryption should succeed");
+
+        println!("Encrypted blob length: {}", encrypted_blob.len());
+
+        // Recreate key from bytes
+        let recreated_key = crypto_aead::Key::from(*key_bytes);
+        let recreated_key_bytes = recreated_key.as_bytes();
+
+        println!("Recreated key bytes (first 16): {:?}", &recreated_key_bytes[..16]);
+
+        // Verify bytes match
+        assert_eq!(key_bytes, recreated_key_bytes, "Key bytes should match after recreation");
+
+        // Decrypt with recreated key
+        let decrypted_manager = SessionManager::from_encrypted_blob(&encrypted_blob, &recreated_key)
+            .expect("Decryption with recreated key should succeed");
+
+        assert_eq!(manager.peers.len(), decrypted_manager.peers.len());
     }
 }
