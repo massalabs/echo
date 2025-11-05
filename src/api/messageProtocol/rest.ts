@@ -41,11 +41,14 @@ export class RestMessageProtocol implements IMessageProtocol {
       }
 
       // Convert timestamp strings back to Date objects and arrays to Uint8Array
-      return response.data.map<EncryptedMessage>(msg => ({
-        seeker: new Uint8Array(msg.seeker),
-        ciphertext: new Uint8Array(msg.ciphertext),
-        timestamp: new Date(msg.timestamp),
-      }));
+      return response.data.map<EncryptedMessage>(msg => {
+        const ct = new Uint8Array(msg.ciphertext);
+        return {
+          seeker: new Uint8Array(msg.seeker),
+          ciphertext: ct,
+          timestamp: new Date(msg.timestamp),
+        };
+      });
     } catch (error) {
       console.error('Failed to fetch messages:', error);
       throw error;
