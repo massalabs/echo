@@ -5,9 +5,6 @@ import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
 import Button from '../components/ui/Button';
 
-let globalSelectedAccountId: string | null = null;
-let globalSelectedUsername: string | null = null;
-
 interface LoginProps {
   onCreateNewAccount: () => void;
   onAccountSelected: () => void;
@@ -24,9 +21,7 @@ const Login: React.FC<LoginProps> = React.memo(
     persistentError = null,
     onErrorChange,
   }) => {
-    const userProfile = useAccountStore(state => state.userProfile);
     const loadAccount = useAccountStore(state => state.loadAccount);
-    const getAllAccounts = useAccountStore(state => state.getAllAccounts);
     const webauthnSupported = useAccountStore(state => state.webauthnSupported);
     const platformAuthenticatorAvailable = useAccountStore(
       state => state.platformAuthenticatorAvailable
@@ -46,44 +41,15 @@ const Login: React.FC<LoginProps> = React.memo(
     const [platformResolved, setPlatformResolved] = useState(false);
     const lastAutoAuthCredentialIdRef = useRef<string | null>(null);
 
-    const passwordError = persistentError || '';
-    const error = persistentError;
     const currentAccount = selectedAccountInfo || accountInfo;
 
     useEffect(() => {
-      (async () => {
-        if (
-          !selectedAccountInfo &&
-          (globalSelectedAccountId != null || globalSelectedUsername)
-        ) {
-          try {
-            const all = await getAllAccounts();
-            let match: UserProfile | null = null;
-            if (globalSelectedAccountId != null) {
-              match =
-                all.find(a => a.userId === globalSelectedAccountId) || null;
-            }
-            if (!match && globalSelectedUsername) {
-              match =
-                all.find(a => a.username === globalSelectedUsername) || null;
-            }
-            if (match) {
-              setSelectedAccountInfo(match);
-            }
-          } catch {
-            // ignore
-          }
-        }
-      })();
-    }, [selectedAccountInfo, getAllAccounts]);
-
-    useEffect(() => {
-      const account = currentAccount || userProfile;
-      const shouldUsePassword = !account?.security?.webauthn?.credentialId;
-      setUsePassword(prev =>
-        prev !== shouldUsePassword ? shouldUsePassword : prev
-      );
-    }, [userProfile, currentAccount]);
+      const shouldUsePassword =
+        !currentAccount?.security?.webauthn?.credentialId;
+      if (usePassword !== shouldUsePassword) {
+        setUsePassword(shouldUsePassword);
+      }
+    }, [currentAccount, usePassword]);
 
     useEffect(() => {
       if (platformResolved) return;
@@ -103,21 +69,7 @@ const Login: React.FC<LoginProps> = React.memo(
         setIsLoading(true);
         onErrorChange?.(null);
 
-        const account = currentAccount || userProfile;
-        let targetAccountId = account?.userId ?? null;
-        if (targetAccountId == null && account?.username) {
-          try {
-            const all = await getAllAccounts();
-            const match = all.find(a => a.username === account.username);
-            if (match?.userId != null) {
-              targetAccountId = match.userId;
-            }
-          } catch {
-            // no-op: fallback to current account info
-          }
-        }
-
-        await loadAccount(undefined, targetAccountId ?? undefined);
+        await loadAccount(undefined, currentAccount?.userId);
         onAccountSelected();
       } catch (error) {
         console.error('Biometric authentication failed:', error);
@@ -129,14 +81,7 @@ const Login: React.FC<LoginProps> = React.memo(
       } finally {
         setIsLoading(false);
       }
-    }, [
-      currentAccount,
-      userProfile,
-      onErrorChange,
-      getAllAccounts,
-      loadAccount,
-      onAccountSelected,
-    ]);
+    }, [currentAccount, onErrorChange, loadAccount, onAccountSelected]);
 
     useEffect(() => {
       if (autoAuthTriggered || !selectedAccountInfo) return;
@@ -172,21 +117,7 @@ const Login: React.FC<LoginProps> = React.memo(
           return;
         }
 
-        const account = currentAccount || userProfile;
-        let targetAccountId = account?.userId;
-        if (targetAccountId == null && account?.username) {
-          try {
-            const all = await getAllAccounts();
-            const match = all.find(a => a.username === account.username);
-            if (match?.userId != null) {
-              targetAccountId = match.userId;
-            }
-          } catch {
-            // no-op: username lookup failed; proceed without mapping
-          }
-        }
-
-        await loadAccount(password, targetAccountId);
+        await loadAccount(password, currentAccount?.userId);
 
         const state = useAccountStore.getState();
         if (state.userProfile) {
@@ -213,8 +144,6 @@ const Login: React.FC<LoginProps> = React.memo(
 
     const handleAccountSelected = (account: UserProfile) => {
       setSelectedAccountInfo(account);
-      globalSelectedAccountId = account.userId ?? null;
-      globalSelectedUsername = account.username ?? null;
       setShowAccountSelection(false);
       onErrorChange?.(null);
       setPassword('');
@@ -234,6 +163,7 @@ const Login: React.FC<LoginProps> = React.memo(
     };
 
     const accountSupportsBiometrics = !usePassword;
+    const displayUsername = currentAccount?.username;
 
     if (showAccountSelection) {
       return (
@@ -260,11 +190,11 @@ const Login: React.FC<LoginProps> = React.memo(
           <div className="text-center mb-8">
             <img src="/logo.svg" alt="Echo" className="mx-auto dark:invert" />
             <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
-              {(currentAccount || userProfile)?.username ? (
+              {displayUsername ? (
                 <>
                   Welcome back,{' '}
                   <span className="text-blue-700 dark:text-blue-400  text-4xl">
-                    {(currentAccount || userProfile)?.username}
+                    {displayUsername}
                   </span>
                 </>
               ) : (
@@ -312,7 +242,7 @@ const Login: React.FC<LoginProps> = React.memo(
                     value={password}
                     onChange={e => {
                       setPassword(e.target.value);
-                      if (passwordError && onErrorChange) {
+                      if (persistentError && onErrorChange) {
                         onErrorChange(null);
                       }
                     }}
@@ -324,7 +254,7 @@ const Login: React.FC<LoginProps> = React.memo(
                     }}
                     placeholder="Password"
                     className={`w-full h-12 px-4 rounded-xl border text-sm focus:outline-none focus:ring-2 transition text-gray-900 dark:text-white bg-white dark:bg-gray-800 ${
-                      passwordError
+                      persistentError
                         ? 'border-red-300 dark:border-red-600 focus:ring-red-200 dark:focus:ring-red-900/40'
                         : 'border-gray-200 dark:border-gray-700 focus:ring-blue-200 dark:focus:ring-blue-900/40'
                     }`}
@@ -346,10 +276,10 @@ const Login: React.FC<LoginProps> = React.memo(
               </div>
             )}
 
-            {error && (
+            {persistentError && (
               <div className="rounded-xl border-2 border-red-200 dark:border-red-800 bg-red-50/80 dark:bg-red-900/20 p-3">
                 <p className="text-sm text-red-700 dark:text-red-300">
-                  {error}
+                  {persistentError}
                 </p>
               </div>
             )}
