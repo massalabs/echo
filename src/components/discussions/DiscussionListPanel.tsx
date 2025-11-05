@@ -45,7 +45,9 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
       </div>
 
       <div className="divide-y divide-border">
-        {state.discussions.filter(d => d.status !== 'closed').length === 0 ? (
+        {!state.areDiscussionsLoaded ? null : state.discussions.filter(
+            d => d.status !== 'closed'
+          ).length === 0 ? (
           <EmptyDiscussions />
         ) : (
           state.discussions

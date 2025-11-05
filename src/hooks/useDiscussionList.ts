@@ -33,12 +33,14 @@ export const useDiscussionList = () => {
   const [lastMessages, setLastMessages] = useState<
     Map<string, { content: string; timestamp: Date }>
   >(new Map());
+  const [areDiscussionsLoaded, setAreDiscussionsLoaded] = useState(false);
   const hasCheckedExistingRef = useRef(false);
   const [, forceUpdate] = useState({});
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const loadDiscussions = useCallback(async () => {
     try {
+      setAreDiscussionsLoaded(false);
       if (!userProfile?.userId) {
         setDiscussions([]);
         setLastMessages(new Map());
@@ -64,6 +66,8 @@ export const useDiscussionList = () => {
       setLastMessages(messagesMap);
     } catch (error) {
       console.error('Failed to load discussions:', error);
+    } finally {
+      setAreDiscussionsLoaded(true);
     }
   }, [userProfile?.userId]);
 
@@ -323,6 +327,7 @@ export const useDiscussionList = () => {
       discussions,
       lastMessages,
       loginError,
+      areDiscussionsLoaded,
     },
     selectors: {
       getContactByUserId,
