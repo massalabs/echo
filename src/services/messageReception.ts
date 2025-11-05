@@ -13,7 +13,7 @@ import {
 } from '../api/messageProtocol';
 import bs58check from 'bs58check';
 import { useAccountStore } from '../stores/accountStore';
-import { generateUserKeys, getSessionModule, SessionModule } from '../wasm';
+import { generateUserKeys, SessionModule } from '../wasm';
 import { announcementService } from './announcement';
 
 export interface MessageReceptionResult {
@@ -59,10 +59,10 @@ export class MessageReceptionService {
 
       // Get seekers and decrypt messages per seeker using WASM
       const messageProtocol = await this.getMessageProtocol();
-      const sessionModule = await getSessionModule();
-      const seekers = await sessionModule.getMessageBoardReadKeys();
-      const { ourSk } = useAccountStore.getState();
+      const { session, ourSk } = useAccountStore.getState();
+      if (!session) throw new Error('Session module not initialized');
       if (!ourSk) throw new Error('WASM secret keys unavailable');
+      const seekers = session.getMessageBoardReadKeys();
 
       let storedCount = 0;
       // Fetch in one shot for all seekers
@@ -70,7 +70,7 @@ export class MessageReceptionService {
       for (const encryptedMsg of encryptedMessages) {
         const seeker = encryptedMsg.seeker;
         try {
-          const out = await sessionModule.feedIncomingMessageBoardRead(
+          const out = session.feedIncomingMessageBoardRead(
             seeker,
             encryptedMsg.ciphertext,
             ourSk
@@ -242,9 +242,8 @@ export class MessageReceptionService {
       // Get the peer ID from the contact's public keys
       const contactPublicKeys = contactIdentity.public_keys();
       const contactSecretKeys = contactIdentity.secret_keys();
-      // create a local session module instance
+      // create a local session module instance for testing
       const sessionModule = new SessionModule();
-      await sessionModule.init();
 
       // if there is no message yet, respond to the anouncement
       const messages = await db.messages
@@ -257,27 +256,24 @@ export class MessageReceptionService {
           throw new Error('No initiation announcement found');
         }
 
-        await sessionModule.feedIncomingAnnouncement(
+        sessionModule.feedIncomingAnnouncement(
           discussion.initiationAnnouncement,
           contactPublicKeys,
           contactSecretKeys
         );
-        await sessionModule.establishOutgoingSession(
+        sessionModule.establishOutgoingSession(
           ourPk,
           contactPublicKeys,
           contactSecretKeys
         );
       }
 
-      const peerList = await sessionModule.peerList();
+      const peerList = sessionModule.peerList();
       console.log(
         'peers',
         peerList.map(p => bs58check.encode(p))
       );
-      console.log(
-        'peer status',
-        await sessionModule.peerSessionStatus(ourUserId)
-      );
+      console.log('peer status', sessionModule.peerSessionStatus(ourUserId));
 
       // Create a new Message with test content using sendMessage
       const testContent =
@@ -285,10 +281,7 @@ export class MessageReceptionService {
       const messageContent = new TextEncoder().encode(testContent);
 
       // Use sendMessage to create a properly encrypted message
-      const sendOutput = await sessionModule.sendMessage(
-        ourUserId,
-        messageContent
-      );
+      const sendOutput = sessionModule.sendMessage(ourUserId, messageContent);
       if (!sendOutput) {
         throw new Error('sendMessage returned null');
       }
