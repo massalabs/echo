@@ -1,22 +1,20 @@
-import React from 'react';
-
 interface PrivacyGraphicProps {
   size?: number; // Size in pixels (default: 400)
   className?: string;
 }
 
 export function PrivacyGraphic({
-  size = 400,
+  size = 300,
   className = '',
 }: PrivacyGraphicProps) {
   return (
     <div
-      className={`relative w-full flex items-center justify-center py-12 ${className}`}
+      className={`relative w-full flex items-center justify-center py-8 ${className}`}
     >
       {/* Glow effect background */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
-          className="bg-white/5 rounded-full blur-3xl animate-pulse-slow"
+          className="rounded-full blur-3xl animate-pulse-slow bg-black/10 dark:bg-white/5"
           style={{
             width: `${size}px`,
             height: `${size}px`,
@@ -26,10 +24,11 @@ export function PrivacyGraphic({
 
       <svg
         viewBox="0 0 192.39 173.39"
-        className="text-white animate-float drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+        className="animate-float text-gray-900 dark:text-white drop-shadow-[0_0_18px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] overflow-visible"
         style={{
           width: `${size}px`,
           height: `${size}px`,
+          overflow: 'visible',
         }}
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -47,7 +46,7 @@ export function PrivacyGraphic({
             fill="white"
           />
 
-          {/* Left eye with blink animation */}
+          {/* Left eye with blink animation (solid black in light and dark) */}
           <g
             className="animate-blink origin-center"
             style={{ transformOrigin: '54.73px 92.92px' }}
@@ -56,14 +55,11 @@ export function PrivacyGraphic({
               cx="54.73"
               cy="92.92"
               r="18.02"
-              fill="white"
-              stroke="currentColor"
-              strokeWidth="4"
-              className="opacity-90"
+              fill="#111827" /* gray-900 */
             />
           </g>
 
-          {/* Right eye with blink animation */}
+          {/* Right eye with blink animation (solid black in light and dark) */}
           <g
             className="animate-blink origin-center"
             style={{ transformOrigin: '102.37px 92.92px' }}
@@ -72,10 +68,7 @@ export function PrivacyGraphic({
               cx="102.37"
               cy="92.92"
               r="18.02"
-              fill="white"
-              stroke="currentColor"
-              strokeWidth="4"
-              className="opacity-90"
+              fill="#111827" /* gray-900 */
             />
           </g>
         </g>

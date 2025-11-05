@@ -36,7 +36,7 @@ const Button: React.FC<ButtonProps> = ({
   title,
 }) => {
   const baseClasses =
-    'inline-flex items-center justify-center font-medium transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:cursor-not-allowed';
 
   const variantClasses = {
     primary:
@@ -49,9 +49,8 @@ const Button: React.FC<ButtonProps> = ({
     outline:
       'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm hover:shadow-md',
     'gradient-emerald':
-      'bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 text-white hover:from-emerald-600 hover:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transform hover:scale-[1.02] active:scale-[0.98]',
-    'gradient-blue':
-      'bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-600 dark:to-purple-700 text-white hover:from-blue-600 hover:to-purple-700 dark:hover:from-blue-700 dark:hover:to-purple-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transform hover:scale-[1.02] active:scale-[0.98]',
+      'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm',
+    'gradient-blue': 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',
     circular:
       'rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/50 active:scale-95',
     link: 'bg-transparent text-primary hover:text-primary/80 underline p-0 shadow-none',

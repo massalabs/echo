@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useAccountStore } from './stores/accountStore';
 import { db, UserProfile } from './db';
 import OnboardingFlow from './components/OnboardingFlow';
@@ -19,7 +19,7 @@ import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 // Route components and helpers
-import WelcomeBack from './components/WelcomeBack';
+import Login from './pages/Login.tsx';
 import AccountCreation from './components/account/AccountCreation.tsx';
 import MainLayout from './components/ui/MainLayout.tsx';
 import Discussions from './pages/Discussions';
@@ -38,6 +38,7 @@ const AppContent: React.FC = () => {
   const [existingAccountInfo, setExistingAccountInfo] =
     useState<UserProfile | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const hasAuthenticatedRef = useRef(false);
 
   addDebugLog(
     `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
@@ -85,6 +86,8 @@ const AppContent: React.FC = () => {
   // Trigger message sync when user logs in (when userProfile is available)
   useEffect(() => {
     if (userProfile) {
+      // Latch authenticated state to avoid transient flicker of unauth routes
+      hasAuthenticatedRef.current = true;
       console.log('User logged in, triggering message sync');
       backgroundSyncService.triggerManualSync().catch(error => {
         console.error('Failed to sync messages on login:', error);
@@ -127,6 +130,8 @@ const AppContent: React.FC = () => {
 
   // Ensure we default to /welcome if hash is empty when unauthenticated
   useEffect(() => {
+    // Skip redirect if we've ever been authenticated in this session
+    if (hasAuthenticatedRef.current) return;
     if (isInitialized && !userProfile && !isLoading) {
       const currentPath = window.location.hash.slice(1) || '/';
       if (currentPath === '/' || currentPath === '') {
@@ -147,8 +152,8 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If we have a user profile, show main app routes
-  if (userProfile) {
+  // If authenticated (current or latched), show main app routes
+  if (userProfile || hasAuthenticatedRef.current) {
     return (
       <Routes>
         <Route path="/new-discussion" element={<NewDiscussion />} />
@@ -207,15 +212,15 @@ const AppContent: React.FC = () => {
       />
     );
   }
-  // Initialized but unauthenticated: route between WelcomeBack and Setup
+  // Initialized but unauthenticated: route between Login and Setup
 
   return (
     <Routes>
       <Route
         path="/welcome"
         element={
-          <WelcomeBack
-            key="welcomeback-router"
+          <Login
+            key="login-router"
             onCreateNewAccount={() => {
               setLoginError(null); // Clear error when navigating to setup
               navigate('/setup');

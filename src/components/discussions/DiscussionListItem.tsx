@@ -91,8 +91,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <Button
-                    onClick={e => {
-                      e?.stopPropagation();
+                    onClick={() => {
                       setProposedName(contact.name || '');
                       setIsNameModalOpen(true);
                     }}
@@ -103,8 +102,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                     Accept
                   </Button>
                   <Button
-                    onClick={e => {
-                      e?.stopPropagation();
+                    onClick={() => {
                       setIsRefuseModalOpen(true);
                     }}
                     variant="outline"

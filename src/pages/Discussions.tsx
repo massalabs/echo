@@ -1,7 +1,6 @@
 import React from 'react';
 import DiscussionHeader from '../components/discussions/DiscussionHeader';
-import EmptyDiscussions from '../components/discussions/EmptyDiscussions';
-import DiscussionListItem from '../components/discussions/DiscussionListItem';
+import DiscussionListPanel from '../components/discussions/DiscussionListPanel';
 import DebugPanel from '../components/ui/DebugPanel';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import { useNavigate } from 'react-router-dom';
@@ -28,67 +27,17 @@ const Discussions: React.FC = () => {
         <DiscussionHeader />
 
         <div className="px-4 pb-20 flex-1 overflow-y-auto">
-          <div className="bg-card rounded-lg">
-            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
-              <h2 className="text-lg font-medium text-foreground">
-                Discussions
-              </h2>
-              <Button
-                onClick={handlers.handleRefresh}
-                variant="link"
-                size="custom"
-                className="text-xs"
-              >
-                Refresh
-              </Button>
-            </div>
-
-            <div className="divide-y divide-border">
-              {state.discussions.filter(d => d.status !== 'closed').length ===
-              0 ? (
-                <EmptyDiscussions />
-              ) : (
-                state.discussions
-                  .filter(d => d.status !== 'closed')
-                  .map(discussion => {
-                    const contact = selectors.getContactByUserId(
-                      discussion.contactUserId
-                    );
-                    if (!contact) return null;
-                    const lastMessage = state.lastMessages.get(
-                      discussion.contactUserId
-                    );
-                    const isPendingIncoming =
-                      discussion.status === 'pending' &&
-                      discussion.direction === 'received';
-                    const isPendingOutgoing =
-                      discussion.status === 'pending' &&
-                      discussion.direction === 'initiated';
-
-                    return (
-                      <DiscussionListItem
-                        key={discussion.id}
-                        discussion={discussion}
-                        contact={contact}
-                        lastMessage={lastMessage}
-                        isPendingIncoming={isPendingIncoming}
-                        isPendingOutgoing={isPendingOutgoing}
-                        onSelect={d => {
-                          handlers.handleSelectDiscussion(d);
-                          navigate(`/discussion/${d.contactUserId}`);
-                        }}
-                        onAccept={(d, newName) =>
-                          handlers.handleAcceptDiscussionRequest(d, newName)
-                        }
-                        onRefuse={handlers.handleRefuseDiscussionRequest}
-                      />
-                    );
-                  })
-              )}
-            </div>
-
-            <DebugPanel />
-          </div>
+          <DiscussionListPanel
+            state={state}
+            selectors={selectors}
+            onRefresh={handlers.handleRefresh}
+            onSelect={id => {
+              // Delegate selection to existing handler if it accepts shallow object
+              navigate(`/discussion/${id}`);
+            }}
+            headerVariant="link"
+          />
+          <DebugPanel />
         </div>
 
         <Button

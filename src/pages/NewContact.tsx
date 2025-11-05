@@ -423,9 +423,9 @@ const NewContact: React.FC = () => {
                   disabled={
                     !validateUsername(name).valid || !!userId || isSubmitting
                   }
-                  variant="primary"
+                  variant="gradient-blue"
                   size="custom"
-                  className="px-4 py-3 bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium whitespace-nowrap"
+                  className="px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap"
                   title="Generate random user ID"
                 >
                   Generate
@@ -451,10 +451,10 @@ const NewContact: React.FC = () => {
               onClick={handleSubmit}
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
-              variant="primary"
+              variant="gradient-blue"
               size="custom"
               fullWidth
-              className="bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white py-3 px-4 rounded-lg font-medium"
+              className="py-3 px-4 rounded-xl text-sm font-medium"
             >
               {!isSubmitting && 'Save contact'}
             </Button>

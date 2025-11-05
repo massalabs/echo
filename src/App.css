@@ -27,3 +27,71 @@
     animation: logo-spin infinite 20s linear;
   }
 }
+
+/* App-wide animation utilities used by PrivacyGraphic */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes tilt {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+.animate-tilt {
+  animation: tilt 6s ease-in-out infinite;
+}
+.animate-blink {
+  animation: blink 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Prevent layout shift when vertical scrollbar appears */
+html {
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Fallback for browsers without scrollbar-gutter support */
+@supports not (scrollbar-gutter: stable) {
+  body {
+    overflow-y: scroll;
+  }
+}

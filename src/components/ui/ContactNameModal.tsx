@@ -55,7 +55,7 @@ const ContactNameModal: React.FC<ContactNameModalProps> = ({
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full h-11 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter a name"
           />
           {error && (
@@ -67,9 +67,9 @@ const ContactNameModal: React.FC<ContactNameModalProps> = ({
         <div className="flex gap-3">
           <Button
             onClick={handleConfirm}
-            variant="primary"
+            variant="gradient-blue"
             size="custom"
-            className="flex-1 h-11 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold"
+            className="flex-1 h-11 rounded-xl text-sm font-medium"
           >
             {confirmLabel}
           </Button>

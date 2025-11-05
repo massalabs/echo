@@ -111,10 +111,10 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   onClick={handleShow}
                   disabled={isLoading || !password.trim()}
                   loading={isLoading}
-                  variant="primary"
+                  variant="gradient-blue"
                   size="custom"
                   fullWidth
-                  className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                  className="h-11 rounded-xl text-sm font-medium"
                 >
                   {!isLoading && 'Show Backup'}
                 </Button>
@@ -124,10 +124,10 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 onClick={handleShow}
                 disabled={isLoading}
                 loading={isLoading}
-                variant="primary"
+                variant="gradient-blue"
                 size="custom"
                 fullWidth
-                className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                className="h-11 rounded-xl text-sm font-medium"
               >
                 {!isLoading && 'Show Backup'}
               </Button>

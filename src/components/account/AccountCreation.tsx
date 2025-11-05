@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import appLogo from '../../assets/echo_face.svg';
+// Removed static logo in favor of animated PrivacyGraphic
 import { useAccountStore } from '../../stores/accountStore';
 import { addDebugLog } from '../ui/debugLogs';
 import { validatePassword, validateUsername } from '../../utils/validation';
@@ -136,25 +136,8 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
         {/* Header */}
         <PageHeader title="Create Account" onBack={onBack} />
 
-        <div className="px-4 pb-20">
+        <div className="px-4">
           {/* Logo */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4">
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto mb-4 bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <img
-                  src={appLogo}
-                  className="w-16 h-16 object-contain filter drop-shadow-lg"
-                  alt="Echo logo"
-                />
-              </div>
-              <h2 className="text-lg font-semibold text-black dark:text-white mb-2">
-                Welcome to Echo
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Create your secure account to get started
-              </p>
-            </div>
-          </div>
 
           {/* Authentication Method Toggle */}
           {webauthnSupported && platformAvailable && (
@@ -310,14 +293,10 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                 type="submit"
                 disabled={!canSubmit || isCreating || accountCreationStarted}
                 loading={isCreating || accountCreationStarted}
-                variant="primary"
+                variant="gradient-blue"
                 size="custom"
                 fullWidth
-                className={`h-[54px] rounded-lg font-medium flex items-center justify-center gap-2 ${
-                  canSubmit && !isCreating && !accountCreationStarted
-                    ? 'bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white'
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}
+                className="h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
               >
                 {!(isCreating || accountCreationStarted) && (
                   <>

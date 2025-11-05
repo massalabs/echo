@@ -84,7 +84,7 @@ const Settings = (): React.ReactElement => {
                     onClick={handleCopyAddress}
                     variant="ghost"
                     size="custom"
-                    className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 flex-shrink-0"
+                    className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 shrink-0"
                     title={copySuccess ? 'Copied!' : 'Copy full address'}
                   >
                     <svg

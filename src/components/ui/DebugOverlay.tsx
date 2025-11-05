@@ -76,7 +76,7 @@ const DebugOverlay: React.FC = () => {
         onClick={() => setIsVisible(true)}
         variant="primary"
         size="custom"
-        className="fixed top-2 right-2 z-50 bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium shadow-lg"
+        className="fixed top-2 right-2 z-50 bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium shadow-lg dark:text-black"
       >
         Show Debug
       </Button>

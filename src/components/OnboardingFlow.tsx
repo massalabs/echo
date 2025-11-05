@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import appLogo from '../assets/echo_face.svg';
+import { PrivacyGraphic } from './ui/PrivacyGraphic';
 import Button from './ui/Button';
 
 interface OnboardingFlowProps {
@@ -15,25 +16,22 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
   const steps = [
     {
-      title: 'Welcome to Echo! 👋',
+      title: 'Welcome to Gossip!',
       description:
         'Your private messenger designed for secure, end-to-end encrypted conversations. Connect with confidence.',
       image: appLogo,
-      icon: '💬',
     },
     {
       title: 'Privacy by Design 🔒',
       description:
         'All your messages are encrypted and stored locally on your device. Your conversations stay private, always.',
       image: appLogo,
-      icon: '🛡️',
     },
     {
       title: "Let's Get Started! 🚀",
       description:
         'Create your account in seconds and start connecting with people securely.',
       image: appLogo,
-      icon: '✨',
     },
   ];
 
@@ -52,7 +50,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   };
 
   return (
-    <div className="min-h-screen-mobile bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen-mobile bg-background flex flex-col items-center justify-center p-4 md:p-8">
       <div className="w-full max-w-md mx-auto">
         {/* Progress indicator */}
         <div className="flex justify-center mb-10">
@@ -62,7 +60,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                 key={index}
                 className={`transition-all duration-300 ${
                   index === currentStep
-                    ? 'w-8 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-lg'
+                    ? 'w-8 h-2 bg-blue-600 rounded-full shadow-sm'
                     : 'w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-700'
                 }`}
               />
@@ -73,21 +71,19 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         {/* Content */}
         <div className="text-center mb-10">
           <div className="relative mb-8">
-            <div className="w-40 h-40 mx-auto bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/30 transform transition-all duration-500 hover:scale-105">
-              <img
-                src={steps[currentStep].image}
-                className="w-24 h-24 object-contain filter drop-shadow-lg"
-                alt="Echo logo"
-              />
-            </div>
-            {steps[currentStep].icon && (
-              <div className="absolute -top-2 -right-2 text-4xl">
-                {steps[currentStep].icon}
-              </div>
-            )}
+            <PrivacyGraphic size={200} />
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
-            {steps[currentStep].title}
+            {currentStep === 0 ? (
+              <>
+                Welcome to{' '}
+                <span className="text-blue-700 dark:text-blue-400 text-4xl">
+                  Gossip!
+                </span>
+              </>
+            ) : (
+              steps[currentStep].title
+            )}
           </h1>
           <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-sm mx-auto px-2">
             {steps[currentStep].description}
