@@ -116,7 +116,6 @@
 //       const mockMessage: EncryptedMessage = {
 //         seeker,
 //         ciphertext,
-//         timestamp: new Date(),
 //       };
 
 //       const messageProtocol = await this.getMessageProtocol();
