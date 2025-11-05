@@ -13,8 +13,6 @@ interface DiscussionListItemProps {
   discussion: Discussion;
   contact: Contact;
   lastMessage: LastMessageInfo;
-  isPendingIncoming: boolean;
-  isPendingOutgoing: boolean;
   onSelect: (discussion: Discussion) => void;
   onAccept: (discussion: Discussion, newName?: string) => void;
   onRefuse: (discussion: Discussion) => void;
@@ -24,8 +22,6 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   discussion,
   contact,
   lastMessage,
-  isPendingIncoming,
-  isPendingOutgoing,
   onSelect,
   onAccept,
   onRefuse,
@@ -34,6 +30,11 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [proposedName, setProposedName] = useState(contact.name || '');
   const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
+
+  const isPendingIncoming =
+    discussion.status === 'pending' && discussion.direction === 'received';
+  const isPendingOutgoing =
+    discussion.status === 'pending' && discussion.direction === 'initiated';
 
   return (
     <div key={discussion.id} className={containerClass}>

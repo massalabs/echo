@@ -6,12 +6,13 @@ import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useAccountStore } from '../stores/accountStore';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';
+import DiscussionListPanel from '../components/discussions/DiscussionListPanel';
 
 const NewDiscussion: React.FC = () => {
-  const { handlers } = useDiscussionList();
   const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { state, selectors, handlers } = useDiscussionList();
 
   useEffect(() => {
     let isMounted = true;
@@ -43,7 +44,7 @@ const NewDiscussion: React.FC = () => {
   const onNewContact = () => navigate('/new-contact');
   const onSelectRecipient = (contact: Contact) => {
     handlers.handleSelectRecipient(contact);
-    navigate(`/contact/${contact.userId}`);
+    // navigate(`/contact/${contact.userId}`);
   };
 
   return (
@@ -134,6 +135,17 @@ const NewDiscussion: React.FC = () => {
               </Button>
             </div>
           </div>
+
+          <DiscussionListPanel
+            state={state}
+            selectors={selectors}
+            onRefresh={handlers.handleRefresh}
+            onSelect={id => {
+              // Delegate selection to existing handler if it accepts shallow object
+              navigate(`/discussion/${id}`);
+            }}
+            headerVariant="link"
+          />
 
           {/* Contacts list */}
           <div className="mt-4 border-t border-gray-200 dark:border-gray-700">

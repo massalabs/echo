@@ -1,5 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+
+import { formatMassaAddress } from '../utils/addressUtils';
+
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useFileShareContact } from '../hooks/useFileShareContact';
@@ -7,6 +10,7 @@ import { useAccountStore } from '../stores/accountStore';
 import ContactNameModal from '../components/ui/ContactNameModal';
 import { updateContactName } from '../utils/contacts';
 import Button from '../components/ui/Button';
+import CopyClipboard from '../components/ui/CopyClipboard';
 
 const Contact: React.FC = () => {
   const { userId } = useParams();
@@ -104,13 +108,16 @@ const Contact: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
             <div className="flex items-center gap-4">
               <ContactAvatar contact={contact} size={14} />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
                   {displayName}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {contact.userId}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {formatMassaAddress(contact.userId)}
+                  </p>
+                  <CopyClipboard text={contact.userId} title="Copy user ID" />
+                </div>
               </div>
             </div>
 
