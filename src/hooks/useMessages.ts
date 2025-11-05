@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Contact, Message, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
-import { messageReceptionService } from '../services/messageReception';
+import { messageService } from '../services/message';
 import { notificationService } from '../services/notifications';
 
 interface UseMessagesProps {
@@ -11,12 +11,7 @@ interface UseMessagesProps {
   onMessageSent?: () => void;
 }
 
-export const useMessages = ({
-  contact,
-  discussionId,
-  onDiscussionRequired,
-  onMessageSent,
-}: UseMessagesProps) => {
+export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -56,8 +51,7 @@ export const useMessages = ({
       setIsSyncing(true);
 
       // Fetch new encrypted messages
-      const service = await messageReceptionService.getInstance();
-      const fetchResult = await service.fetchNewMessages(discussionId);
+      const fetchResult = await messageService.fetchNewMessages(discussionId);
 
       if (fetchResult.success && fetchResult.newMessagesCount > 0) {
         // Reload messages to show the new ones (decryption handled elsewhere)
@@ -80,114 +74,25 @@ export const useMessages = ({
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!content.trim() || !contact.userId || isSending) return;
-
-      // Check if we need to initialize a discussion
-      if (!discussionId && onDiscussionRequired) {
-        const discussionInitialized = await onDiscussionRequired();
-        if (!discussionInitialized) {
-          console.error('Failed to initialize discussion');
-          return false;
-        }
-      }
+      if (!content || !userProfile?.userId || isSending) return;
 
       setIsSending(true);
-      try {
-        // Create message record with sending status
-        if (!userProfile?.userId) return false;
-        const message: Omit<Message, 'id'> = {
-          ownerUserId: userProfile.userId,
-          contactUserId: contact.userId,
-          content: content.trim(),
-          type: 'text',
-          direction: 'outgoing',
-          status: 'sending',
-          timestamp: new Date(),
-          encrypted: discussionId ? true : false,
-        };
 
-        const messageId = await db.addMessage(message);
+      const result = await messageService.sendMessage(contact.userId, content);
 
-        // Update local state immediately
-        const newMsg = { ...message, id: messageId } as Message;
-        setMessages(prev => [...prev, newMsg]);
-
-        // If we have a discussion, send through protocol API
-        if (discussionId) {
-          try {
-            const service = await messageReceptionService.getInstance();
-            // Get the discussion to access the nextSeeker (used as routing key)
-            const discussion = await db.discussions.get(discussionId);
-            if (!discussion) {
-              throw new Error('Discussion not found');
-            }
-            // Use nextSeeker directly, or create a placeholder if not available
-            const seeker = discussion.nextSeeker || new Uint8Array(32);
-            // Create a mock encrypted message payload for protocol
-            const messageProtocol = await service.getMessageProtocol();
-            await messageProtocol.sendMessage(seeker, {
-              seeker,
-              ciphertext: crypto.getRandomValues(new Uint8Array(128)),
-              timestamp: new Date(),
-            });
-
-            // Update message status to sent
-            await db.messages.update(messageId, { status: 'sent' });
-            setMessages(prev =>
-              prev.map(msg =>
-                msg.id === messageId ? { ...msg, status: 'sent' } : msg
-              )
-            );
-
-            console.log('Message sent successfully through protocol API');
-          } catch (protocolError) {
-            console.error(
-              'Failed to send message through protocol:',
-              protocolError
-            );
-
-            // Update message status to failed
-            await db.messages.update(messageId, { status: 'failed' });
-            setMessages(prev =>
-              prev.map(msg =>
-                msg.id === messageId ? { ...msg, status: 'failed' } : msg
-              )
-            );
-
-            return false;
-          }
-        } else {
-          // No discussion - just mark as sent locally
-          await db.messages.update(messageId, { status: 'sent' });
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === messageId ? { ...msg, status: 'sent' } : msg
-            )
-          );
-        }
-
-        // Notify parent that a message was sent
-        if (onMessageSent) {
-          console.log('Calling onMessageSent callback');
-          onMessageSent();
-        }
-
-        return true; // Success
-      } catch (error) {
-        console.error('Failed to send message:', error);
-        return false; // Failure
-      } finally {
+      if (!result.success) {
+        console.error('Failed to send message:', result.error);
         setIsSending(false);
+        throw new Error(result.error);
       }
+
+      if (result.message) {
+        setMessages(prev => [...prev, result.message!]);
+      }
+
+      setIsSending(false);
     },
-    [
-      contact.userId,
-      userProfile?.userId,
-      isSending,
-      discussionId,
-      onDiscussionRequired,
-      onMessageSent,
-    ]
+    [contact.userId, userProfile, isSending]
   );
 
   // Set up periodic message sync when discussion is active (reduced frequency)

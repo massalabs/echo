@@ -10,11 +10,11 @@ import {
 import { encodeToBase64, decodeFromBase64 } from '../../utils/base64';
 
 const BULLETIN_ENDPOINT = '/bulletin';
+const MESSAGES_ENDPOINT = '/messages';
 
-type EncryptedMessageWire = {
-  seeker: number[];
-  ciphertext: number[];
-  timestamp: string | number;
+type FetchMessagesResponse = {
+  key: string;
+  value: string;
 };
 
 export class RestMessageProtocol implements IMessageProtocol {
@@ -25,73 +25,52 @@ export class RestMessageProtocol implements IMessageProtocol {
   ) {}
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
-    const url = `${this.baseUrl}/messages/query`;
+    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
 
-    try {
-      const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          seekers: seekers.map(s => Array.from(s)),
-        }),
-      });
+    const response = await this.makeRequest<FetchMessagesResponse[]>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
+    });
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch messages');
-      }
-
-      // Convert timestamp strings back to Date objects and arrays to Uint8Array
-      return response.data.map<EncryptedMessage>(msg => {
-        const ct = new Uint8Array(msg.ciphertext);
-        return {
-          seeker: new Uint8Array(msg.seeker),
-          ciphertext: ct,
-          timestamp: new Date(msg.timestamp),
-        };
-      });
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      throw error;
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch messages');
     }
+
+    return response.data.map((item: FetchMessagesResponse) => {
+      const seeker = decodeFromBase64(item.key);
+      const ciphertext = decodeFromBase64(item.value);
+
+      return {
+        seeker,
+        ciphertext,
+        timestamp: new Date(), // TODO: Validate source of timestamp
+      };
+    });
   }
 
   async sendMessage(
     seeker: Uint8Array,
     message: EncryptedMessage
   ): Promise<void> {
-    // Encode seeker as base64url (URL-safe base64) for URL
-    const binaryString = Array.from(seeker)
-      .map(byte => String.fromCharCode(byte))
-      .join('');
-    const seekerBase64 = btoa(binaryString)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-    const url = `${this.baseUrl}/messages/${encodeURIComponent(seekerBase64)}`;
+    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/`;
 
-    try {
-      const response = await this.makeRequest<void>(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          seeker: Array.from(message.seeker),
-          ciphertext: Array.from(message.ciphertext),
-          timestamp: message.timestamp.toISOString(),
-        }),
-      });
+    const response = await this.makeRequest<void>(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: encodeToBase64(seeker),
+        value: encodeToBase64(message.ciphertext),
+      }),
+    });
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to send message');
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      throw error;
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to send message');
     }
   }
 
-  // Broadcast an outgoing session announcement produced by WASM
   async sendAnnouncement(announcement: Uint8Array): Promise<string> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
@@ -113,20 +92,15 @@ export class RestMessageProtocol implements IMessageProtocol {
   async fetchAnnouncements(): Promise<Uint8Array[]> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
-    try {
-      const response = await this.makeRequest<{ data: string[] }>(url, {
-        method: 'GET',
-      });
+    const response = await this.makeRequest<string[]>(url, {
+      method: 'GET',
+    });
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch announcements');
-      }
-
-      return response.data.data.map(row => decodeFromBase64(row));
-    } catch (error) {
-      console.error('Failed to fetch announcements:', error);
-      throw error;
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch announcements');
     }
+
+    return response.data.map(row => decodeFromBase64(row));
   }
 
   private async makeRequest<T>(

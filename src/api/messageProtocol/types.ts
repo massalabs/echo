@@ -5,7 +5,6 @@
 export interface EncryptedMessage {
   seeker: Uint8Array;
   ciphertext: Uint8Array;
-  timestamp: Date;
 }
 
 export interface MessageProtocolResponse<T = unknown> {

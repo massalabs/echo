@@ -6,7 +6,7 @@
  */
 
 import { notificationService } from './notifications';
-import { messageReceptionService } from './messageReception';
+import { messageService } from './message';
 
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
@@ -109,8 +109,7 @@ export class BackgroundSyncService {
   async triggerManualSync(): Promise<void> {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Worker not supported, falling back to direct sync');
-      const service = await messageReceptionService.getInstance();
-      await service.fetchAllDiscussions();
+      await messageService.fetchAllDiscussions();
       return;
     }
 
