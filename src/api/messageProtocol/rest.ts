@@ -26,65 +26,51 @@ export class RestMessageProtocol implements IMessageProtocol {
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
-    try {
-      const response = await this.makeRequest<apiResponseMessages[]>(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Backend expects exactly { seekers: string[] }
-        body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
-      });
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch messages');
-      }
+    const response = await this.makeRequest<apiResponseMessages[]>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
+    });
 
-      return response.data.map((item: apiResponseMessages) => {
-        const seeker = decodeFromBase64(item.key);
-        const ciphertext = decodeFromBase64(item.value);
-
-        return {
-          seeker,
-          ciphertext,
-          timestamp: new Date(), // TODO: add timestamp from server
-        };
-      });
-    } catch (error) {
-      console.log('-----------Failed to fetch messages in rest.ts', error);
-      throw error;
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch messages');
     }
+
+    return response.data.map((item: apiResponseMessages) => {
+      const seeker = decodeFromBase64(item.key);
+      const ciphertext = decodeFromBase64(item.value);
+
+      return {
+        seeker,
+        ciphertext,
+        timestamp: new Date(), // TODO: add timestap from server
+      };
+    });
   }
 
   async sendMessage(
     seeker: Uint8Array,
     message: EncryptedMessage
   ): Promise<void> {
-    // Encode seeker as base64url (URL-safe base64) for URL
-    const seekerBase64 = encodeToBase64(seeker);
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/`;
 
-    try {
-      const response = await this.makeRequest<void>(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          key: seekerBase64,
-          value: encodeToBase64(message.ciphertext),
-          timestamp: message.timestamp.toISOString(),
-        }),
-      });
+    const response = await this.makeRequest<void>(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: encodeToBase64(seeker),
+        value: encodeToBase64(message.ciphertext),
+      }),
+    });
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to send message');
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      throw error;
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to send message');
     }
   }
 
-  // Broadcast an outgoing session announcement produced by WASM
   async sendAnnouncement(announcement: Uint8Array): Promise<string> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
@@ -106,20 +92,15 @@ export class RestMessageProtocol implements IMessageProtocol {
   async fetchAnnouncements(): Promise<Uint8Array[]> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
-    try {
-      const response = await this.makeRequest<{ data: string[] }>(url, {
-        method: 'GET',
-      });
+    const response = await this.makeRequest<string[]>(url, {
+      method: 'GET',
+    });
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch announcements');
-      }
-
-      return response.data.data.map(row => decodeFromBase64(row));
-    } catch (error) {
-      console.error('Failed to fetch announcements:', error);
-      throw error;
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch announcements');
     }
+
+    return response.data.map(row => decodeFromBase64(row));
   }
 
   private async makeRequest<T>(

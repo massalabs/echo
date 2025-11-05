@@ -105,18 +105,15 @@ export class MessageService {
             type: 'text',
             direction: 'incoming',
             status: 'delivered',
-            timestamp: encryptedMsg.timestamp,
+            timestamp: out.timestamp ? new Date(out.timestamp) : new Date(), // TODO: add timestamp from server or use out.timestamp
             encrypted: true,
             metadata: {},
           });
 
-          // Discussion metadata (last message, unread) is maintained by db.addMessage
-
-          // Update discussion with new seeker from acknowledged_seekers
           if (out.acknowledged_seekers && out.acknowledged_seekers.length > 0) {
             const newSeeker = out.acknowledged_seekers[0]; // Take the first acknowledged seeker
             await db.discussions.update(discussionId, {
-              nextSeeker: newSeeker,
+              nextSeeker: newSeeker, // TODO: we can remove this and rely on session manger
               updatedAt: new Date(),
             });
           }
@@ -270,7 +267,6 @@ export class MessageService {
         await messageProtocol.sendMessage(sendOutput.seeker, {
           seeker: sendOutput.seeker,
           ciphertext: sendOutput.data,
-          timestamp: new Date(),
         });
 
         await db.messages.update(messageId, { status: 'sent' });
