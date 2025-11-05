@@ -12,7 +12,7 @@ import { encodeToBase64, decodeFromBase64 } from '../../utils/base64';
 const BULLETIN_ENDPOINT = '/bulletin';
 const MESSAGES_ENDPOINT = '/messages';
 
-type apiResponseMessages = {
+type FetchMessagesResponse = {
   key: string;
   value: string;
 };
@@ -27,7 +27,7 @@ export class RestMessageProtocol implements IMessageProtocol {
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
 
-    const response = await this.makeRequest<apiResponseMessages[]>(url, {
+    const response = await this.makeRequest<FetchMessagesResponse[]>(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
@@ -37,14 +37,14 @@ export class RestMessageProtocol implements IMessageProtocol {
       throw new Error(response.error || 'Failed to fetch messages');
     }
 
-    return response.data.map((item: apiResponseMessages) => {
+    return response.data.map((item: FetchMessagesResponse) => {
       const seeker = decodeFromBase64(item.key);
       const ciphertext = decodeFromBase64(item.value);
 
       return {
         seeker,
         ciphertext,
-        timestamp: new Date(), // TODO: add timestap from server
+        timestamp: new Date(), // TODO: Validate source of timestamp
       };
     });
   }
@@ -122,17 +122,7 @@ export class RestMessageProtocol implements IMessageProtocol {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          // Try to include server-provided error details for easier debugging
-          let errorDetail = '';
-          try {
-            const text = await response.text();
-            if (text) errorDetail = ` | Body: ${text}`;
-          } catch (_) {
-            // ignore body read errors
-          }
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText} | URL: ${url}${errorDetail}`
-          );
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();

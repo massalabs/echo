@@ -11,11 +11,7 @@ interface UseMessagesProps {
   onMessageSent?: () => void;
 }
 
-export const useMessages = ({
-  contact,
-  discussionId,
-  onDiscussionRequired: _onDiscussionRequired,
-}: UseMessagesProps) => {
+export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);

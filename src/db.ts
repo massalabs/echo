@@ -373,21 +373,6 @@ export class EchoDatabase extends Dexie {
       updatedAt: new Date(),
     });
   }
-
-  async hasNewEncryptedMessages(discussionId: number): Promise<boolean> {
-    try {
-      const encryptedMessages = await db.discussionMessages
-        .where('discussionId')
-        .equals(discussionId)
-        .filter(msg => msg.direction === 'incoming')
-        .count();
-
-      return encryptedMessages > 0;
-    } catch (error) {
-      console.error('Failed to check for new encrypted messages:', error);
-      return false;
-    }
-  }
 }
 
 // Create and export the database instance
