@@ -25,9 +25,6 @@ const Login: React.FC<LoginProps> = React.memo(
     onErrorChange,
   }) => {
     const userProfile = useAccountStore(state => state.userProfile);
-    const loadAccountWithBiometrics = useAccountStore(
-      state => state.loadAccountWithBiometrics
-    ) as unknown as (userId?: string) => Promise<void>;
     const loadAccount = useAccountStore(state => state.loadAccount);
     const getAllAccounts = useAccountStore(state => state.getAllAccounts);
     const webauthnSupported = useAccountStore(state => state.webauthnSupported);
@@ -120,7 +117,7 @@ const Login: React.FC<LoginProps> = React.memo(
           }
         }
 
-        await loadAccountWithBiometrics(targetAccountId ?? undefined);
+        await loadAccount(undefined, targetAccountId ?? undefined);
         onAccountSelected();
       } catch (error) {
         console.error('Biometric authentication failed:', error);
@@ -137,7 +134,7 @@ const Login: React.FC<LoginProps> = React.memo(
       userProfile,
       onErrorChange,
       getAllAccounts,
-      loadAccountWithBiometrics,
+      loadAccount,
       onAccountSelected,
     ]);
 
@@ -190,7 +187,7 @@ const Login: React.FC<LoginProps> = React.memo(
         }
 
         await loadAccount(password, targetAccountId);
-        await new Promise(resolve => setTimeout(resolve, 50));
+
         const state = useAccountStore.getState();
         if (state.userProfile) {
           onAccountSelected();

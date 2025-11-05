@@ -12,12 +12,6 @@ import { wordlist } from '@scure/bip39/wordlists/english';
 import { Account, PrivateKey } from '@massalabs/massa-web3';
 import varint from 'varint';
 
-export interface Bip39BackupDisplay {
-  mnemonic: string;
-  account: Account;
-  createdAt: Date;
-}
-
 export const PRIVATE_KEY_VERSION = 0;
 
 /**
