@@ -15,6 +15,7 @@ import { useAccountStore } from '../stores/accountStore';
 import { generateUserKeys, SessionModule, getSessionModule } from '../wasm';
 import { announcementService } from './announcement';
 import { strToBytes } from '@massalabs/massa-web3';
+import { SessionStatus } from '../assets/generated/wasm/echo_wasm';
 
 export interface MessageResult {
   success: boolean;
@@ -71,12 +72,13 @@ export class MessageService {
       let storedCount = 0;
       // Fetch in one shot for all seekers
       const encryptedMessages = await messageProtocol.fetchMessages(seekers);
+
       for (const encryptedMsg of encryptedMessages) {
         const seeker = encryptedMsg.seeker;
         try {
           const out = session.feedIncomingMessageBoardRead(
             seeker,
-            encryptedMsg.data,
+            encryptedMsg.ciphertext,
             ourSk
           );
           if (!out) continue;
@@ -210,6 +212,7 @@ export class MessageService {
         ownerUserId,
         contactUserId
       );
+
       if (!discussion) return { success: false, error: 'Discussion not found' };
 
       // Create message with sending status
@@ -231,6 +234,23 @@ export class MessageService {
         const sessionModule = await getSessionModule();
         const peerId = bs58check.decode(contactUserId);
         const contentBytes = strToBytes(content);
+
+        // Validate peer ID length
+        if (peerId.length !== 32) {
+          return {
+            success: false,
+            error: 'Invalid contact userId (must decode to 32 bytes)',
+          };
+        }
+
+        // Ensure session is active before sending
+        const status = await sessionModule.peerSessionStatus(peerId);
+        if (status !== SessionStatus.Active) {
+          const statusName =
+            SessionStatus[status as unknown as number] ?? String(status);
+          return { success: false, error: `Session not ready: ${statusName}` };
+        }
+
         const sendOutput = await sessionModule.sendMessage(
           peerId,
           contentBytes
@@ -239,9 +259,10 @@ export class MessageService {
         if (!sendOutput) throw new Error('WASM sendMessage returned null');
 
         const messageProtocol = this.getMessageProtocol();
+
         await messageProtocol.sendMessage(sendOutput.seeker, {
           seeker: sendOutput.seeker,
-          data: sendOutput.data,
+          ciphertext: sendOutput.data,
           timestamp: new Date(),
         });
 

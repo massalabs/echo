@@ -56,7 +56,6 @@ export async function initializeDiscussion(contact: Contact): Promise<{
       direction: 'initiated',
       status: 'pending',
       nextSeeker: undefined,
-      initiationAnnouncement: announcement,
       unreadCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -100,7 +99,6 @@ export async function acceptDiscussionRequest(
       );
     }
 
-    // TODO: Do we save the second announcement bytes?
     // update discussion status
     await db.discussions.update(discussion.id, {
       status: 'active',
@@ -159,7 +157,6 @@ export async function processIncomingAnnouncement(
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
       contactUserId: contact.userId,
-      initiationAnnouncement: announcementData,
       direction: 'received',
       status: 'pending',
       nextSeeker: undefined,

@@ -7,6 +7,7 @@ import { useMessages } from '../../hooks/useMessages';
 import { useDiscussion } from '../../hooks/useDiscussion';
 import Button from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const navigate = useNavigate();
@@ -55,9 +56,12 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
 
   const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim()) return;
-    const success = await sendMessage(newMessage);
-    if (success) {
+    try {
+      await sendMessage(newMessage);
       setNewMessage('');
+    } catch (error) {
+      toast.error('Failed to send message');
+      console.error('Failed to send message:', error);
     }
   }, [newMessage, sendMessage]);
 

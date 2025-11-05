@@ -13,9 +13,9 @@ const BULLETIN_ENDPOINT = '/bulletin';
 const MESSAGES_ENDPOINT = '/messages';
 
 type EncryptedMessageWire = {
-  seeker: number[];
-  ciphertext: number[];
-  timestamp: string | number;
+  seeker: string;
+  ciphertext: string;
+  timestamp: string;
 };
 
 export class RestMessageProtocol implements IMessageProtocol {
@@ -26,34 +26,20 @@ export class RestMessageProtocol implements IMessageProtocol {
   ) {}
 
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
-    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/query`;
+    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
+    const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
+    });
+    if (!response.success || !response.data)
+      throw new Error(response.error || 'Failed to fetch messages');
 
-    try {
-      const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          seekers: seekers.map(s => Array.from(s)),
-        }),
-      });
-
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch messages');
-      }
-
-      // Convert timestamp strings back to Date objects and arrays to Uint8Array
-      return response.data.map<EncryptedMessage>(msg => {
-        const ct = new Uint8Array(msg.ciphertext);
-        return {
-          seeker: new Uint8Array(msg.seeker),
-          ciphertext: ct,
-          timestamp: new Date(msg.timestamp),
-        };
-      });
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      throw error;
-    }
+    return response.data.map(item => ({
+      seeker: decodeFromBase64(item.seeker),
+      ciphertext: decodeFromBase64(item.ciphertext),
+      timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+    }));
   }
 
   async sendMessage(
@@ -62,7 +48,7 @@ export class RestMessageProtocol implements IMessageProtocol {
   ): Promise<void> {
     // Encode seeker as base64url (URL-safe base64) for URL
     const seekerBase64 = encodeToBase64(seeker);
-    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}`;
+    const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/`;
 
     try {
       const response = await this.makeRequest<void>(url, {
@@ -71,8 +57,8 @@ export class RestMessageProtocol implements IMessageProtocol {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          seeker: seekerBase64,
-          ciphertext: encodeToBase64(message.ciphertext),
+          key: seekerBase64,
+          value: encodeToBase64(message.ciphertext),
           timestamp: message.timestamp.toISOString(),
         }),
       });

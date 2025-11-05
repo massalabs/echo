@@ -15,7 +15,6 @@ export const useMessages = ({
   contact,
   discussionId,
   onDiscussionRequired: _onDiscussionRequired,
-  onMessageSent,
 }: UseMessagesProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,35 +82,21 @@ export const useMessages = ({
 
       setIsSending(true);
 
-      try {
-        const result = await messageService.sendMessage(
-          contact.userId,
-          content
-        );
+      const result = await messageService.sendMessage(contact.userId, content);
 
-        if (result.message) {
-          setMessages(prev => [...prev, result.message!]);
-        }
-
-        if (!result.success) {
-          return false;
-        }
-
-        // Notify parent that a message was sent
-        if (onMessageSent) {
-          console.log('Calling onMessageSent callback');
-          onMessageSent();
-        }
-
-        return true; // Success
-      } catch (error) {
-        console.error('Failed to send message:', error);
-        return false; // Failure
-      } finally {
+      if (!result.success) {
+        console.error('Failed to send message:', result.error);
         setIsSending(false);
+        throw new Error(result.error);
       }
+
+      if (result.message) {
+        setMessages(prev => [...prev, result.message!]);
+      }
+
+      setIsSending(false);
     },
-    [contact.userId, userProfile, isSending, onMessageSent]
+    [contact.userId, userProfile, isSending]
   );
 
   // Set up periodic message sync when discussion is active (reduced frequency)
