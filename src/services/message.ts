@@ -66,7 +66,8 @@ export class MessageService {
       const { session, ourSk } = useAccountStore.getState();
       if (!session) throw new Error('Session module not initialized');
       if (!ourSk) throw new Error('WASM secret keys unavailable');
-      const seekers = session.getMessageBoardReadKeys();
+
+      const seekers = session.getMessageBoardReadKeys(); // TODO: use discussion.nextSeeker instead
 
       // Nothing to fetch when there are no seeker keys
       if (!seekers || seekers.length === 0) {
@@ -88,6 +89,7 @@ export class MessageService {
             encryptedMsg.ciphertext,
             ourSk
           );
+
           if (!out) continue;
 
           const decoder = new TextDecoder();

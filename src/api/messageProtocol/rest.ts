@@ -12,10 +12,9 @@ import { encodeToBase64, decodeFromBase64 } from '../../utils/base64';
 const BULLETIN_ENDPOINT = '/bulletin';
 const MESSAGES_ENDPOINT = '/messages';
 
-type EncryptedMessageWire = {
-  seeker: string;
-  ciphertext: string;
-  timestamp: string;
+type apiResponseMessages = {
+  key: string;
+  value: string;
 };
 
 export class RestMessageProtocol implements IMessageProtocol {
@@ -28,26 +27,27 @@ export class RestMessageProtocol implements IMessageProtocol {
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
     try {
-      const response = await this.makeRequest<EncryptedMessageWire[]>(url, {
+      const response = await this.makeRequest<apiResponseMessages[]>(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Backend expects exactly { seekers: string[] }
         body: JSON.stringify({ seekers: seekers.map(encodeToBase64) }),
       });
 
-      console.log('response', response);
-      console.log('response.data', response.data);
-      console.log('response.success', response.success);
-
       if (!response.success || !response.data) {
         throw new Error(response.error || 'Failed to fetch messages');
       }
 
-      return response.data.map(item => ({
-        seeker: decodeFromBase64(item.seeker),
-        ciphertext: decodeFromBase64(item.ciphertext),
-        timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-      }));
+      return response.data.map((item: apiResponseMessages) => {
+        const seeker = decodeFromBase64(item.key);
+        const ciphertext = decodeFromBase64(item.value);
+
+        return {
+          seeker,
+          ciphertext,
+          timestamp: new Date(), // TODO: add timestamp from server
+        };
+      });
     } catch (error) {
       console.log('-----------Failed to fetch messages in rest.ts', error);
       throw error;
