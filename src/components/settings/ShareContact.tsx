@@ -4,6 +4,7 @@ import { useFileShareContact } from '../../hooks/useFileShareContact';
 import TabSwitcher from '../ui/TabSwitcher';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
+import QrCodePlaceholder from '../ui/QrCodePlaceholder';
 
 interface ShareContactProps {
   onBack: () => void;
@@ -134,11 +135,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                   Share your contact information via QR code
                 </p>
               </div>
-              <div className="w-full aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500 dark:text-gray-300 text-sm">
-                  QR code placeholder
-                </span>
-              </div>
+              <QrCodePlaceholder />
             </div>
           )}
         </div>
