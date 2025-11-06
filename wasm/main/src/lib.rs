@@ -404,6 +404,7 @@ pub struct ReceiveMessageOutput {
     message: Vec<u8>,
     timestamp: f64,
     acknowledged_seekers: js_sys::Array,
+    user_id: Vec<u8>
 }
 
 #[wasm_bindgen]
@@ -424,6 +425,12 @@ impl ReceiveMessageOutput {
     #[wasm_bindgen(getter)]
     pub fn acknowledged_seekers(&self) -> js_sys::Array {
         self.acknowledged_seekers.clone()
+    }
+
+    /// Gets the sender's user id (32 bytes).
+    #[wasm_bindgen(getter)]
+    pub fn user_id(&self) -> Vec<u8> {
+        self.user_id.clone()
     }
 }
 
@@ -536,6 +543,7 @@ impl SessionManagerWrapper {
                     message: output.message.clone(),
                     timestamp: output.timestamp as f64,
                     acknowledged_seekers,
+                    user_id: output.user_id.clone()
                 }
             })
     }

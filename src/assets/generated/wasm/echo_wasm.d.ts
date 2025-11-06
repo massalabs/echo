@@ -158,6 +158,10 @@ export class ReceiveMessageOutput {
    * Gets the list of newly acknowledged seekers.
    */
   readonly acknowledged_seekers: Array<any>;
+  /**
+   * Gets the sender's user id (32 bytes).
+   */
+  readonly user_id: Uint8Array;
 }
 /**
  * Output from sending a message.
@@ -371,6 +375,7 @@ export interface InitOutput {
   readonly receivemessageoutput_message: (a: number) => [number, number];
   readonly receivemessageoutput_timestamp: (a: number) => number;
   readonly receivemessageoutput_acknowledged_seekers: (a: number) => any;
+  readonly receivemessageoutput_user_id: (a: number) => [number, number];
   readonly __wbg_sessionmanagerwrapper_free: (a: number, b: number) => void;
   readonly sessionmanagerwrapper_new: (a: number) => number;
   readonly sessionmanagerwrapper_from_encrypted_blob: (a: number, b: number, c: number) => [number, number, number];

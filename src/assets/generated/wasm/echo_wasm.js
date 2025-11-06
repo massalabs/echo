@@ -476,6 +476,16 @@ export class ReceiveMessageOutput {
         const ret = wasm.receivemessageoutput_acknowledged_seekers(this.__wbg_ptr);
         return ret;
     }
+    /**
+     * Gets the sender's user id (32 bytes).
+     * @returns {Uint8Array}
+     */
+    get user_id() {
+        const ret = wasm.receivemessageoutput_user_id(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
 }
 if (Symbol.dispose) ReceiveMessageOutput.prototype[Symbol.dispose] = ReceiveMessageOutput.prototype.free;
 

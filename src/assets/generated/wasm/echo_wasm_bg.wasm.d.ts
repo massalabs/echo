@@ -39,6 +39,7 @@ export const __wbg_receivemessageoutput_free: (a: number, b: number) => void;
 export const receivemessageoutput_message: (a: number) => [number, number];
 export const receivemessageoutput_timestamp: (a: number) => number;
 export const receivemessageoutput_acknowledged_seekers: (a: number) => any;
+export const receivemessageoutput_user_id: (a: number) => [number, number];
 export const __wbg_sessionmanagerwrapper_free: (a: number, b: number) => void;
 export const sessionmanagerwrapper_new: (a: number) => number;
 export const sessionmanagerwrapper_from_encrypted_blob: (a: number, b: number, c: number) => [number, number, number];

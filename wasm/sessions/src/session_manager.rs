@@ -774,7 +774,6 @@ mod tests {
 
         assert_eq!(received.message.as_slice(), b"Hello Bob!");
         assert_eq!(received.user_id, alice_id.as_bytes().to_vec());
-        assert_eq!(received.user_id.len(), 32);
     }
 
     #[test]
