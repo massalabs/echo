@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Discussion, Contact } from '../../db';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { formatRelativeTime } from '../../utils/timeUtils';
@@ -30,6 +30,16 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [proposedName, setProposedName] = useState(contact.name || '');
   const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
+  const [, setCurrentTime] = useState(Date.now());
+
+  // Update time every minute to refresh relative time display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const isPendingIncoming =
     discussion.status === 'pending' && discussion.direction === 'received';
