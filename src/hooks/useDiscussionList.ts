@@ -6,6 +6,7 @@ import {
   initializeDiscussion,
 } from '../crypto/discussionInit';
 import { announcementService } from '../services/announcement';
+import { useMessages } from './useMessages';
 
 type AppState = 'loading' | 'welcome' | 'setup' | 'main';
 
@@ -37,6 +38,8 @@ export const useDiscussionList = () => {
   const hasCheckedExistingRef = useRef(false);
   const [, forceUpdate] = useState({});
   const [loginError, setLoginError] = useState<string | null>(null);
+
+  const { syncAllMessages } = useMessages();
 
   const loadDiscussions = useCallback(async () => {
     try {
@@ -284,10 +287,13 @@ export const useDiscussionList = () => {
     } catch (error) {
       console.error('Error fetching announcements:', error);
     } finally {
+      // First sync protocol messages (may change unread counters)
+      await syncAllMessages();
+      // Then reload discussions and contacts so UI reflects new counts
       await loadDiscussions();
       await loadContacts();
     }
-  }, [loadDiscussions, loadContacts]);
+  }, [loadDiscussions, loadContacts, syncAllMessages]);
 
   const handleRefuseDiscussionRequest = useCallback(
     async (discussion: Discussion) => {

@@ -112,7 +112,7 @@ const Contact: React.FC = () => {
                   <button
                     onClick={handleOpenEditName}
                     disabled={!canEditName}
-                    className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Edit contact name"
                   >
                     <svg

@@ -1,13 +1,21 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Contact } from '../../db';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+} from 'react';
+import { Contact, db } from '../../db';
 import { formatUserId } from '../../utils/userId';
 import { formatTime } from '../../utils/timeUtils';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { useMessages } from '../../hooks/useMessages';
 import { useDiscussion } from '../../hooks/useDiscussion';
+import { useAccountStore } from '../../stores/accountStore';
 import Button from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useDiscussionList } from '../../hooks/useDiscussionList';
 
 const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const navigate = useNavigate();
@@ -16,12 +24,16 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const [inputHeight, setInputHeight] = useState(40);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     discussion,
     isInitializing,
     isLoading: isDiscussionLoading,
   } = useDiscussion({ contact });
+
+  const { handlers: listHandlers } = useDiscussionList();
+  const { userProfile } = useAccountStore();
 
   const {
     messages,
@@ -44,6 +56,23 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   useEffect(() => {
     loadMessages();
   }, [loadMessages]);
+
+  // Mark messages as read when viewing the discussion and refresh list counters
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading && userProfile?.userId) {
+      db.markMessagesAsRead(userProfile.userId, contact.userId)
+        .then(() => listHandlers.handleRefresh())
+        .catch(error =>
+          console.error('Failed to mark messages as read:', error)
+        );
+    }
+  }, [
+    messages.length,
+    isLoading,
+    userProfile?.userId,
+    contact.userId,
+    listHandlers,
+  ]);
 
   useEffect(() => {
     if (messages.length > 0 && !isLoading) {
@@ -80,30 +109,21 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
     setInputHeight(newHeight);
   };
 
-  const adjustTextareaHeight = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const newHeight = Math.min(
-        Math.max(textareaRef.current.scrollHeight, 40),
-        120
-      );
-      textareaRef.current.style.height = `${newHeight}px`;
-      setInputHeight(newHeight);
-    }
+  const isNearBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return true;
+    const threshold = 80; // px
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
   }, []);
 
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [newMessage, adjustTextareaHeight]);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      const timeoutId = setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      return () => clearTimeout(timeoutId);
+  // Scroll intelligently after DOM updates without arbitrary timeouts
+  useLayoutEffect(() => {
+    if (messages.length === 0) return;
+    if (isNearBottom()) {
+      // Only auto-scroll if the user is already near the bottom
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, scrollToBottom]);
+  }, [messages.length, isNearBottom]);
 
   return (
     <div className="h-full flex flex-col w-full">
@@ -208,7 +228,10 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6 space-y-4 relative bg-transparent">
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6 space-y-4 relative bg-transparent"
+        >
           {isLoading || isDiscussionLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="flex flex-col items-center gap-3">

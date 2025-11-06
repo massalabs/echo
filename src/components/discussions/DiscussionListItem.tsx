@@ -65,9 +65,11 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                     Waiting approval
                   </span>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  {lastMessage && formatRelativeTime(lastMessage.timestamp)}
-                </p>
+                {discussion.unreadCount > 0 && lastMessage && (
+                  <p className="text-xs text-muted-foreground">
+                    {formatRelativeTime(lastMessage.timestamp)}
+                  </p>
+                )}
                 {!isPendingIncoming && !isPendingOutgoing && (
                   <svg
                     className="w-4 h-4 text-muted-foreground"

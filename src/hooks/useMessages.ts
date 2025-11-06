@@ -74,6 +74,23 @@ export const useMessages = ({
     }
   }, [discussionId, isSyncing, contact?.name, loadMessages]);
 
+  // Global sync that does not depend on a specific discussion
+  const syncAllMessages = useCallback(async () => {
+    if (isSyncing) return;
+    try {
+      setIsSyncing(true);
+      const fetchResult = await messageService.fetchMessages();
+      if (fetchResult.success && fetchResult.newMessagesCount > 0) {
+        // No specific thread to reload here; consumers can reload their views
+        // Optionally, we could emit a custom event here if needed
+      }
+    } catch (error) {
+      console.error('Failed to globally sync messages:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isSyncing]);
+
   const sendMessage = useCallback(
     async (content: string) => {
       if (!content || !userProfile?.userId || isSending) return;
@@ -223,5 +240,6 @@ export const useMessages = ({
     sendMessage,
     resendMessage,
     syncMessages,
+    syncAllMessages,
   };
 };

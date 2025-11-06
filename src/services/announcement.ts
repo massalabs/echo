@@ -167,9 +167,11 @@ export class AnnouncementService {
 
       // if we can't decrypt the announcement, it means we are not the intended recipient. It's not an error.
       if (!announcerPkeys) {
-        return {
-          success: false,
-        };
+        console.warn(
+          'Skipping malformed announcement: unable to extract announcer keys',
+          { size: announcementData?.length }
+        );
+        return { success: false, error: 'Malformed announcement' };
       }
       const contactUserId = announcerPkeys.derive_id();
       const contactUserIdString = encodeUserId(contactUserId);
