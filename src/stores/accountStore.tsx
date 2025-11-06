@@ -82,7 +82,7 @@ async function createProfileFromAccount(
 
 async function provisionAccount(
   username: string,
-  userId: string,
+  userId: Uint8Array,
   mnemonic: string | undefined,
   opts: { useBiometrics: boolean; password?: string },
   session: SessionModule
@@ -106,7 +106,7 @@ async function provisionAccount(
 
   const profile = await createProfileFromAccount(
     username,
-    userId,
+    encodeUserId(userId),
     built.security,
     sessionBlob
   );
@@ -148,13 +148,14 @@ async function buildSecurityFromPassword(
 async function buildSecurityFromWebAuthn(
   mnemonic: string | undefined,
   username: string,
-  userId: string
+  userIdBytes: Uint8Array
 ): Promise<{
   security: UserProfile['security'];
   encryptionKey: EncryptionKey;
 }> {
   const webauthnKey = await createWebAuthnCredential(
-    `Gossip-${username}-${userId}`
+    `Gossip:${username}`,
+    userIdBytes
   );
   const { credentialId, publicKey } = webauthnKey;
 
@@ -254,8 +255,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
       const userSecretKeys = keys.secret_keys();
-      const userIdBytes = userPublicKeys.derive_id();
-      const userId = encodeUserId(userIdBytes);
+      const userId = userPublicKeys.derive_id();
 
       const account = await Account.fromPrivateKey(
         PrivateKey.fromBytes(userSecretKeys.massa_secret_key)
@@ -311,8 +311,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
       const userSecretKeys = keys.secret_keys();
-      const userIdBytes = userPublicKeys.derive_id();
-      const userId = encodeUserId(userIdBytes);
+      const userId = userPublicKeys.derive_id();
 
       const massaSecretKey = keys.secret_keys().massa_secret_key;
       const account = await Account.fromPrivateKey(
@@ -483,8 +482,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const mnemonic = generateMnemonic(256);
       const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
-      const userIdBytes = userPublicKeys.derive_id();
-      const userId = encodeUserId(userIdBytes);
+      const userId = userPublicKeys.derive_id();
 
       const account = await Account.fromPrivateKey(
         PrivateKey.fromBytes(keys.secret_keys().massa_secret_key)
