@@ -113,7 +113,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
       // Only auto-scroll if the user is already near the bottom
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages.length, isNearBottom]);
+  }, [messages.length]);
 
   return (
     <div className="h-full flex flex-col w-full">
