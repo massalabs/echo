@@ -4,6 +4,7 @@ import { UserProfile } from '../db';
 import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
 import Button from '../components/ui/Button';
+// Logo from public folder - accessed via absolute path
 
 interface LoginProps {
   onCreateNewAccount: () => void;
@@ -188,7 +189,11 @@ const Login: React.FC<LoginProps> = React.memo(
       <div className="min-h-screen-mobile bg-background flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm mx-auto">
           <div className="text-center mb-8">
-            <img src="/logo.svg" alt="Echo" className="mx-auto dark:invert" />
+            <img
+              src="/logo.svg"
+              alt="Echo"
+              className="mx-auto w-32 h-auto dark:invert"
+            />
             <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
               {displayUsername ? (
                 <>
