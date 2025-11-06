@@ -405,7 +405,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                 autoCorrect="on"
                 autoCapitalize="sentences"
                 spellCheck="true"
-                className="flex-1 min-h-[36px] md:min-h-[40px] max-h-[120px] bg-transparent dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none transition-all duration-200 overflow-y-auto text-[15px] md:text-[15px] leading-relaxed focus:outline-none"
+                className="flex-1 min-h-[36px] md:min-h-[40px] max-h-[120px] bg-transparent dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none transition-all duration-200 overflow-y-auto text-[15px] leading-relaxed focus:outline-none"
                 disabled={isSending || isInitializing}
                 style={
                   {
