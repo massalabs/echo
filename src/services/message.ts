@@ -162,15 +162,14 @@ export class MessageService {
    * Returns the created message (with final status) on success/failure.
    */
   async sendMessage(message: Message): Promise<SendMessageResult> {
-    try {
-      // Validate that message has an ID
-      if (!message.id) {
-        return {
-          success: false,
-          error: 'Message must have an id before sending',
-        };
-      }
+    if (!message.id) {
+      return {
+        success: false,
+        error: 'Message must have an id before sending',
+      };
+    }
 
+    try {
       const session = useAccountStore.getState().session;
       if (!session) throw new Error('Session module not initialized');
       const peerId = decodeUserId(message.contactUserId);

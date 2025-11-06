@@ -7,7 +7,7 @@ import sendIcon from '../assets/icons/send.svg';
 import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
 import { formatMassaAddress } from '../utils/addressUtils';
-import { formatAmount } from '../hooks/temp/parseAmount';
+import { formatAmount } from '../utils/parseAmount';
 import Button from '../components/ui/Button';
 import CopyClipboard from '../components/ui/CopyClipboard';
 // no-op
