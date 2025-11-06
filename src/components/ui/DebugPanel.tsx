@@ -22,16 +22,8 @@ const DebugPanel: React.FC = () => {
     try {
       await db.transaction(
         'rw',
-        [
-          db.contacts,
-          db.messages,
-          db.discussions,
-          db.discussionKeys,
-          db.discussionMessages,
-        ],
+        [db.contacts, db.messages, db.discussions],
         async () => {
-          await db.discussionMessages.clear();
-          await db.discussionKeys.clear();
           await db.messages.clear();
           await db.discussions.clear();
           await db.contacts.clear();

@@ -4,7 +4,7 @@
  * Implements initialization using the new WASM SessionManager API.
  */
 
-import { Contact, db, Discussion, DiscussionMessage } from '../db';
+import { Contact, db, Discussion } from '../db';
 import { useAccountStore } from '../stores/accountStore';
 import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import { announcementService } from '../services/announcement';
@@ -210,65 +210,4 @@ export async function updateDiscussionStatus(
   status: 'pending' | 'active' | 'closed'
 ): Promise<void> {
   await db.discussions.update(discussionId, { status });
-}
-
-/**
- * Get discussion messages
- * @param discussionId - The discussion ID
- * @returns Array of discussion messages
- */
-export async function getDiscussionMessages(
-  discussionId: number
-): Promise<DiscussionMessage[]> {
-  return await db.discussionMessages
-    .where('discussionId')
-    .equals(discussionId)
-    .toArray()
-    .then(messages =>
-      messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-    );
-}
-
-/**
- * Ensure a discussion exists for a contact, creating one if it doesn't
- * @param contact - The contact to ensure a discussion exists for
- * @param existingDiscussion - Optional existing discussion to check first (for performance)
- * @returns true if a discussion exists (or was created), false if creation failed
- */
-export async function ensureDiscussionExists(
-  contact: Contact,
-  existingDiscussion?: Discussion | null
-): Promise<boolean> {
-  // If we already have a discussion, return early
-  if (existingDiscussion) return true;
-
-  // Check if a discussion already exists for this contact
-  const discussion = await db.discussions
-    .where('[ownerUserId+contactUserId]')
-    .equals([contact.ownerUserId, contact.userId])
-    .first();
-
-  if (discussion) {
-    console.log('Discussion already exists for contact:', contact.userId);
-    return true;
-  }
-
-  // Guard: we cannot initialize a discussion without the contact's public keys
-  if (!contact.publicKeys || contact.publicKeys.length === 0) {
-    console.warn(
-      'Contact is missing public keys. Cannot start a discussion yet.'
-    );
-    return false;
-  }
-
-  // If no discussion exists, initialize one
-  try {
-    console.log('Initializing new discussion with contact:', contact.userId);
-    await initializeDiscussion(contact);
-    console.log('Discussion initialized successfully');
-    return true;
-  } catch (error) {
-    console.error('Failed to initialize discussion:', error);
-    return false;
-  }
 }
