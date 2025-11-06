@@ -5,11 +5,14 @@ import { messageService } from '../services/message';
 import { notificationService } from '../services/notifications';
 
 interface UseMessagesProps {
-  contact: Contact;
+  contact?: Contact;
   discussionId?: number;
 }
 
-export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
+export const useMessages = ({
+  contact,
+  discussionId,
+}: UseMessagesProps = {}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -17,7 +20,7 @@ export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
   const { userProfile } = useAccountStore();
 
   const loadMessages = useCallback(async () => {
-    if (!contact.userId) return;
+    if (!contact?.userId) return;
 
     try {
       setIsLoading(true);
@@ -40,10 +43,11 @@ export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [contact.userId, userProfile?.userId]);
+  }, [contact, userProfile?.userId]);
 
   const syncMessages = useCallback(async () => {
     if (!discussionId || isSyncing) return;
+    if (!contact?.name) return;
 
     try {
       setIsSyncing(true);
@@ -68,15 +72,17 @@ export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
     } finally {
       setIsSyncing(false);
     }
-  }, [discussionId, isSyncing, contact.name, loadMessages]);
+  }, [discussionId, isSyncing, contact?.name, loadMessages]);
 
   const sendMessage = useCallback(
     async (content: string) => {
       if (!content || !userProfile?.userId || isSending) return;
+      if (!contact?.userId) return;
 
       setIsSending(true);
 
-      const result = await messageService.sendMessage(contact.userId, content);
+      const result = await messageService.sendMessage(contact?.userId, content);
+      if (!contact?.userId) return;
 
       if (!result.success) {
         console.error('Failed to send message:', result.error);
@@ -90,7 +96,7 @@ export const useMessages = ({ contact, discussionId }: UseMessagesProps) => {
 
       setIsSending(false);
     },
-    [contact.userId, userProfile, isSending]
+    [contact?.userId, userProfile, isSending]
   );
 
   // Set up periodic message sync when discussion is active (reduced frequency)

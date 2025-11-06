@@ -8,6 +8,7 @@ export { MockMessageProtocol } from './messageProtocol/mock';
 import type { IMessageProtocol } from './messageProtocol/types';
 import {
   defaultMessageProtocol,
+  protocolConfig,
   type MessageProtocolType,
 } from '../config/protocol';
 
@@ -23,7 +24,7 @@ export function createMessageProtocol(
   switch (type) {
     case 'rest': {
       return new RestMessageProtocol(
-        config?.baseUrl || 'http://localhost:3000/api',
+        protocolConfig.baseUrl,
         config?.timeout || 10000,
         config?.retryAttempts || 3
       );

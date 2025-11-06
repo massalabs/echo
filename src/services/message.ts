@@ -29,19 +29,51 @@ export interface SendMessageResult {
 }
 
 export class MessageService {
-  private _messageProtocol: IMessageProtocol | null = null;
+  constructor(public readonly messageProtocol: IMessageProtocol) {}
 
-  constructor(messageProtocol?: IMessageProtocol) {
-    if (messageProtocol) {
-      this._messageProtocol = messageProtocol;
-    }
-  }
+  async fetchAllMessages(): Promise<MessageResult> {
+    try {
+      const { session, ourSk } = useAccountStore.getState();
+      if (!session) throw new Error('Session module not initialized');
+      if (!ourSk) throw new Error('WASM secret keys unavailable');
+      const seekers = session.getMessageBoardReadKeys(); // TODO: I don't think it's the most efficient way
 
-  getMessageProtocol(): IMessageProtocol {
-    if (!this._messageProtocol) {
-      this._messageProtocol = createMessageProtocol();
+      // Nothing to fetch when there are no seeker keys
+      if (!seekers || seekers.length === 0) {
+        console.log('No seekers found');
+        return { success: true, newMessagesCount: 0 };
+      }
+
+      const encryptedMessages =
+        await this.messageProtocol.fetchMessages(seekers);
+
+      for (const encryptedMsg of encryptedMessages) {
+        const seeker = encryptedMsg.seeker;
+
+        const out = session.feedIncomingMessageBoardRead(
+          seeker,
+          encryptedMsg.ciphertext,
+          ourSk
+        );
+
+        console.log('out', out);
+
+        if (!out) continue;
+
+        const decoder = new TextDecoder();
+        const content = decoder.decode(out.message);
+
+        console.log('content', content);
+      }
+
+      return { success: true, newMessagesCount: encryptedMessages.length };
+    } catch (error) {
+      return {
+        success: false,
+        newMessagesCount: 0,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
-    return this._messageProtocol;
   }
 
   /**
@@ -62,7 +94,6 @@ export class MessageService {
       }
 
       // Get seekers and decrypt messages per seeker using WASM
-      const messageProtocol = this.getMessageProtocol();
       const { session, ourSk } = useAccountStore.getState();
       if (!session) throw new Error('Session module not initialized');
       if (!ourSk) throw new Error('WASM secret keys unavailable');
@@ -79,7 +110,8 @@ export class MessageService {
 
       let storedCount = 0;
       // Fetch in one shot for all seekers
-      const encryptedMessages = await messageProtocol.fetchMessages(seekers);
+      const encryptedMessages =
+        await this.messageProtocol.fetchMessages(seekers);
 
       for (const encryptedMsg of encryptedMessages) {
         const seeker = encryptedMsg.seeker;
@@ -262,9 +294,7 @@ export class MessageService {
 
         if (!sendOutput) throw new Error('WASM sendMessage returned null');
 
-        const messageProtocol = this.getMessageProtocol();
-
-        await messageProtocol.sendMessage(sendOutput.seeker, {
+        await this.messageProtocol.sendMessage(sendOutput.seeker, {
           seeker: sendOutput.seeker,
           ciphertext: sendOutput.data,
         });
@@ -292,4 +322,4 @@ export class MessageService {
   }
 }
 
-export const messageService = new MessageService();
+export const messageService = new MessageService(createMessageProtocol());

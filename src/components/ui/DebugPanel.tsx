@@ -5,10 +5,15 @@ import { announcementService } from '../../services/announcement';
 import { formatMassaAddress } from '../../utils/addressUtils';
 import { useDiscussionList } from '../../hooks/useDiscussionList';
 import Button from './Button';
+import { useMessages } from '../../hooks/useMessages';
 
 const DebugPanel: React.FC = () => {
   const { userProfile, account, resetAccount } = useAccountStore();
   const { handlers } = useDiscussionList();
+  const { handleFetchAllMessages } = useMessages({
+    contact: undefined,
+    discussionId: undefined,
+  });
 
   const handleResetAccount = useCallback(async () => {
     try {
@@ -110,6 +115,15 @@ const DebugPanel: React.FC = () => {
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
         Status: {userProfile?.status}
       </p>
+
+      <Button
+        onClick={handleFetchAllMessages}
+        variant="link"
+        size="custom"
+        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+      >
+        Fetch All Messages
+      </Button>
       <Button
         onClick={handleResetAccount}
         variant="link"

@@ -5,6 +5,7 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { protocolConfig } from './config/protocol';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -44,7 +45,7 @@ interface Discussion {
 
 // Mock protocol API for Service Worker context
 class ServiceWorkerMessageProtocol {
-  private baseUrl = 'http://localhost:3000/api';
+  private baseUrl = protocolConfig.baseUrl;
 
   async fetchMessages(discussionKey: string): Promise<EncryptedMessage[]> {
     try {
