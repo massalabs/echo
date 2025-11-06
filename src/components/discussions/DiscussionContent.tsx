@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Contact } from '../../db';
-import { formatUserId } from '../../utils/addressUtils';
+import { formatUserId } from '../../utils/userId';
 import { formatTime } from '../../utils/timeUtils';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { useMessages } from '../../hooks/useMessages';

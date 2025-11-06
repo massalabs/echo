@@ -3,8 +3,6 @@
  */
 
 import { Address, PublicKey } from '@massalabs/massa-web3';
-import bs58check from 'bs58check';
-import { generateUserKeys } from '../wasm';
 
 /**
  * Shortens a wallet address by showing the first few and last few characters
@@ -80,46 +78,4 @@ export function formatMassaPublicKey(publicKey: string): string {
   // Massa public keys typically start with 'P' and are quite long
   // Show first 8 characters and last 6 for better readability
   return shortenAddress(publicKey, 8, 6);
-}
-
-/**
- * Validates a 32-byte user ID (base58check encoded).
- * @param userId - The user ID string to validate (should be base58check encoded 32 bytes)
- * @returns True if the user ID is valid, false otherwise.
- */
-export function isValidUserId(userId: string): boolean {
-  if (!userId || typeof userId !== 'string') return false;
-
-  try {
-    // Decode the base58check string
-    const decoded = bs58check.decode(userId.trim());
-
-    // Check if it decodes to exactly 32 bytes
-    return decoded.length === 32;
-  } catch (_error) {
-    return false;
-  }
-}
-
-/**
- * Formats a user ID for display
- * @param userId - The full user ID (base58check encoded)
- * @returns Formatted user ID string
- */
-export function formatUserId(userId: string): string {
-  if (!userId) return '';
-
-  // User IDs are base58check encoded, show first 8 and last 8 for readability
-  return shortenAddress(userId, 8, 8);
-}
-
-/**
- * Mock that Generates a random 32-byte user ID
- * @param password - Optional password
- * @returns Base58 string representing a 32-byte user ID
- */
-export async function generate(password?: string): Promise<string> {
-  const identity = await generateUserKeys(password || '');
-  const userId = identity.public_keys().derive_id();
-  return bs58check.encode(userId);
 }

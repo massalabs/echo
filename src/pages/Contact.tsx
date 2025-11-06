@@ -1,14 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-import { formatUserId } from '../utils/addressUtils';
-
+import { updateContactName, formatUserId } from '../utils';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { useAccountStore } from '../stores/accountStore';
 import ContactNameModal from '../components/ui/ContactNameModal';
-import { updateContactName } from '../utils/contacts';
 import Button from '../components/ui/Button';
 import CopyClipboard from '../components/ui/CopyClipboard';
 

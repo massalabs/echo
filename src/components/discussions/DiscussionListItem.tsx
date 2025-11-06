@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Discussion, Contact } from '../../db';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { formatRelativeTime } from '../../utils/timeUtils';
-import { formatUserId } from '../../utils/addressUtils';
+import { formatUserId } from '../../utils/userId';
 import BaseModal from '../ui/BaseModal';
 import ContactNameModal from '../ui/ContactNameModal';
 import Button from '../ui/Button';

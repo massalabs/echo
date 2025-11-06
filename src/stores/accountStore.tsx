@@ -29,7 +29,7 @@ import {
   UserPublicKeys,
   UserSecretKeys,
 } from '../assets/generated/wasm/echo_wasm';
-import bs58check from 'bs58check';
+import { encodeUserId } from '../utils/userId';
 import { getActiveOrFirstProfile } from './utils/getAccount';
 import { ensureWasmInitialized } from '../wasm/loader';
 import { auth } from './utils/auth';
@@ -255,7 +255,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const userPublicKeys = keys.public_keys();
       const userSecretKeys = keys.secret_keys();
       const userIdBytes = userPublicKeys.derive_id();
-      const userId = bs58check.encode(userIdBytes);
+      const userId = encodeUserId(userIdBytes);
 
       const account = await Account.fromPrivateKey(
         PrivateKey.fromBytes(userSecretKeys.massa_secret_key)
@@ -312,7 +312,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const userPublicKeys = keys.public_keys();
       const userSecretKeys = keys.secret_keys();
       const userIdBytes = userPublicKeys.derive_id();
-      const userId = bs58check.encode(userIdBytes);
+      const userId = encodeUserId(userIdBytes);
 
       const massaSecretKey = keys.secret_keys().massa_secret_key;
       const account = await Account.fromPrivateKey(
@@ -484,7 +484,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       const keys = await generateUserKeys(mnemonic);
       const userPublicKeys = keys.public_keys();
       const userIdBytes = userPublicKeys.derive_id();
-      const userId = bs58check.encode(userIdBytes);
+      const userId = encodeUserId(userIdBytes);
 
       const account = await Account.fromPrivateKey(
         PrivateKey.fromBytes(keys.secret_keys().massa_secret_key)
