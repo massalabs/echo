@@ -64,9 +64,12 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
 
 /**
  * Generate a new WebAuthn credential for account creation
+ * @param username - Display name for the user
+ * @param userId - Binary user ID (must be <= 64 bytes, typically 32 bytes)
  */
 export async function createWebAuthnCredential(
-  username: string
+  username: string,
+  userId: Uint8Array
 ): Promise<WebAuthnKeyMaterial> {
   if (!isWebAuthnSupported()) {
     throw new Error('WebAuthn is not supported in this browser');
@@ -89,7 +92,7 @@ export async function createWebAuthnCredential(
         id: window.location.hostname,
       },
       user: {
-        id: new TextEncoder().encode(username),
+        id: userId as BufferSource,
         name: username,
         displayName: username,
       },
