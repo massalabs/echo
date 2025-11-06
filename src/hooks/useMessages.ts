@@ -43,7 +43,7 @@ export const useMessages = ({
     } finally {
       setIsLoading(false);
     }
-  }, [contact, userProfile?.userId]);
+  }, [contact?.userId, userProfile?.userId]);
 
   const syncMessages = useCallback(async () => {
     if (!discussionId || isSyncing) return;
