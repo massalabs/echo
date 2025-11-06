@@ -346,6 +346,50 @@
     }
   }
 
+  /* Loading-specific animations - faster and more active */
+  @keyframes float-loading {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  @keyframes tilt-loading {
+    0%,
+    100% {
+      transform: rotate(-5deg);
+    }
+    50% {
+      transform: rotate(5deg);
+    }
+  }
+
+  @keyframes blink-loading {
+    0%,
+    85%,
+    100% {
+      transform: scaleY(1);
+    }
+    92.5% {
+      transform: scaleY(0.1);
+    }
+  }
+
+  @keyframes pulse-loading {
+    0%,
+    100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
   .animate-fade-in {
     animation: fade-in 0.6s ease-out;
   }
@@ -358,16 +402,32 @@
     animation: pulse-slow 3s ease-in-out infinite;
   }
 
+  .animate-pulse-loading {
+    animation: pulse-loading 2s ease-in-out infinite;
+  }
+
   .animate-float {
     animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-float-loading {
+    animation: float-loading 2.5s ease-in-out infinite;
   }
 
   .animate-tilt {
     animation: tilt 6s ease-in-out infinite;
   }
 
+  .animate-tilt-loading {
+    animation: tilt-loading 3s ease-in-out infinite;
+  }
+
   .animate-blink {
     animation: blink 4s ease-in-out infinite;
+  }
+
+  .animate-blink-loading {
+    animation: blink-loading 2s ease-in-out infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {

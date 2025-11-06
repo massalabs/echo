@@ -4,7 +4,6 @@ import { UserProfile } from '../db';
 import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
 import Button from '../components/ui/Button';
-// Logo from public folder - accessed via absolute path
 
 interface LoginProps {
   onCreateNewAccount: () => void;

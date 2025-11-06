@@ -1,6 +1,5 @@
 import { useCallback, useEffect } from 'react';
 import { useAccountStore } from '../stores/accountStore';
-import { useAppStore } from '../stores/appStore';
 import { useDiscussionStore } from '../stores/discussionStore';
 import { Discussion, Contact, db } from '../db';
 import {
@@ -12,9 +11,6 @@ import { useMessages } from './useMessages';
 
 export const useDiscussionList = () => {
   const { userProfile } = useAccountStore();
-
-  // Get actions from stores
-  const setShowNewContact = useAppStore(s => s.setShowNewContact);
 
   const loadDiscussions = useDiscussionStore(s => s.loadDiscussions);
   const loadContacts = useDiscussionStore(s => s.loadContacts);
@@ -30,7 +26,6 @@ export const useDiscussionList = () => {
 
   const handleCreatedNewContact = useCallback(
     async (contact: Contact) => {
-      setShowNewContact(false);
       try {
         await initializeDiscussion(contact);
       } catch (e) {
@@ -45,7 +40,7 @@ export const useDiscussionList = () => {
         }
       }
     },
-    [loadDiscussions, loadContacts, userProfile?.userId, setShowNewContact]
+    [loadDiscussions, loadContacts, userProfile?.userId]
   );
 
   const handleAcceptDiscussionRequest = useCallback(

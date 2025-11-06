@@ -7,6 +7,7 @@ import { useAccountStore } from '../stores/accountStore';
 import { useDiscussionStore } from '../stores/discussionStore';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { PrivacyGraphic } from '../components/ui/PrivacyGraphic';
 
 const Discussions: React.FC = () => {
   const { handlers } = useDiscussionList();
@@ -23,8 +24,8 @@ const Discussions: React.FC = () => {
     return (
       <div className="min-h-screen-mobile bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-border border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <PrivacyGraphic size={120} loading={true} />
+          <p className="text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
     );

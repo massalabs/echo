@@ -1,11 +1,13 @@
 interface PrivacyGraphicProps {
   size?: number; // Size in pixels (default: 400)
   className?: string;
+  loading?: boolean; // Special loading animation mode
 }
 
 export function PrivacyGraphic({
   size = 300,
   className = '',
+  loading = false,
 }: PrivacyGraphicProps) {
   return (
     <div
@@ -14,7 +16,9 @@ export function PrivacyGraphic({
       {/* Glow effect background */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
-          className="rounded-full blur-3xl animate-pulse-slow bg-black/10 dark:bg-white/5"
+          className={`rounded-full blur-3xl ${
+            loading ? 'animate-pulse-loading' : 'animate-pulse-slow'
+          } bg-black/10 dark:bg-white/5`}
           style={{
             width: `${size}px`,
             height: `${size}px`,
@@ -24,7 +28,9 @@ export function PrivacyGraphic({
 
       <svg
         viewBox="0 0 192.39 173.39"
-        className="animate-float text-gray-900 dark:text-white drop-shadow-[0_0_18px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] overflow-visible"
+        className={`${
+          loading ? 'animate-float-loading' : 'animate-float'
+        } text-gray-900 dark:text-white drop-shadow-[0_0_18px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] overflow-visible`}
         style={{
           width: `${size}px`,
           height: `${size}px`,
@@ -32,7 +38,7 @@ export function PrivacyGraphic({
         }}
         xmlns="http://www.w3.org/2000/svg"
       >
-        <g className="animate-tilt">
+        <g className={loading ? 'animate-tilt-loading' : 'animate-tilt'}>
           {/* Outer ghost body */}
           <path
             d="M167.34,22.51C150.55,7.58,126.69,0,96.43,0c-15.12,0-28.67,1.89-40.55,5.66-11.89,3.76-22.11,9.39-30.59,16.87C8.51,37.35,0,58.96,0,86.76c0,16.58,3.09,31.01,9.17,42.86,6.01,11.71,15.12,20.99,27.12,27.57l2.35,1.29v11.84l-.14,3.07c5.06-1.51,11.44-2.26,19.3-2.26h38.63c30.27,0,54.14-7.43,70.95-22.08,16.59-14.48,25.01-35.44,25.01-62.29s-8.43-49.43-25.05-64.25ZM151.57,139.19c-12.39,10.83-30.94,16.31-55.14,16.31s-42.79-5.48-55.32-16.3c-12.75-10.98-19.2-28.13-19.2-50.98v-3.87c0-22.86,6.47-40.03,19.19-50.98,12.52-10.83,31.14-16.31,55.33-16.31s42.75,5.49,55.14,16.33c12.56,10.99,18.94,28.14,18.94,50.96v3.87c0,22.81-6.38,39.96-18.94,50.97Z"
@@ -48,7 +54,9 @@ export function PrivacyGraphic({
 
           {/* Left eye with blink animation (solid black in light and dark) */}
           <g
-            className="animate-blink origin-center"
+            className={`${
+              loading ? 'animate-blink-loading' : 'animate-blink'
+            } origin-center`}
             style={{ transformOrigin: '54.73px 92.92px' }}
           >
             <circle
@@ -61,7 +69,9 @@ export function PrivacyGraphic({
 
           {/* Right eye with blink animation (solid black in light and dark) */}
           <g
-            className="animate-blink origin-center"
+            className={`${
+              loading ? 'animate-blink-loading' : 'animate-blink'
+            } origin-center`}
             style={{ transformOrigin: '102.37px 92.92px' }}
           >
             <circle
