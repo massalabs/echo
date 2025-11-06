@@ -95,7 +95,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
                     placeholder="Enter your password"
                   />
                   {(error || passwordError) && (
@@ -110,7 +110,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     variant="primary"
                     size="custom"
                     fullWidth
-                    className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                    className="h-[54px] rounded-lg font-medium"
                   >
                     {!isLoading && 'Show Backup'}
                   </Button>
@@ -123,7 +123,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   variant="primary"
                   size="custom"
                   fullWidth
-                  className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                  className="h-[54px] rounded-lg font-medium"
                 >
                   {!isLoading && 'Show Backup'}
                 </Button>

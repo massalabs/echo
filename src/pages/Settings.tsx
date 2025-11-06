@@ -3,6 +3,7 @@ import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
 import SettingsButton from '../components/ui/SettingsButton';
 import { useAccountStore } from '../stores/accountStore';
+import { useAppStore } from '../stores/appStore';
 import { formatMassaAddress } from '../utils/addressUtils';
 import appLogo from '../assets/echo_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
@@ -18,6 +19,7 @@ enum SettingsView {
 const Settings = (): React.ReactElement => {
   const { userProfile, account, getMnemonicBackupInfo, resetAccount } =
     useAccountStore();
+  const { showDebugPanel, setShowDebugPanel } = useAppStore();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
@@ -186,6 +188,40 @@ const Settings = (): React.ReactElement => {
             onClick={() => {}}
             disabled
           />
+
+          {/* Debug Panel Toggle */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 text-black dark:text-white mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+              />
+            </svg>
+            <span className="text-base font-semibold text-black dark:text-white flex-1 text-left">
+              Show Debug Panel
+            </span>
+            <button
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                showDebugPanel ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+              role="switch"
+              aria-checked={showDebugPanel}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showDebugPanel ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
 
           {/* Logout Button */}
           <SettingsButton

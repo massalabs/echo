@@ -292,12 +292,8 @@ const NewContact: React.FC = () => {
                       </svg>
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Import a contact from a .yaml file
+                      Import a contact from a file
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      You can setup a discussion with a Gossip user by importing
-                      its .yaml file
-                    </p>
                   </div>
                   <div className="flex justify-center">
                     <label className="flex items-center justify-center gap-3 px-6 py-3 bg-primary text-primary-foreground rounded-xl transition-all duration-200 text-sm font-semibold cursor-pointer hover:bg-primary/90 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full max-w-xs">

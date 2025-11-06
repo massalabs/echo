@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscussionList } from '../../hooks/useDiscussionList';
-import { Discussion } from '../../db';
+import { Contact, Discussion } from '../../db';
 import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 
@@ -9,9 +9,7 @@ interface DiscussionListPanelProps {
   discussions: Discussion[];
   lastMessages: Map<string, { content: string; timestamp: Date }>;
   areDiscussionsLoaded: boolean;
-  getContactByUserId: (
-    userId: string
-  ) => import('../../db').Contact | undefined;
+  getContactByUserId: (userId: string) => Contact | undefined;
   getDiscussionByContactUserId: (
     contactUserId: string
   ) => Discussion | undefined;
