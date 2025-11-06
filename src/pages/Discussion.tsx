@@ -1,16 +1,16 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import { useDiscussionList } from '../hooks/useDiscussionList';
+import { useDiscussionStore } from '../stores/discussionStore';
 // Removed desktop sidebar imports
 import DiscussionContent from '../components/discussions/DiscussionContent';
 
 const Discussion: React.FC = () => {
   const { userId } = useParams();
   useNavigate();
-  const { selectors } = useDiscussionList();
+  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
 
-  const contact = userId ? selectors.getContactByUserId(userId) : undefined;
+  const contact = userId ? getContactByUserId(userId) : undefined;
 
   // Mobile-first: show only discussion page when selected
   return (

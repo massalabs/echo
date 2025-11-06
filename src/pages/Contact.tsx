@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { updateContactName, formatUserId } from '../utils';
-import { useDiscussionList } from '../hooks/useDiscussionList';
+import { useDiscussionStore } from '../stores/discussionStore';
 import ContactAvatar from '../components/avatar/ContactAvatar';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { useAccountStore } from '../stores/accountStore';
@@ -12,8 +12,11 @@ import CopyClipboard from '../components/ui/CopyClipboard';
 const Contact: React.FC = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { selectors } = useDiscussionList();
-  const contact = userId ? selectors.getContactByUserId(userId) : undefined;
+  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
+  const getDiscussionByContactUserId = useDiscussionStore(
+    s => s.getDiscussionByContactUserId
+  );
+  const contact = userId ? getContactByUserId(userId) : undefined;
 
   // All hooks must be called before early return
   const { exportFileContact, isLoading, error } = useFileShareContact();
@@ -66,7 +69,7 @@ const Contact: React.FC = () => {
     );
   }
 
-  const disc = selectors.getDiscussionByContactUserId(contact.userId);
+  const disc = getDiscussionByContactUserId(contact.userId);
   const canStart = disc ? disc.status === 'active' : true;
 
   const onBack = () => navigate('/');

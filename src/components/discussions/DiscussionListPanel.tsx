@@ -1,12 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscussionList } from '../../hooks/useDiscussionList';
+import { Discussion } from '../../db';
 import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 
 interface DiscussionListPanelProps {
-  state: ReturnType<typeof useDiscussionList>['state'];
-  selectors: ReturnType<typeof useDiscussionList>['selectors'];
+  discussions: Discussion[];
+  lastMessages: Map<string, { content: string; timestamp: Date }>;
+  areDiscussionsLoaded: boolean;
+  getContactByUserId: (
+    userId: string
+  ) => import('../../db').Contact | undefined;
+  getDiscussionByContactUserId: (
+    contactUserId: string
+  ) => Discussion | undefined;
   onRefresh: () => void;
   onSelect: (contactUserId: string) => void;
   activeUserId?: string;
@@ -14,8 +22,10 @@ interface DiscussionListPanelProps {
 }
 
 const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
-  state,
-  selectors,
+  discussions,
+  lastMessages,
+  areDiscussionsLoaded,
+  getContactByUserId,
   onRefresh,
   onSelect,
   activeUserId,
@@ -49,21 +59,17 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
       </div>
 
       <div className="divide-y divide-border">
-        {!state.areDiscussionsLoaded ? null : state.discussions.filter(
+        {!areDiscussionsLoaded ? null : discussions.filter(
             d => d.status !== 'closed'
           ).length === 0 ? (
           <EmptyDiscussions />
         ) : (
-          state.discussions
+          discussions
             .filter(d => d.status !== 'closed')
             .map(discussion => {
-              const contact = selectors.getContactByUserId(
-                discussion.contactUserId
-              );
+              const contact = getContactByUserId(discussion.contactUserId);
               if (!contact) return null;
-              const lastMessage = state.lastMessages.get(
-                discussion.contactUserId
-              );
+              const lastMessage = lastMessages.get(discussion.contactUserId);
 
               const isSelected = discussion.contactUserId === activeUserId;
 
