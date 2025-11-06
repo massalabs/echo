@@ -508,7 +508,7 @@ impl Session {
     /// # Returns
     ///
     /// - `Some(FeedIncomingMessageOutput)` if decryption succeeds, containing the plaintext
-    ///   message and list of acknowledged seekers
+    ///   message and list of acknowledged seekers and the user id of the peer that sent the message
     /// - `None` if the message is invalid, cannot be decrypted, or has an invalid signature
     pub fn try_feed_incoming_message(
         &mut self,
