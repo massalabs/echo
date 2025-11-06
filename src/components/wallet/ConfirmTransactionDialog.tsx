@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { formatMassaAddress } from '../../utils/addressUtils';
 import Button from '../ui/Button';
+import { useKeyDown } from '../../hooks/useKeyDown';
 
 interface ConfirmTransactionDialogProps {
   isOpen: boolean;
@@ -28,6 +29,9 @@ const ConfirmTransactionDialog: React.FC<ConfirmTransactionDialogProps> = ({
   isLoading,
 }) => {
   const [mounted, setMounted] = useState(false);
+
+  const { onEnter, onEsc } = useKeyDown({ enabled: isOpen && !isLoading });
+
   useEffect(() => {
     if (isOpen) {
       const id = requestAnimationFrame(() => setMounted(true));
@@ -35,6 +39,11 @@ const ConfirmTransactionDialog: React.FC<ConfirmTransactionDialogProps> = ({
     }
     setMounted(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    onEsc(onClose);
+    onEnter(onConfirm);
+  }, [onEsc, onEnter, onClose, onConfirm]);
 
   if (!isOpen) return null;
 

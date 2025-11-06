@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Button from '../ui/Button';
+import { useKeyDown } from '../../hooks/useKeyDown';
 
 export interface FeeConfig {
   type: 'preset' | 'custom';
@@ -51,6 +52,17 @@ const FeeConfigModal: React.FC<FeeConfigModalProps> = ({
     onClose();
   }, [config, onConfirm, onClose]);
 
+  const isFormValid = useCallback(() => {
+    return (
+      config.type === 'preset' ||
+      (config.type === 'custom' &&
+        config.customFee &&
+        parseFloat(config.customFee) > 0)
+    );
+  }, [config]);
+
+  const { onEnter, onEsc } = useKeyDown({ enabled: isOpen });
+
   // Animate on open
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -60,6 +72,17 @@ const FeeConfigModal: React.FC<FeeConfigModalProps> = ({
     }
     setMounted(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    onEsc(onClose);
+  }, [onEsc, onClose]);
+
+  useEffect(() => {
+    // Only set onEnter if form is valid
+    if (isFormValid()) {
+      onEnter(handleConfirm);
+    }
+  }, [onEnter, handleConfirm, isFormValid]);
 
   if (!isOpen) return null;
 

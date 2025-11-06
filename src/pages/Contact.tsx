@@ -69,7 +69,7 @@ const Contact: React.FC = () => {
   const disc = selectors.getDiscussionByContactUserId(contact.userId);
   const canStart = disc ? disc.status === 'active' : true;
 
-  const onBack = () => navigate('/');
+  const onBack = () => navigate(-1);
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">

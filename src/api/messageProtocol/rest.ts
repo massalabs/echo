@@ -92,7 +92,7 @@ export class RestMessageProtocol implements IMessageProtocol {
   async fetchAnnouncements(): Promise<Uint8Array[]> {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
-    const response = await this.makeRequest<string[]>(url, {
+    const response = await this.makeRequest<{ data: string[] }>(url, {
       method: 'GET',
     });
 
@@ -100,7 +100,7 @@ export class RestMessageProtocol implements IMessageProtocol {
       throw new Error(response.error || 'Failed to fetch announcements');
     }
 
-    return response.data.map(row => decodeFromBase64(row));
+    return response.data.data.map((row: string) => decodeFromBase64(row));
   }
 
   private async makeRequest<T>(

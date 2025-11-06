@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const navigate = useNavigate();
-  const onBack = () => navigate('/');
+  const onBack = () => navigate(-1);
   const [newMessage, setNewMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

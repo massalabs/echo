@@ -11,6 +11,7 @@ import { useSend } from '../../hooks/temp/useSend';
 import { formatAmount } from '../../hooks/temp/parseAmount';
 import toast from 'react-hot-toast';
 import { parseMas, parseUnits } from '@massalabs/massa-web3';
+import { useKeyDown } from '../../hooks/useKeyDown';
 
 interface SendModalProps {
   isOpen: boolean;
@@ -41,6 +42,10 @@ const SendModal: React.FC<SendModalProps> = ({
   const refreshBalances = useWalletStore.use.refreshBalances();
   const selectedToken = tokens[selectedTokenIndex];
   const availableBalance = selectedToken?.balance || 0n;
+
+  const { onEnter } = useKeyDown({
+    enabled: isOpen && !showConfirmation && !showFeeConfig,
+  });
 
   // Use the ui-kit send hook
   const {
@@ -260,6 +265,10 @@ const SendModal: React.FC<SendModalProps> = ({
     },
     [setFeeConfig]
   );
+
+  useEffect(() => {
+    onEnter(handleSend);
+  }, [onEnter, handleSend]);
 
   const getFeeDisplayText = useCallback(() => {
     if (feeConfig.type === 'preset') {

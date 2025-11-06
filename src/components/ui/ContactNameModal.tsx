@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import BaseModal from './BaseModal';
 import Button from './Button';
+import { useKeyDown } from '../../hooks/useKeyDown';
 
 interface ContactNameModalProps {
   isOpen: boolean;
@@ -29,11 +30,13 @@ const ContactNameModal: React.FC<ContactNameModalProps> = ({
 }) => {
   const [name, setName] = useState(initialName);
 
+  const { onEnter } = useKeyDown({ enabled: isOpen });
+
   useEffect(() => {
     if (isOpen) setName(initialName);
   }, [isOpen, initialName]);
 
-  const handleConfirm = () => {
+  const handleConfirm = React.useCallback(() => {
     const trimmed = name.trim();
     if (!allowEmpty && trimmed.length === 0) {
       // Let parent surface the error; still pass empty to indicate invalid attempt
@@ -41,7 +44,11 @@ const ContactNameModal: React.FC<ContactNameModalProps> = ({
       return;
     }
     onConfirm(trimmed.length > 0 ? trimmed : undefined);
-  };
+  }, [name, allowEmpty, onConfirm]);
+
+  useEffect(() => {
+    onEnter(handleConfirm);
+  }, [onEnter, handleConfirm]);
 
   return (
     <BaseModal isOpen={isOpen} onClose={onClose} title={title}>

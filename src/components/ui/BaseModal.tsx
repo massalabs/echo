@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
+import { useKeyDown } from '../../hooks/useKeyDown';
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ const BaseModal: React.FC<BaseModalProps> = ({
   // Animation mount flag (animate on open)
   const [mounted, setMounted] = useState(false);
 
+  const { onEsc } = useKeyDown({ enabled: isOpen });
+
   useEffect(() => {
     if (isOpen) {
       // next tick to allow transition
@@ -26,6 +29,10 @@ const BaseModal: React.FC<BaseModalProps> = ({
     }
     setMounted(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    onEsc(onClose);
+  }, [onEsc, onClose]);
 
   if (!isOpen) return null;
 
