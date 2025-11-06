@@ -3,7 +3,7 @@ import Dexie, { Table } from 'dexie';
 // Define interfaces for your data models
 export interface Contact {
   ownerUserId: string; // The current user's userId owning this contact
-  userId: string; // 32-byte user ID (base58 encoded) - primary key
+  userId: string; // 32-byte user ID (gossip Bech32 encoded) - primary key
   name: string;
   avatar?: string;
   publicKeys: Uint8Array; // Serialized UserPublicKeys bytes (from UserPublicKeys.to_bytes())
@@ -26,7 +26,7 @@ export interface Message {
 }
 
 export interface UserProfile {
-  userId: string; // 32-byte user ID (base58 encoded) - primary key
+  userId: string; // 32-byte user ID (gossip Bech32 encoded) - primary key
   username: string;
   avatar?: string;
   security: {

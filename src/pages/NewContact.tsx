@@ -9,14 +9,12 @@ import { useNavigate } from 'react-router-dom';
 import appLogo from '../assets/echo_face.svg';
 import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
-import { isValidUserId } from '../utils/addressUtils';
-import { validateUsername } from '../utils/validation';
+import { validateUsername, isValidUserId, encodeUserId } from '../utils';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
 import BaseModal from '../components/ui/BaseModal';
 import TabSwitcher from '../components/ui/TabSwitcher';
 import { generateUserKeys } from '../wasm';
-import bs58check from 'bs58check';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';
 
@@ -64,7 +62,7 @@ const NewContact: React.FC = () => {
       return false;
     }
     if (!isValidUserId(value)) {
-      setUserIdError('Please enter a valid base58 encoded user ID');
+      setUserIdError('Please enter a valid gossip user ID (e.g. gossip1...)');
       return false;
     }
     setUserIdError(null);
@@ -95,7 +93,7 @@ const NewContact: React.FC = () => {
     try {
       const publicKeys = UserPublicKeys.from_bytes(fileContact.userPubKeys);
       setPublicKeys(publicKeys);
-      const userIdString = bs58check.encode(publicKeys.derive_id());
+      const userIdString = encodeUserId(publicKeys.derive_id());
       validateUserId(userIdString);
       setUserId(userIdString);
 
@@ -118,7 +116,7 @@ const NewContact: React.FC = () => {
       const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
       const pub = newUserKeys.public_keys();
       setPublicKeys(pub);
-      setUserId(bs58check.encode(pub.derive_id()));
+      setUserId(encodeUserId(pub.derive_id()));
       setUserIdError(null);
     } catch (e) {
       console.error(e);
@@ -408,7 +406,7 @@ const NewContact: React.FC = () => {
                     validateUserId(e.target.value);
                   }}
                   onBlur={e => validateUserId(e.target.value)}
-                  placeholder="Enter base58check encoded user ID"
+                  placeholder="Enter gossip Bech32 user ID"
                   className={`flex-1 min-w-0 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
                     userIdError
                       ? 'border-red-500 dark:border-red-500'

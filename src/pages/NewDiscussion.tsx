@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { useEffect, useState } from 'react';
 import { Contact, db } from '../db';
 import ContactAvatar from '../components/avatar/ContactAvatar';
-import { formatUserId } from '../utils/addressUtils';
+import { formatUserId } from '../utils';
 
 /* TODO: contact list is implemented using corresponding discussions.
 This is a temporary solution to avoid duplicating the contact list code.

@@ -6,7 +6,7 @@
  */
 
 import { db, Message } from '../db';
-import bs58check from 'bs58check';
+import { decodeUserId } from '../utils/userId';
 import {
   IMessageProtocol,
   createMessageProtocol,
@@ -239,7 +239,7 @@ export class MessageService {
       try {
         const session = useAccountStore.getState().session;
         if (!session) throw new Error('Session module not initialized');
-        const peerId = bs58check.decode(contactUserId);
+        const peerId = decodeUserId(contactUserId);
         const contentBytes = strToBytes(content);
 
         // Validate peer ID length

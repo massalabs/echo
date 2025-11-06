@@ -6,7 +6,7 @@
 
 import { db } from '../db';
 import { notificationService } from './notifications';
-import bs58check from 'bs58check';
+import { encodeUserId } from '../utils/userId';
 import { processIncomingAnnouncement } from '../crypto/discussionInit';
 import { useAccountStore } from '../stores/accountStore';
 import {
@@ -187,7 +187,7 @@ export class AnnouncementService {
         };
       }
       const contactUserId = announcerPkeys.derive_id();
-      const contactUserIdString = bs58check.encode(contactUserId);
+      const contactUserIdString = encodeUserId(contactUserId);
 
       const ownerUserId = useAccountStore.getState().userProfile?.userId;
       if (!ownerUserId) throw new Error('No authenticated user');
