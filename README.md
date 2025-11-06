@@ -106,10 +106,6 @@ This project uses ESLint with TypeScript support. The configuration can be found
 4. Run tests and linting
 5. Submit a pull request
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Security
 
 Echo prioritizes user privacy and security:
