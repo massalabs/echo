@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 
-import { useDiscussionList } from '../hooks/useDiscussionList';
+import { useAccountStore } from '../stores/accountStore';
 import Button from '../components/ui/Button';
-import DiscussionListItem from '../components/discussions/DiscussionListItem';
 import { useEffect, useState } from 'react';
-import { Discussion } from '../db';
+import { Contact, db } from '../db';
+import ContactAvatar from '../components/avatar/ContactAvatar';
+import { formatUserId } from '../utils/addressUtils';
 
 /* TODO: contact list is implemented using corresponding discussions.
 This is a temporary solution to avoid duplicating the contact list code.
@@ -12,49 +13,48 @@ In future we should decouple contact from discussion.
 */
 const NewDiscussion: React.FC = () => {
   const navigate = useNavigate();
-  // const [contacts, setContacts] = useState<Contact[]>([]);
-  // const [isLoading, setIsLoading] = useState(true);
-  const { state, selectors, handlers } = useDiscussionList();
-  const [filteredDiscussions, setFilteredDiscussions] = useState<Discussion[]>(
-    []
-  );
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { userProfile } = useAccountStore();
 
   useEffect(() => {
-    if (state.areDiscussionsLoaded) {
-      setFilteredDiscussions(
-        state.discussions.filter(d => d.status !== 'closed')
-      );
-    }
-  }, [state.areDiscussionsLoaded, state.discussions]);
+    let isMounted = true;
 
-  // useEffect(() => {
-  //   let isMounted = true;
-  //   const loadContacts = async () => {
-  //     try {
-  //       setIsLoading(true);
-  //       const { userProfile } = useAccountStore.getState();
-  //       const list = userProfile?.userId
-  //         ? await db
-  //             .getContactsByOwner(userProfile.userId)
-  //             .then(arr => arr.sort((a, b) => a.name.localeCompare(b.name)))
-  //         : [];
-  //       if (isMounted) {
-  //         setContacts(list);
-  //       }
-  //     } finally {
-  //       if (isMounted) setIsLoading(false);
-  //     }
-  //   };
-  //   loadContacts();
-  //   return () => {
-  //     isMounted = false;
-  //   };
-  // }, []);
-
-  // const filteredContacts = useMemo(() => contacts, [contacts]);
+    const loadContacts = async () => {
+      try {
+        setIsLoading(true);
+        const list = userProfile?.userId
+          ? await db
+              .getContactsByOwner(userProfile.userId)
+              .then(arr => arr.sort((a, b) => a.name.localeCompare(b.name)))
+          : [];
+        if (isMounted) {
+          setContacts(list);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    loadContacts();
+    return () => {
+      isMounted = false;
+    };
+  }, [userProfile?.userId]);
 
   const handleClose = () => navigate('/');
   const onNewContact = () => navigate('/new-contact');
+
+  const onSelectContact = async (contact: Contact) => {
+    if (!userProfile?.userId) return;
+    const discussion = await db.getDiscussionByOwnerAndContact(
+      userProfile.userId,
+      contact.userId
+    );
+    if (discussion && discussion.status === 'active') {
+      navigate(`/discussion/${contact.userId}`);
+    }
+  };
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900 px-3 py-3">
@@ -145,63 +145,13 @@ const NewDiscussion: React.FC = () => {
             </div>
           </div>
 
-          {!state.areDiscussionsLoaded ? (
-            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-              Loading contacts…
-            </div>
-          ) : filteredDiscussions.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
-              <p className="text-sm">No contacts yet</p>
-              <p className="text-xs mt-1">Tap "New contact" to add one</p>
-            </div>
-          ) : (
-            filteredDiscussions.map(discussion => {
-              const contact = selectors.getContactByUserId(
-                discussion.contactUserId
-              );
-              if (!contact) return null;
-
-              return (
-                <DiscussionListItem
-                  key={discussion.id}
-                  discussion={discussion}
-                  contact={contact}
-                  lastMessage={undefined}
-                  onSelect={d => navigate(`/discussion/${d.contactUserId}`)}
-                  onAccept={async (d, newName) => {
-                    await handlers.handleAcceptDiscussionRequest(d, newName);
-                    navigate(`/discussion/${d.contactUserId}`);
-                  }}
-                  onRefuse={() => {
-                    handlers.handleRefuseDiscussionRequest(discussion);
-                  }}
-                />
-              );
-            })
-          )}
-
           {/* Contacts list */}
-          {/* <div className="mt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-4 border-t border-gray-200 dark:border-gray-700">
             {isLoading ? (
               <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                 Loading contacts…
               </div>
-            ) : filteredContacts.length === 0 ? (
+            ) : contacts.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                   <svg
@@ -223,14 +173,17 @@ const NewDiscussion: React.FC = () => {
               </div>
             ) : (
               <ul className="max-h-[60vh] overflow-y-auto">
-                {filteredContacts.map(contact => {
+                {contacts.map(contact => {
                   return (
-                    <li key={contact.userId}>
+                    <li
+                      key={contact.userId}
+                      className="flex items-center hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    >
                       <Button
-                        onClick={() => onSelectRecipient(contact)}
+                        onClick={() => onSelectContact(contact)}
                         variant="ghost"
                         size="custom"
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-left"
+                        className="flex-1 px-4 py-3 flex items-center gap-3 text-left"
                       >
                         <ContactAvatar contact={contact} size={10} />
                         <div className="flex-1 min-w-0">
@@ -242,12 +195,31 @@ const NewDiscussion: React.FC = () => {
                           </p>
                         </div>
                       </Button>
+                      <button
+                        onClick={() => navigate(`/contact/${contact.userId}`)}
+                        className="flex-shrink-0 p-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                        title="Edit contact"
+                      >
+                        <svg
+                          className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                      </button>
                     </li>
                   );
                 })}
               </ul>
             )}
-          </div> */}
+          </div>
         </div>
       </div>
     </div>
