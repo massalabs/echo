@@ -177,7 +177,7 @@ export class MessageService {
 
       // Ensure DB reflects that this message is being (re)sent
       await db.messages.update(message.id, { status: 'sending' });
-      // add discutionId to the content prefix
+      // add discussionId to the content prefix
       const contentBytes = strToBytes(message.content);
 
       // Validate peer ID length
