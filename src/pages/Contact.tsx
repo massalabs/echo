@@ -185,7 +185,6 @@ const Contact: React.FC = () => {
               setNameError('Name cannot be empty.');
               return;
             }
-            setProposedName(name);
             await handleSaveName(name);
           }}
         />
