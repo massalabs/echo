@@ -101,7 +101,6 @@ export const useMessages = ({
       const ownerUserId = useAccountStore.getState().userProfile?.userId;
       if (!ownerUserId)
         return { success: false, error: 'No authenticated user' };
-      
 
       const discussion = await db.getDiscussionByOwnerAndContact(
         ownerUserId,
@@ -124,7 +123,7 @@ export const useMessages = ({
 
       // Persist to DB, keep the generated id for later status updates
       const messageId = await db.addMessage(message);
-      const messageWithId: Message = { ...message, id: messageId };
+      const messageWithId = { ...message, id: messageId };
       setMessages(prev => [...prev, messageWithId]);
 
       try {

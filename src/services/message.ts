@@ -163,14 +163,21 @@ export class MessageService {
    */
   async sendMessage(message: Message): Promise<SendMessageResult> {
     try {
+      // Validate that message has an ID
+      if (!message.id) {
+        return {
+          success: false,
+          error: 'Message must have an id before sending',
+        };
+      }
+
       const session = useAccountStore.getState().session;
       if (!session) throw new Error('Session module not initialized');
       const peerId = decodeUserId(message.contactUserId);
+
       // Ensure DB reflects that this message is being (re)sent
-      if (message.id) {
-        await db.messages.update(message.id, { status: 'sending' });
-      }
-      // add discussionId to the content prefix
+      await db.messages.update(message.id, { status: 'sending' });
+      // add discutionId to the content prefix
       const contentBytes = strToBytes(message.content);
 
       // Validate peer ID length

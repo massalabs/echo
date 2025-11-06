@@ -113,6 +113,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
       // Only auto-scroll if the user is already near the bottom
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
   return (
