@@ -4,7 +4,6 @@ import DiscussionListPanel from '../components/discussions/DiscussionListPanel';
 import DebugPanel from '../components/ui/DebugPanel';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import { useAccountStore } from '../stores/accountStore';
-import { useAppStore } from '../stores/appStore';
 import { useDiscussionStore } from '../stores/discussionStore';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -13,7 +12,6 @@ const Discussions: React.FC = () => {
   const { handlers } = useDiscussionList();
   const navigate = useNavigate();
   const isLoading = useAccountStore(s => s.isLoading);
-  const appState = useAppStore(s => s.appState);
   const discussions = useDiscussionStore(s => s.discussions);
   const lastMessages = useDiscussionStore(s => s.lastMessages);
   const areDiscussionsLoaded = useDiscussionStore(s => s.areDiscussionsLoaded);
@@ -21,8 +19,7 @@ const Discussions: React.FC = () => {
   const getDiscussionByContactUserId = useDiscussionStore(
     s => s.getDiscussionByContactUserId
   );
-
-  if (isLoading || appState === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-screen-mobile bg-background flex items-center justify-center">
         <div className="text-center">
@@ -47,7 +44,6 @@ const Discussions: React.FC = () => {
             getDiscussionByContactUserId={getDiscussionByContactUserId}
             onRefresh={handlers.handleRefresh}
             onSelect={id => {
-              // Delegate selection to existing handler if it accepts shallow object
               navigate(`/discussion/${id}`);
             }}
             headerVariant="link"
