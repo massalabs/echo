@@ -128,7 +128,6 @@ export const useMessages = ({
 
       try {
         const result = await messageService.sendMessage(messageWithId);
-        if (!contact?.userId) return;
 
         // Reflect final status in local state (always update if message is provided)
         if (result.message) {

@@ -65,7 +65,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                     Waiting approval
                   </span>
                 )}
-                {discussion.unreadCount > 0 && lastMessage && (
+                {lastMessage && (
                   <p className="text-xs text-muted-foreground">
                     {formatRelativeTime(lastMessage.timestamp)}
                   </p>

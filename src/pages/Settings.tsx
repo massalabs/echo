@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
-import SettingsButton from '../components/ui/SettingsButton';
 import { useAccountStore } from '../stores/accountStore';
 import { useAppStore } from '../stores/appStore';
 import { formatMassaAddress } from '../utils/addressUtils';
@@ -77,117 +76,135 @@ const Settings = (): React.ReactElement => {
         {/* Settings Options */}
         <div className="px-4 pb-20 space-y-2">
           {/* Account Backup Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-            }
-            label="Account Backup"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => setActiveView(SettingsView.SHOW_ACCOUNT_BACKUP)}
-            badge={
-              mnemonicBackupInfo?.backedUp ? (
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              ) : undefined
-            }
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Account Backup
+            </span>
+            {mnemonicBackupInfo?.backedUp && (
+              <div className="w-2 h-2 bg-green-500 rounded-full ml-auto"></div>
+            )}
+          </Button>
 
           {/* Share Contact Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
-                />
-              </svg>
-            }
-            label="Share Contact"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => setActiveView(SettingsView.SHARE_CONTACT)}
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Share Contact
+            </span>
+          </Button>
 
           {/* Security Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            }
-            label="Security"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Security
+            </span>
+          </Button>
 
           {/* Notifications Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            }
-            label="Notifications"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Notifications
+            </span>
+          </Button>
 
           {/* Privacy Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            }
-            label="Privacy"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Privacy
+            </span>
+          </Button>
 
           {/* Debug Panel Toggle */}
           <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
@@ -224,26 +241,29 @@ const Settings = (): React.ReactElement => {
           </div>
 
           {/* Logout Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-            }
-            label="Logout"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
             onClick={handleResetAccount}
-            variant="danger"
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Logout
+            </span>
+          </Button>
         </div>
       </div>
       <BaseModal
