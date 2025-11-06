@@ -66,7 +66,7 @@ export class AnnouncementService {
           const result = await this._processIncomingAnnouncement(announcement);
           if (result.success) {
             newDiscussionsCount++;
-          } else {
+          } else if (result.error) {
             hasErrors = true;
           }
         } catch (error) {
@@ -106,9 +106,11 @@ export class AnnouncementService {
           result.discussionId
         );
         return { success: true, newMessagesCount: 1 };
-      } else {
+      } else if (result.error) {
         console.error('Failed to simulate incoming discussion:', result.error);
         return { success: false, newMessagesCount: 0, error: result.error };
+      } else {
+        return { success: false, newMessagesCount: 0 };
       }
     } catch (error) {
       console.error('Failed to simulate incoming discussion:', error);
@@ -178,10 +180,11 @@ export class AnnouncementService {
         ourSk
       );
 
+      // if we can't decrypt the announcement, it means we are not the intended recipient. It's not an error.
       if (!announcerPkeys) {
-        throw new Error(
-          'Could not extract announcer public keys from announcement'
-        );
+        return {
+          success: false,
+        };
       }
       const contactUserId = announcerPkeys.derive_id();
       const contactUserIdString = bs58check.encode(contactUserId);
