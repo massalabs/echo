@@ -2,14 +2,12 @@ import React, { useRef, useLayoutEffect, useCallback, useMemo } from 'react';
 import { Message, Contact } from '../../db';
 import MessageItem from './MessageItem';
 import LoadingState from './LoadingState';
-import InitializingState from './InitializingState';
 import EmptyState from './EmptyState';
 
 interface MessageListProps {
   messages: Message[];
   contact: Contact;
   isLoading: boolean;
-  isInitializing: boolean;
   isSending: boolean;
   onResend: (message: Message) => void;
 }
@@ -18,7 +16,6 @@ const MessageList: React.FC<MessageListProps> = ({
   messages,
   contact,
   isLoading,
-  isInitializing,
   isSending,
   onResend,
 }) => {
@@ -114,10 +111,6 @@ const MessageList: React.FC<MessageListProps> = ({
 
   if (isLoading) {
     return <LoadingState />;
-  }
-
-  if (isInitializing) {
-    return <InitializingState />;
   }
 
   if (messages.length === 0) {

@@ -29,11 +29,9 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
       createdAt: new Date(),
     } as Contact);
 
-  const {
-    discussion,
-    isInitializing,
-    isLoading: isDiscussionLoading,
-  } = useDiscussion({ contact: safeContact });
+  const { discussion, isLoading: isDiscussionLoading } = useDiscussion({
+    contact: safeContact,
+  });
 
   const { userProfile } = useAccountStore();
 
@@ -107,15 +105,11 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
           messages={messages}
           contact={contact}
           isLoading={isLoading || isDiscussionLoading}
-          isInitializing={isInitializing}
           isSending={isSending}
           onResend={resendMessage}
         />
 
-        <MessageInput
-          onSend={handleSendMessage}
-          disabled={isSending || isInitializing}
-        />
+        <MessageInput onSend={handleSendMessage} disabled={isSending} />
       </div>
     </div>
   );
