@@ -95,23 +95,6 @@ const AppContent: React.FC = () => {
     }
   }, [userProfile]);
 
-  // Sync messages when app becomes visible (user returns to app)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && userProfile) {
-        console.log('App became visible, triggering message sync');
-        backgroundSyncService.triggerManualSync().catch(error => {
-          console.error('Failed to sync messages on visibility change:', error);
-        });
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [userProfile]);
-
   // Load existing account info to show username in WelcomeBack when unauthenticated
   useEffect(() => {
     (async () => {

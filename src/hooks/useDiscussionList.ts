@@ -277,22 +277,10 @@ export const useDiscussionList = () => {
   );
 
   const handleRefresh = useCallback(async () => {
-    try {
-      const result = await announcementService.fetchAndProcessAnnouncements();
-      if (result.success) {
-        console.log('Fetched announcements successfully');
-      } else {
-        console.error('Failed to fetch announcements:', result.error);
-      }
-    } catch (error) {
-      console.error('Error fetching announcements:', error);
-    } finally {
-      // First sync protocol messages (may change unread counters)
-      await syncAllMessages();
-      // Then reload discussions and contacts so UI reflects new counts
-      await loadDiscussions();
-      await loadContacts();
-    }
+    await announcementService.fetchAndProcessAnnouncements();
+    await syncAllMessages();
+    await loadDiscussions();
+    await loadContacts();
   }, [loadDiscussions, loadContacts, syncAllMessages]);
 
   const handleRefuseDiscussionRequest = useCallback(
