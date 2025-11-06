@@ -101,7 +101,7 @@ export const useMessages = ({
       const ownerUserId = useAccountStore.getState().userProfile?.userId;
       if (!ownerUserId)
         return { success: false, error: 'No authenticated user' };
-      if (!content) return { success: false, error: 'Empty content' };
+      
 
       const discussion = await db.getDiscussionByOwnerAndContact(
         ownerUserId,
