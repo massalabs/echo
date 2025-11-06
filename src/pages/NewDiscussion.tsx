@@ -1,50 +1,60 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Contact, db } from '../db';
-import { formatUserId } from '../utils/addressUtils';
-import ContactAvatar from '../components/avatar/ContactAvatar';
-import { useAccountStore } from '../stores/accountStore';
+
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';
+import DiscussionListItem from '../components/discussions/DiscussionListItem';
+import { useEffect, useState } from 'react';
+import { Discussion } from '../db';
 
+/* TODO: contact list is implemented using corresponding discussions.
+This is a temporary solution to avoid duplicating the contact list code.
+In future we should decouple contact from discussion.
+*/
 const NewDiscussion: React.FC = () => {
-  const { handlers } = useDiscussionList();
   const navigate = useNavigate();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [contacts, setContacts] = useState<Contact[]>([]);
+  // const [isLoading, setIsLoading] = useState(true);
+  const { state, selectors, handlers } = useDiscussionList();
+  const [filteredDiscussions, setFilteredDiscussions] = useState<Discussion[]>(
+    []
+  );
 
   useEffect(() => {
-    let isMounted = true;
-    const loadContacts = async () => {
-      try {
-        setIsLoading(true);
-        const { userProfile } = useAccountStore.getState();
-        const list = userProfile?.userId
-          ? await db
-              .getContactsByOwner(userProfile.userId)
-              .then(arr => arr.sort((a, b) => a.name.localeCompare(b.name)))
-          : [];
-        if (isMounted) {
-          setContacts(list);
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-    loadContacts();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (state.areDiscussionsLoaded) {
+      setFilteredDiscussions(
+        state.discussions.filter(d => d.status !== 'closed')
+      );
+    }
+  }, [state.areDiscussionsLoaded, state.discussions]);
 
-  const filteredContacts = useMemo(() => contacts, [contacts]);
+  // useEffect(() => {
+  //   let isMounted = true;
+  //   const loadContacts = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       const { userProfile } = useAccountStore.getState();
+  //       const list = userProfile?.userId
+  //         ? await db
+  //             .getContactsByOwner(userProfile.userId)
+  //             .then(arr => arr.sort((a, b) => a.name.localeCompare(b.name)))
+  //         : [];
+  //       if (isMounted) {
+  //         setContacts(list);
+  //       }
+  //     } finally {
+  //       if (isMounted) setIsLoading(false);
+  //     }
+  //   };
+  //   loadContacts();
+  //   return () => {
+  //     isMounted = false;
+  //   };
+  // }, []);
+
+  // const filteredContacts = useMemo(() => contacts, [contacts]);
 
   const handleClose = () => navigate('/');
   const onNewContact = () => navigate('/new-contact');
-  const onSelectRecipient = (contact: Contact) => {
-    handlers.handleSelectRecipient(contact);
-    navigate(`/contact/${contact.userId}`);
-  };
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900 px-3 py-3">
@@ -135,8 +145,58 @@ const NewDiscussion: React.FC = () => {
             </div>
           </div>
 
+          {!state.areDiscussionsLoaded ? (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              Loading contacts…
+            </div>
+          ) : filteredDiscussions.length === 0 ? (
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm">No contacts yet</p>
+              <p className="text-xs mt-1">Tap "New contact" to add one</p>
+            </div>
+          ) : (
+            filteredDiscussions.map(discussion => {
+              const contact = selectors.getContactByUserId(
+                discussion.contactUserId
+              );
+              if (!contact) return null;
+
+              return (
+                <DiscussionListItem
+                  key={discussion.id}
+                  discussion={discussion}
+                  contact={contact}
+                  lastMessage={undefined}
+                  onSelect={d => navigate(`/discussion/${d.contactUserId}`)}
+                  onAccept={async (d, newName) => {
+                    await handlers.handleAcceptDiscussionRequest(d, newName);
+                    navigate(`/discussion/${d.contactUserId}`);
+                  }}
+                  onRefuse={() => {
+                    handlers.handleRefuseDiscussionRequest(discussion);
+                  }}
+                />
+              );
+            })
+          )}
+
           {/* Contacts list */}
-          <div className="mt-4 border-t border-gray-200 dark:border-gray-700">
+          {/* <div className="mt-4 border-t border-gray-200 dark:border-gray-700">
             {isLoading ? (
               <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                 Loading contacts…
@@ -187,7 +247,7 @@ const NewDiscussion: React.FC = () => {
                 })}
               </ul>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import swapIcon from '../assets/icons/swap.svg';
 import { formatMassaAddress } from '../utils/addressUtils';
 import { formatAmount } from '../hooks/temp/parseAmount';
 import Button from '../components/ui/Button';
+import CopyClipboard from '../components/ui/CopyClipboard';
 // no-op
 
 const Wallet: React.FC = () => {
@@ -75,16 +76,12 @@ const Wallet: React.FC = () => {
           <div className="px-6 -mt-2">
             <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
               <span className="uppercase tracking-wide">Address</span>
-              <Button
-                type="button"
-                onClick={() => navigator.clipboard.writeText(fullAddress)}
-                variant="ghost"
-                size="custom"
-                className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-700"
-                title="Copy address"
-              >
-                {displayAddress}
-              </Button>
+              <div className="flex items-center gap-2">
+                <span className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                  {displayAddress}
+                </span>
+                <CopyClipboard text={fullAddress} title="Copy address" />
+              </div>
             </div>
           </div>
         )}

@@ -136,7 +136,10 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                   <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-sm"></span>
                 )}
               </div>
-              <div className="ml-3.5 flex-1 min-w-0">
+              <div
+                className="ml-3.5 flex-1 min-w-0"
+                onClick={() => navigate(`/contact/${contact.userId}`)}
+              >
                 <div className="flex items-center gap-2">
                   <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
                     {contact.name}

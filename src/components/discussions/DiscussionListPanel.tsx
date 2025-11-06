@@ -24,7 +24,7 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
   const navigate = useNavigate();
 
   const {
-    handlers: { handleAcceptDiscussionRequest },
+    handlers: { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest },
   } = useDiscussionList();
 
   return (
@@ -64,12 +64,7 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
               const lastMessage = state.lastMessages.get(
                 discussion.contactUserId
               );
-              const isPendingIncoming =
-                discussion.status === 'pending' &&
-                discussion.direction === 'received';
-              const isPendingOutgoing =
-                discussion.status === 'pending' &&
-                discussion.direction === 'initiated';
+
               const isSelected = discussion.contactUserId === activeUserId;
 
               return (
@@ -81,14 +76,12 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
                     discussion={discussion}
                     contact={contact}
                     lastMessage={lastMessage}
-                    isPendingIncoming={isPendingIncoming}
-                    isPendingOutgoing={isPendingOutgoing}
                     onSelect={d => onSelect(d.contactUserId)}
                     onAccept={async (d, newName) => {
                       await handleAcceptDiscussionRequest(d, newName);
                       navigate(`/discussion/${d.contactUserId}`);
                     }}
-                    onRefuse={() => {}}
+                    onRefuse={() => handleRefuseDiscussionRequest(discussion)}
                   />
                 </div>
               );

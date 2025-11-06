@@ -8,6 +8,7 @@ import appLogo from '../assets/echo_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
 import ShareContact from '../components/settings/ShareContact';
 import Button from '../components/ui/Button';
+import CopyClipboard from '../components/ui/CopyClipboard';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -18,20 +19,7 @@ const Settings = (): React.ReactElement => {
   const { userProfile, account, getMnemonicBackupInfo, resetAccount } =
     useAccountStore();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
-  const [copySuccess, setCopySuccess] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-
-  const handleCopyAddress = async () => {
-    if (!account?.address) return;
-
-    try {
-      await navigator.clipboard.writeText(account.address.toString());
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy address:', error);
-    }
-  };
 
   const handleResetAccount = async () => {
     setIsResetModalOpen(true);
@@ -68,34 +56,17 @@ const Settings = (): React.ReactElement => {
                 <h3 className="text-base font-semibold text-black dark:text-white mb-2">
                   {userProfile?.username || 'Account name'}
                 </h3>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                    {account?.address
-                      ? formatMassaAddress(account.address.toString())
-                      : 'AU121243124312431243'}
-                  </p>
-                  <Button
-                    onClick={handleCopyAddress}
-                    variant="ghost"
-                    size="custom"
-                    className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 shrink-0"
-                    title={copySuccess ? 'Copied!' : 'Copy full address'}
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </Button>
-                </div>
+                {account?.address && (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                      {formatMassaAddress(account.address.toString())}
+                    </p>
+                    <CopyClipboard
+                      text={account.address.toString()}
+                      title="Copy address"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
