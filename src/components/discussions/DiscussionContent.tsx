@@ -94,7 +94,7 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
 
   return (
     <div className="h-full flex flex-col w-full">
-      <div className="w-full h-full flex flex-col">
+      <div className="w-full md:max-w-lg lg:max-w-2xl xl:max-w-3xl mx-auto h-full flex flex-col">
         <DiscussionHeader
           contact={contact}
           discussion={discussion}
