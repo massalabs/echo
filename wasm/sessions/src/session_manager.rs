@@ -756,7 +756,7 @@ mod tests {
         alice_manager.feed_incoming_announcement(&bob_announcement, &alice_pk, &alice_sk);
 
         let bob_id = bob_pk.derive_id();
-        let _alice_id = alice_pk.derive_id();
+        let alice_id = alice_pk.derive_id();
 
         // Alice sends message to Bob
         let message = create_test_message(b"Hello Bob!");
@@ -773,6 +773,8 @@ mod tests {
             .expect("Failed to receive message");
 
         assert_eq!(received.message.as_slice(), b"Hello Bob!");
+        assert_eq!(received.user_id, alice_id.as_bytes().to_vec());
+        assert_eq!(received.user_id.len(), 32);
     }
 
     #[test]
@@ -849,6 +851,7 @@ mod tests {
             .feed_incoming_message_board_read(&output1.seeker, &output1.data, &bob_sk)
             .unwrap();
         assert_eq!(received1.message.as_slice(), b"Hello Bob!");
+        assert_eq!(received1.user_id, alice_id.as_bytes().to_vec());
 
         // Bob -> Alice
         let msg2 = create_test_message(b"Hi Alice!");
@@ -857,6 +860,7 @@ mod tests {
             .feed_incoming_message_board_read(&output2.seeker, &output2.data, &alice_sk)
             .unwrap();
         assert_eq!(received2.message.as_slice(), b"Hi Alice!");
+        assert_eq!(received2.user_id, bob_id.as_bytes().to_vec());
     }
 
     #[test]
@@ -1103,6 +1107,7 @@ mod tests {
         let received_reply = alice_manager
             .feed_incoming_message_board_read(&reply_output.seeker, &reply_output.data, &alice_sk)
             .unwrap();
+        assert_eq!(received_reply.user_id, bob_id.as_bytes().to_vec());
 
         // Check for acknowledgments
         assert!(!received_reply.newly_acknowledged_self_seekers.is_empty());

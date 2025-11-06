@@ -133,6 +133,9 @@ pub struct FeedIncomingMessageOutput {
     /// List of seekers for our messages that were acknowledged by this message
     /// (the peer has received these messages, so we can prune them from history)
     pub newly_acknowledged_self_seekers: Vec<Vec<u8>>,
+    /// User Id of the peer that sent the message
+    pub user_id: Vec<u8>,
+
 }
 
 /// Incoming session initiation request from a peer.
@@ -505,7 +508,7 @@ impl Session {
     /// # Returns
     ///
     /// - `Some(FeedIncomingMessageOutput)` if decryption succeeds, containing the plaintext
-    ///   message and list of acknowledged seekers
+    ///   message and list of acknowledged seekers and the user id of the peer that sent the message
     /// - `None` if the message is invalid, cannot be decrypted, or has an invalid signature
     pub fn try_feed_incoming_message(
         &mut self,
@@ -571,12 +574,16 @@ impl Session {
         // update peer seeker keypair for next message
         self.peer_seeker_massa_keypair = message.seeker_massa_keypair_next.clone();
 
+        // get user id of the peer that sent the message
+        let user_id = self.peer_public_keys.derive_id();
+
         Some(FeedIncomingMessageOutput {
             timestamp: message.timestamp,
             message: message.contents.clone(),
             newly_acknowledged_self_seekers: agraphon_result
                 .newly_acknowledged_self_seekers
                 .clone(),
+            user_id: user_id.as_bytes().to_vec(),
         })
     }
 
@@ -749,6 +756,10 @@ mod tests {
             .expect("Failed to decrypt message");
 
         assert_eq!(receive_output.message, b"Hello Bob!");
+        // Sender should be Alice
+        let alice_id = alice_pk.derive_id();
+        assert_eq!(receive_output.user_id, alice_id.as_bytes().to_vec());
+        assert_eq!(receive_output.user_id.len(), 32);
         // Timestamps might differ slightly due to test timing
         assert!((receive_output.timestamp as u128).abs_diff(message.timestamp) < 10);
     }
@@ -783,6 +794,8 @@ mod tests {
             .try_feed_incoming_message(&bob_sk, &output1.seeker, &output1.data)
             .unwrap();
         assert_eq!(received1.message, b"Hello Bob!");
+        let alice_id = alice_pk.derive_id();
+        assert_eq!(received1.user_id, alice_id.as_bytes().to_vec());
 
         // Bob -> Alice
         let msg2 = create_test_message(b"Hi Alice!");
@@ -791,6 +804,8 @@ mod tests {
             .try_feed_incoming_message(&alice_sk, &output2.seeker, &output2.data)
             .unwrap();
         assert_eq!(received2.message, b"Hi Alice!");
+        let bob_id = bob_pk.derive_id();
+        assert_eq!(received2.user_id, bob_id.as_bytes().to_vec());
 
         // Alice -> Bob (second message)
         let msg3 = create_test_message(b"How are you?");
@@ -799,6 +814,7 @@ mod tests {
             .try_feed_incoming_message(&bob_sk, &output3.seeker, &output3.data)
             .unwrap();
         assert_eq!(received3.message, b"How are you?");
+        assert_eq!(received3.user_id, alice_id.as_bytes().to_vec());
     }
 
     /// Tests that a message encrypted for one recipient cannot be decrypted by another.
@@ -939,6 +955,8 @@ mod tests {
             .try_feed_incoming_message(&bob_sk, &output1.seeker, &output1.data)
             .unwrap();
         assert_eq!(received1.message, b"msg1");
+        let alice_id = alice_pk.derive_id();
+        assert_eq!(received1.user_id, alice_id.as_bytes().to_vec());
 
         // Bob sends a reply (which acknowledges Alice's messages)
         let reply = create_test_message(b"reply");
@@ -949,6 +967,8 @@ mod tests {
             .try_feed_incoming_message(&alice_sk, &reply_output.seeker, &reply_output.data)
             .unwrap();
         assert_eq!(received_reply.message, b"reply");
+        let bob_id = bob_pk.derive_id();
+        assert_eq!(received_reply.user_id, bob_id.as_bytes().to_vec());
 
         // Check if there are newly acknowledged seekers
         assert!(!received_reply.newly_acknowledged_self_seekers.is_empty());
@@ -986,6 +1006,8 @@ mod tests {
             .unwrap();
 
         assert!(receive_output.message.is_empty());
+        let alice_id = alice_pk.derive_id();
+        assert_eq!(receive_output.user_id, alice_id.as_bytes().to_vec());
     }
 
     /// Tests that large messages (10KB) can be successfully sent and received
@@ -1021,6 +1043,8 @@ mod tests {
             .unwrap();
 
         assert_eq!(receive_output.message, large_content);
+        let alice_id = alice_pk.derive_id();
+        assert_eq!(receive_output.user_id, alice_id.as_bytes().to_vec());
     }
 
     // test_seeker_prefix_uniqueness removed - seekers now use randomly generated Massa keypairs,
