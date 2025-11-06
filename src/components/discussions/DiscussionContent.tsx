@@ -15,7 +15,6 @@ import { useAccountStore } from '../../stores/accountStore';
 import Button from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useDiscussionList } from '../../hooks/useDiscussionList';
 
 const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
   const navigate = useNavigate();
@@ -32,7 +31,6 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
     isLoading: isDiscussionLoading,
   } = useDiscussion({ contact });
 
-  const { handlers: listHandlers } = useDiscussionList();
   const { userProfile } = useAccountStore();
 
   const {
@@ -57,22 +55,14 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
     loadMessages();
   }, [loadMessages]);
 
-  // Mark messages as read when viewing the discussion and refresh list counters
+  // Mark messages as read when viewing the discussion
   useEffect(() => {
     if (messages.length > 0 && !isLoading && userProfile?.userId) {
-      db.markMessagesAsRead(userProfile.userId, contact.userId)
-        .then(() => listHandlers.handleRefresh())
-        .catch(error =>
-          console.error('Failed to mark messages as read:', error)
-        );
+      db.markMessagesAsRead(userProfile.userId, contact.userId).catch(error =>
+        console.error('Failed to mark messages as read:', error)
+      );
     }
-  }, [
-    messages.length,
-    isLoading,
-    userProfile?.userId,
-    contact.userId,
-    listHandlers,
-  ]);
+  }, [messages.length, isLoading, userProfile?.userId, contact.userId]);
 
   useEffect(() => {
     if (messages.length > 0 && !isLoading) {
