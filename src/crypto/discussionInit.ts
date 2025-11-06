@@ -1,5 +1,3 @@
-// TODO: For announcement handle if there is already an announcement for this contact ?
-
 /**
  * Discussion Initialization Module
  *
