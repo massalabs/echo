@@ -85,29 +85,6 @@ export interface Discussion {
   updatedAt: Date;
 }
 
-export interface DiscussionKey {
-  id?: number;
-  discussionId: number;
-  publicKey: Uint8Array; // Kyber public key
-  privateKey: Uint8Array; // Kyber private key (encrypted)
-  isActive: boolean;
-  createdAt: Date;
-}
-
-export interface DiscussionMessage {
-  id?: number;
-  discussionId?: number; // Optional for pending announcements that haven't been processed yet
-  messageType: 'initiation' | 'response' | 'regular';
-  direction: 'incoming' | 'outgoing';
-  ciphertext: Uint8Array; // Encrypted message content
-  ct: Uint8Array; // Kyber ciphertext
-  rand: Uint8Array; // Random number for derivation
-  nonce: Uint8Array; // AES nonce
-  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
-  timestamp: Date;
-  metadata?: Record<string, unknown>;
-}
-
 // Define the database class
 export class GossipDatabase extends Dexie {
   // Define tables
@@ -116,8 +93,6 @@ export class GossipDatabase extends Dexie {
   userProfile!: Table<UserProfile>;
   settings!: Table<Settings>;
   discussions!: Table<Discussion>;
-  discussionKeys!: Table<DiscussionKey>;
-  discussionMessages!: Table<DiscussionMessage>;
 
   constructor() {
     super('GossipDatabase');
@@ -131,9 +106,6 @@ export class GossipDatabase extends Dexie {
       settings: '++id, key, updatedAt',
       discussions:
         '++id, ownerUserId, &[ownerUserId+contactUserId], status, [ownerUserId+status], lastSyncTimestamp, unreadCount, lastMessageTimestamp, createdAt, updatedAt',
-      discussionKeys: '++id, discussionId, isActive, createdAt',
-      discussionMessages:
-        '++id, discussionId, messageType, direction, status, timestamp',
     });
 
     // Add hooks for automatic timestamps
@@ -175,14 +147,6 @@ export class GossipDatabase extends Dexie {
         (modifications as Record<string, unknown>).updatedAt = new Date();
       }
     );
-
-    this.discussionKeys.hook('creating', function (_primKey, obj, _trans) {
-      obj.createdAt = new Date();
-    });
-
-    this.discussionMessages.hook('creating', function (_primKey, obj, _trans) {
-      obj.timestamp = new Date();
-    });
   }
 
   // Helper methods for common operations
@@ -324,26 +288,6 @@ export class GossipDatabase extends Dexie {
       value,
       updatedAt: new Date(),
     });
-  }
-
-  /**
-   * Get messages for a discussion since a specific timestamp
-   * @param discussionId - The discussion ID
-   * @param timestamp - The timestamp to filter from
-   * @returns Array of messages newer than the timestamp
-   */
-  async getMessagesSince(
-    discussionId: number,
-    timestamp: Date
-  ): Promise<DiscussionMessage[]> {
-    return await this.discussionMessages
-      .where('discussionId')
-      .equals(discussionId)
-      .filter(msg => msg.timestamp > timestamp)
-      .toArray()
-      .then(messages =>
-        messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-      );
   }
 
   /**
