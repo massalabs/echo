@@ -77,7 +77,7 @@ const Wallet: React.FC = () => {
             <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
               <span className="uppercase tracking-wide">Address</span>
               <div className="flex items-center gap-2">
-                <span className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">
                   {displayAddress}
                 </span>
                 <CopyClipboard text={fullAddress} title="Copy address" />

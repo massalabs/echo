@@ -161,7 +161,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 </Button>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
+                <p className="text-sm text-black dark:text-white break-all leading-relaxed">
                   {backupInfo.mnemonic}
                 </p>
               </div>
@@ -201,7 +201,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 </Button>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
+                <p className="text-sm text-black dark:text-white break-all leading-relaxed">
                   {privateKeyString}
                 </p>
               </div>

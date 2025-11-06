@@ -68,7 +68,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <Button
             onClick={handleSendMessage}
             disabled={!newMessage.trim() || disabled}
-            variant="gradient-blue"
+            variant="primary"
             size="custom"
             className={`w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-full flex items-center justify-center shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all ${
               disabled ? 'opacity-60 cursor-not-allowed' : ''

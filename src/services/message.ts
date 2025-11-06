@@ -181,18 +181,26 @@ export class MessageService {
 
       // Validate peer ID length
       if (peerId.length !== 32) {
+        await db.messages.update(message.id, { status: 'failed' });
         return {
           success: false,
           error: 'Invalid contact userId (must decode to 32 bytes)',
+          message: { ...message, id: message.id, status: 'failed' },
         };
       }
 
       // Ensure session is active before sending
       const status = session.peerSessionStatus(peerId);
+
       if (status !== SessionStatus.Active) {
         const statusName =
           SessionStatus[status as unknown as number] ?? String(status);
-        return { success: false, error: `Session not ready: ${statusName}` };
+        await db.messages.update(message.id, { status: 'failed' });
+        return {
+          success: false,
+          error: `Session not ready: ${statusName}`,
+          message: { ...message, id: message.id, status: 'failed' },
+        };
       }
 
       const sendOutput = session.sendMessage(peerId, contentBytes);

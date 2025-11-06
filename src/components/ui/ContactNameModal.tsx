@@ -67,7 +67,7 @@ const ContactNameModal: React.FC<ContactNameModalProps> = ({
         <div className="flex gap-3">
           <Button
             onClick={handleConfirm}
-            variant="gradient-blue"
+            variant="primary"
             size="custom"
             className="flex-1 h-11 rounded-xl text-sm font-medium"
           >

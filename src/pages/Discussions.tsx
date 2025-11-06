@@ -34,7 +34,7 @@ const Discussions: React.FC = () => {
 
   return (
     <div className="min-h-screen-mobile bg-background h-full">
-      <div className="max-w-md mx-auto h-screen-mobile flex flex-col bg-white">
+      <div className="max-w-md mx-auto h-screen-mobile flex flex-col bg-card">
         <div className="pb-20 flex-1 overflow-y-auto relative">
           <DiscussionListPanel
             discussions={discussions}

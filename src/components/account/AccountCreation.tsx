@@ -293,7 +293,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                 type="submit"
                 disabled={!canSubmit || isCreating || accountCreationStarted}
                 loading={isCreating || accountCreationStarted}
-                variant="gradient-blue"
+                variant="primary"
                 size="custom"
                 fullWidth
                 className="h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2"

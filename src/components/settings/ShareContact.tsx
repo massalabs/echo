@@ -77,7 +77,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 }}
                 disabled={!ourPk || isLoading}
                 loading={isLoading}
-                variant="gradient-blue"
+                variant="primary"
                 size="custom"
                 fullWidth
                 className="h-11 rounded-xl text-sm font-medium"

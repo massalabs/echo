@@ -45,9 +45,9 @@ const Button: React.FC<ButtonProps> = ({
       'bg-secondary hover:bg-secondary/80 disabled:bg-muted text-secondary-foreground disabled:text-muted-foreground focus:ring-ring',
     danger:
       'bg-destructive hover:bg-destructive/90 disabled:bg-destructive/50 text-destructive-foreground focus:ring-ring',
-    ghost: 'bg-transparent hover:bg-accent text-foreground focus:ring-ring',
+    ghost: 'bg-transparent hover:bg-accent text-foreground',
     outline:
-      'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm hover:shadow-md',
+      'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm hover:shadow-md',
     'gradient-emerald':
       'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm',
     'gradient-blue': 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',

@@ -95,7 +95,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           <div className="space-y-4 mb-6">
             <Button
               onClick={onComplete}
-              variant="gradient-blue"
+              variant="primary"
               size="custom"
               fullWidth
               className="h-14 text-base font-semibold rounded-2xl flex items-center justify-center gap-2"
@@ -144,7 +144,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
             <Button
               onClick={nextStep}
-              variant="gradient-blue"
+              variant="primary"
               size="sm"
               className="px-8 flex items-center gap-2"
             >

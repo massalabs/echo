@@ -65,7 +65,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
         </label>
         <div className="flex items-center gap-2">
           <div className="flex-1 p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl">
-            <p className="text-sm font-mono text-gray-900 dark:text-white break-all">
+            <p className="text-sm text-gray-900 dark:text-white break-all">
               {displayAddress}
             </p>
           </div>

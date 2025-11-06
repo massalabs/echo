@@ -214,14 +214,11 @@ const Login: React.FC<LoginProps> = React.memo(
             {accountSupportsBiometrics && (
               <div className="rounded-2xl bg-white/80 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-sm backdrop-blur">
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                    Use biometrics
-                  </p>
                   <Button
                     onClick={handleBiometricAuth}
                     disabled={isLoading}
                     loading={isLoading}
-                    variant="gradient-blue"
+                    variant="primary"
                     size="custom"
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
@@ -269,7 +266,7 @@ const Login: React.FC<LoginProps> = React.memo(
                     onClick={() => handlePasswordAuth()}
                     disabled={isLoading || !password.trim()}
                     loading={isLoading}
-                    variant="gradient-blue"
+                    variant="ghost"
                     size="custom"
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"

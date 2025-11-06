@@ -130,12 +130,17 @@ export const useMessages = ({
         const result = await messageService.sendMessage(messageWithId);
         if (!contact?.userId) return;
 
-        // Reflect final status in local state
+        // Reflect final status in local state (always update if message is provided)
         if (result.message) {
           setMessages(prev =>
             prev.map(m =>
               m.id === messageId ? { ...m, status: result.message!.status } : m
             )
+          );
+        } else if (!result.success) {
+          // If no message in result but it failed, mark as failed in local state
+          setMessages(prev =>
+            prev.map(m => (m.id === messageId ? { ...m, status: 'failed' } : m))
           );
         }
 
@@ -143,6 +148,12 @@ export const useMessages = ({
           console.error('Failed to send message:', result.error);
           throw new Error(result.error);
         }
+      } catch (error) {
+        // Ensure message is marked as failed in local state on any error
+        setMessages(prev =>
+          prev.map(m => (m.id === messageId ? { ...m, status: 'failed' } : m))
+        );
+        throw error;
       } finally {
         setIsSending(false);
       }
@@ -166,11 +177,18 @@ export const useMessages = ({
         const result = await messageService.sendMessage(message);
         if (!contact?.userId) return;
 
-        // Reflect final status in local state
+        // Reflect final status in local state (always update if message is provided)
         if (result.message) {
           setMessages(prev =>
             prev.map(m =>
               m.id === message.id ? { ...m, status: result.message!.status } : m
+            )
+          );
+        } else if (!result.success) {
+          // If no message in result but it failed, mark as failed in local state
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === message.id ? { ...m, status: 'failed' } : m
             )
           );
         }
@@ -179,6 +197,12 @@ export const useMessages = ({
           console.error('Failed to resend message:', result.error);
           throw new Error(result.error);
         }
+      } catch (error) {
+        // Ensure message is marked as failed in local state on any error
+        setMessages(prev =>
+          prev.map(m => (m.id === message.id ? { ...m, status: 'failed' } : m))
+        );
+        throw error;
       } finally {
         setIsSending(false);
       }

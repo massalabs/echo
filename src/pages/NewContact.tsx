@@ -417,7 +417,7 @@ const NewContact: React.FC = () => {
                   disabled={
                     !validateUsername(name).valid || !!userId || isSubmitting
                   }
-                  variant="gradient-blue"
+                  variant="ghost"
                   size="custom"
                   className="px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap"
                   title="Generate random user ID"
@@ -445,7 +445,7 @@ const NewContact: React.FC = () => {
               onClick={handleSubmit}
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
-              variant="gradient-blue"
+              variant="ghost"
               size="custom"
               fullWidth
               className="py-3 px-4 rounded-xl text-sm font-medium"
