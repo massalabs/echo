@@ -11,7 +11,8 @@ const EmptyDiscussions: React.FC = () => {
         No discussions yet
       </p>
       <p className="text-xs text-muted-foreground">
-        Start a discussion by tapping the compose button
+        Start a discussion by tapping the <span className="font-bold">+</span>{' '}
+        button
       </p>
     </div>
   );
