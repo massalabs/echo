@@ -44,7 +44,6 @@ export class RestMessageProtocol implements IMessageProtocol {
       return {
         seeker,
         ciphertext,
-        timestamp: new Date(), // TODO: Validate source of timestamp
       };
     });
   }

@@ -53,7 +53,7 @@ export const useMessages = ({
       setIsSyncing(true);
 
       // Fetch new encrypted messages
-      const fetchResult = await messageService.fetchNewMessages(discussionId);
+      const fetchResult = await messageService.fetchMessages();
 
       if (fetchResult.success && fetchResult.newMessagesCount > 0) {
         // Reload messages to show the new ones (decryption handled elsewhere)
@@ -81,22 +81,93 @@ export const useMessages = ({
 
       setIsSending(true);
 
-      const result = await messageService.sendMessage(contact?.userId, content);
-      if (!contact?.userId) return;
+      const ownerUserId = useAccountStore.getState().userProfile?.userId;
+      if (!ownerUserId)
+        return { success: false, error: 'No authenticated user' };
+      if (!content) return { success: false, error: 'Empty content' };
 
-      if (!result.success) {
-        console.error('Failed to send message:', result.error);
+      const discussion = await db.getDiscussionByOwnerAndContact(
+        ownerUserId,
+        contact.userId
+      );
+
+      if (!discussion) return { success: false, error: 'Discussion not found' };
+
+      // Create message with sending status
+      const message: Omit<Message, 'id'> = {
+        ownerUserId,
+        contactUserId: contact.userId,
+        content,
+        type: 'text',
+        direction: 'outgoing',
+        status: 'sending',
+        timestamp: new Date(),
+        encrypted: true,
+      };
+
+      // Persist to DB, keep the generated id for later status updates
+      const messageId = await db.addMessage(message);
+      const messageWithId: Message = { ...message, id: messageId };
+      setMessages(prev => [...prev, messageWithId]);
+
+      try {
+        const result = await messageService.sendMessage(messageWithId);
+        if (!contact?.userId) return;
+
+        // Reflect final status in local state
+        if (result.message) {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === messageId ? { ...m, status: result.message!.status } : m
+            )
+          );
+        }
+
+        if (!result.success) {
+          console.error('Failed to send message:', result.error);
+          throw new Error(result.error);
+        }
+      } finally {
         setIsSending(false);
-        throw new Error(result.error);
       }
-
-      if (result.message) {
-        setMessages(prev => [...prev, result.message!]);
-      }
-
-      setIsSending(false);
     },
     [contact?.userId, userProfile, isSending]
+  );
+
+  const resendMessage = useCallback(
+    async (message: Message) => {
+      if (!message.id || isSending) return;
+      if (!contact?.userId) return;
+
+      setIsSending(true);
+
+      try {
+        // Optimistically reflect sending in UI; service persists DB status
+        setMessages(prev =>
+          prev.map(m => (m.id === message.id ? { ...m, status: 'sending' } : m))
+        );
+
+        const result = await messageService.sendMessage(message);
+        if (!contact?.userId) return;
+
+        // Reflect final status in local state
+        if (result.message) {
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === message.id ? { ...m, status: result.message!.status } : m
+            )
+          );
+        }
+
+        if (!result.success) {
+          console.error('Failed to resend message:', result.error);
+          throw new Error(result.error);
+        }
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [contact?.userId, isSending]
   );
 
   // Set up periodic message sync when discussion is active (reduced frequency)
@@ -150,6 +221,7 @@ export const useMessages = ({
     isSyncing,
     loadMessages,
     sendMessage,
+    resendMessage,
     syncMessages,
   };
 };

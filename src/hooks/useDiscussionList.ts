@@ -275,8 +275,7 @@ export const useDiscussionList = () => {
 
   const handleRefresh = useCallback(async () => {
     try {
-      const svc = await announcementService.getInstance();
-      const result = await svc.fetchAndProcessAnnouncements();
+      const result = await announcementService.fetchAndProcessAnnouncements();
       if (result.success) {
         console.log('Fetched announcements successfully');
       } else {

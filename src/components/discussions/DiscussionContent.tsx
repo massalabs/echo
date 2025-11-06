@@ -30,6 +30,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
     isSyncing,
     loadMessages,
     sendMessage,
+    resendMessage,
     syncMessages,
   } = useMessages({
     contact,
@@ -52,9 +53,10 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
 
   const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim()) return;
+    const text = newMessage;
+    setNewMessage('');
     try {
-      await sendMessage(newMessage);
-      setNewMessage('');
+      await sendMessage(text);
     } catch (error) {
       toast.error('Failed to send message');
       console.error('Failed to send message:', error);
@@ -301,17 +303,69 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                         {formatTime(message.timestamp)}
                       </span>
                       {isOutgoing && (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <div className="flex items-center gap-1">
+                          {message.status === 'sending' && (
+                            <div className="flex items-center gap-1">
+                              <div className="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></div>
+                              <span className="text-[10px] font-medium">
+                                Sending
+                              </span>
+                            </div>
+                          )}
+                          {message.status === 'sent' && (
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                          {message.status === 'failed' && (
+                            <div className="flex items-center gap-1.5">
+                              <svg
+                                className="w-3.5 h-3.5 text-red-300"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <span className="text-[10px] font-medium">
+                                Failed
+                              </span>
+                              <button
+                                onClick={() => resendMessage(message)}
+                                disabled={isSending}
+                                className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-white/20 hover:bg-white/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Resend message"
+                              >
+                                Resend
+                              </button>
+                            </div>
+                          )}
+                          {(message.status === 'delivered' ||
+                            message.status === 'read') && (
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -325,7 +379,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
 
         <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800/50 px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-end gap-2 md:gap-3">
-            <div className="flex-1 flex items-end gap-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-2xl px-3 md:px-4 py-2 md:py-2.5 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500/50 transition-all duration-200">
+            <div className="flex-1 flex items-center gap-2 bg-white/90 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700/60 rounded-2xl px-3 md:px-4 py-2 md:py-2.5 shadow-sm hover:shadow focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-400/60 dark:focus-within:border-blue-500/40 transition-all duration-200">
               <textarea
                 ref={textareaRef}
                 value={newMessage}
@@ -338,7 +392,7 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                 autoCorrect="on"
                 autoCapitalize="sentences"
                 spellCheck="true"
-                className="flex-1 min-h-[36px] md:min-h-[40px] max-h-[120px] bg-transparent dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none transition-all duration-200 overflow-y-auto text-[15px] md:text-base leading-relaxed focus:outline-none"
+                className="flex-1 min-h-[36px] md:min-h-[40px] max-h-[120px] bg-transparent dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none transition-all duration-200 overflow-y-auto text-[15px] md:text-[15px] leading-relaxed focus:outline-none"
                 disabled={isSending || isInitializing}
                 style={
                   {
@@ -348,30 +402,32 @@ const DiscussionContent: React.FC<{ contact: Contact }> = ({ contact }) => {
                   } as React.CSSProperties
                 }
               />
+              <div className="hidden md:block w-px h-6 bg-gray-200 dark:bg-gray-700/60 mx-1" />
               <Button
                 onClick={handleSendMessage}
                 disabled={!newMessage.trim() || isSending || isInitializing}
-                loading={isSending || isInitializing}
                 variant="gradient-blue"
                 size="custom"
-                className="w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-full flex items-center justify-center shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30"
+                className={`w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-full flex items-center justify-center shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all ${
+                  isSending || isInitializing
+                    ? 'opacity-60 cursor-not-allowed'
+                    : ''
+                }`}
                 title="Send message"
               >
-                {!(isSending || isInitializing) && (
-                  <svg
-                    className="w-4 h-4 md:w-5 md:h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                    />
-                  </svg>
-                )}
+                <svg
+                  className="w-4 h-4 md:w-5 md:h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                  />
+                </svg>
               </Button>
             </div>
           </div>

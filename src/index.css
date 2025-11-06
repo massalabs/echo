@@ -152,6 +152,38 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Global scrollbar styling - thin, minimal, no track background */
+  * {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: color-mix(in oklch, var(--foreground) 35%, transparent)
+      transparent;
+  }
+
+  /* WebKit (Chrome, Edge, Safari) */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* Ensure no background shows behind the scrollbar in all cases */
+  *::-webkit-scrollbar-track-piece {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--foreground) 35%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent; /* create inset look with transparent track */
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--foreground) 50%, transparent);
+  }
+
   /* Disable pull-to-refresh for the entire app */
   html,
   body {

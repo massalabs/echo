@@ -10,8 +10,8 @@ import { encodeUserId } from '../utils/userId';
 import { processIncomingAnnouncement } from '../crypto/discussionInit';
 import { useAccountStore } from '../stores/accountStore';
 import {
-  IMessageProtocol,
   createMessageProtocol,
+  IMessageProtocol,
 } from '../api/messageProtocol';
 
 export interface AnnouncementReceptionResult {
@@ -21,20 +21,7 @@ export interface AnnouncementReceptionResult {
 }
 
 export class AnnouncementService {
-  private _messageProtocol: IMessageProtocol | null = null;
-
-  constructor(messageProtocol?: IMessageProtocol) {
-    if (messageProtocol) {
-      this._messageProtocol = messageProtocol;
-    }
-  }
-
-  async getMessageProtocol(): Promise<IMessageProtocol> {
-    if (!this._messageProtocol) {
-      this._messageProtocol = await createMessageProtocol();
-    }
-    return this._messageProtocol;
-  }
+  constructor(public readonly messageProtocol: IMessageProtocol) {}
 
   async sendAnnouncement(announcement: Uint8Array): Promise<{
     success: boolean;
@@ -42,8 +29,7 @@ export class AnnouncementService {
     error?: string;
   }> {
     try {
-      const protocol = await this.getMessageProtocol();
-      const counter = await protocol.sendAnnouncement(announcement);
+      const counter = await this.messageProtocol.sendAnnouncement(announcement);
       return { success: true, counter };
     } catch (error) {
       console.error('Failed to broadcast outgoing session:', error);
@@ -124,8 +110,7 @@ export class AnnouncementService {
 
   private async _fetchAnnouncements(): Promise<Uint8Array[]> {
     try {
-      const messageProtocol = await this.getMessageProtocol();
-      const announcements = await messageProtocol.fetchAnnouncements();
+      const announcements = await this.messageProtocol.fetchAnnouncements();
       return announcements;
     } catch (error) {
       console.error('Failed to fetch incoming announcements:', error);
@@ -252,14 +237,6 @@ export class AnnouncementService {
   }
 }
 
-let _announcementService: AnnouncementService | null = null;
-
-export const announcementService = {
-  async getInstance(): Promise<AnnouncementService> {
-    if (!_announcementService) {
-      _announcementService = new AnnouncementService();
-      await _announcementService.getMessageProtocol();
-    }
-    return _announcementService;
-  },
-};
+export const announcementService = new AnnouncementService(
+  createMessageProtocol()
+);

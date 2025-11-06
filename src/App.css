@@ -86,7 +86,8 @@
 
 /* Prevent layout shift when vertical scrollbar appears */
 html {
-  scrollbar-gutter: stable both-edges;
+  /* Reserve space only on scrollbar side to prevent layout shift without creating both-side gutters */
+  scrollbar-gutter: stable;
 }
 
 /* Fallback for browsers without scrollbar-gutter support */

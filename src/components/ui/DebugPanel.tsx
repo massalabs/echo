@@ -81,8 +81,8 @@ const DebugPanel: React.FC = () => {
       if ('Notification' in window && Notification.permission === 'default') {
         await Notification.requestPermission();
       }
-      const ann = await announcementService.getInstance();
-      const result = await ann.simulateIncomingDiscussion();
+
+      const result = await announcementService.simulateIncomingDiscussion();
       if (result.success) {
         console.log(
           'Simulated incoming discussion. New messages:',
