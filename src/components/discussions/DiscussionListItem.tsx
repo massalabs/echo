@@ -73,7 +73,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
               <div className="flex items-center gap-2">
                 {isPendingOutgoing && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent text-accent-foreground border border-border">
-                    Awaiting connection – will retry automatically
+                    Failed will retry
                   </span>
                 )}
                 {lastMessage && (
