@@ -7,8 +7,10 @@ import {
   DebugLog,
 } from './debugLogs';
 import Button from './Button';
+import { useAppStore } from '../../stores/appStore';
 
 const DebugOverlay: React.FC = () => {
+  const showDebugPanel = useAppStore(s => s.showDebugPanel);
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [showRawText, setShowRawText] = useState(false);
@@ -70,13 +72,17 @@ const DebugOverlay: React.FC = () => {
     }
   };
 
+  if (!showDebugPanel) {
+    return null;
+  }
+
   if (!isVisible) {
     return (
       <Button
         onClick={() => setIsVisible(true)}
         variant="primary"
         size="custom"
-        className="fixed top-2 right-2 z-50 bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium shadow-lg dark:text-black"
+        className="fixed top-2 right-2 z-40 bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium shadow-lg dark:text-black"
       >
         Show Debug
       </Button>

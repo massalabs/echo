@@ -100,8 +100,11 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
             </div>
             {isPendingIncoming ? (
               <>
-                <p className="mt-2 text-[11px] text-muted-foreground break-all">
-                  User Id: {formatUserId(contact.userId)}
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  <span className="whitespace-nowrap">User ID:</span>{' '}
+                  <span className="break-all">
+                    {formatUserId(contact.userId)}
+                  </span>
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <Button

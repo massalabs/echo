@@ -82,6 +82,16 @@ const Settings = (): React.ReactElement => {
 
         {/* Settings Options */}
         <div className="px-4 pb-20 space-y-2">
+          {/* App Version */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 justify-between">
+            <span className="text-base font-semibold text-black dark:text-white">
+              Version
+            </span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">
+              0.0.1
+            </span>
+          </div>
+
           {/* Account Backup Button */}
           <Button
             variant="outline"
