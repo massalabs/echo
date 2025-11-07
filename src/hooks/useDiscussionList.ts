@@ -21,14 +21,16 @@ export const useDiscussionList = () => {
   }, [userProfile?.userId, loadContacts, loadDiscussions]);
 
   const handleCreatedNewContact = useCallback(
-    async (contact: Contact) => {
+    async (contact: Contact): Promise<boolean> => {
       try {
-        await initializeDiscussion(contact);
+        const result = await initializeDiscussion(contact);
+        return !!result.sent;
       } catch (e) {
         console.error(
           'Failed to initialize discussion after contact creation:',
           e
         );
+        return false;
       } finally {
         if (userProfile?.userId) {
           await loadContacts(userProfile.userId);

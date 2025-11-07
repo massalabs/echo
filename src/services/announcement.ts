@@ -240,3 +240,32 @@ export class AnnouncementService {
 export const announcementService = new AnnouncementService(
   createMessageProtocol()
 );
+
+/**
+ * Retry any pending outgoing announcements that were stored when offline.
+ */
+export async function retryPendingOutgoingAnnouncements(): Promise<void> {
+  try {
+    const { userProfile } = useAccountStore.getState();
+    if (!userProfile?.userId) return;
+
+    const toRetry = await db.discussions
+      .where('[ownerUserId+status]')
+      .equals([userProfile.userId, 'pending'])
+      .filter(d => d.direction === 'initiated' && !!d.initiationAnnouncement)
+      .toArray();
+
+    for (const d of toRetry) {
+      try {
+        await announcementService.sendAnnouncement(
+          d.initiationAnnouncement as Uint8Array
+        );
+      } catch (e) {
+        // best-effort retry; continue other discussions
+        console.error('Retry announcement failed for discussion:', d.id, e);
+      }
+    }
+  } catch (error) {
+    console.error('retryPendingOutgoingAnnouncements error:', error);
+  }
+}

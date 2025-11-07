@@ -21,6 +21,7 @@ import { announcementService } from '../services/announcement';
 export async function initializeDiscussion(contact: Contact): Promise<{
   discussionId: number;
   announcement: Uint8Array;
+  sent: boolean;
 }> {
   try {
     const { ourPk, ourSk, userProfile, session } = useAccountStore.getState();
@@ -34,25 +35,23 @@ export async function initializeDiscussion(contact: Contact): Promise<{
       ourSk
     );
 
-    const result = await announcementService.sendAnnouncement(announcement);
-    if (!result.success) {
-      throw new Error(
-        `Failed to broadcast outgoing session: ${result.error || 'Unknown error'}`
-      );
-    }
-
+    // Persist discussion immediately with the announcement for reliable retry
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
       contactUserId: contact.userId,
       direction: 'initiated',
       status: 'pending',
       nextSeeker: undefined,
+      initiationAnnouncement: announcement,
       unreadCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    return { discussionId, announcement };
+    // Try to send; on failure keep pending for automatic retry
+    const result = await announcementService.sendAnnouncement(announcement);
+
+    return { discussionId, announcement, sent: !!result.success };
   } catch (error) {
     console.error('Failed to initialize discussion:', error);
     throw new Error('Discussion initialization failed');

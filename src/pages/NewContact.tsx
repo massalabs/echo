@@ -15,6 +15,7 @@ import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import BaseModal from '../components/ui/BaseModal';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';
+import toast from 'react-hot-toast';
 
 const NewContact: React.FC = () => {
   const navigate = useNavigate();
@@ -164,7 +165,12 @@ const NewContact: React.FC = () => {
       }
 
       await db.contacts.add(contact);
-      await handleCreatedNewContact(contact);
+      const sent = await handleCreatedNewContact(contact);
+      if (!sent) {
+        toast('Contact saved. Announcement will be sent once you’re online.', {
+          icon: 'ℹ️',
+        });
+      }
       navigate(`/`);
     } catch (e) {
       console.error(e);

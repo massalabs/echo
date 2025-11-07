@@ -7,7 +7,10 @@
 
 import { notificationService } from './notifications';
 import { messageService } from './message';
-import { announcementService } from './announcement';
+import {
+  announcementService,
+  retryPendingOutgoingAnnouncements,
+} from './announcement';
 
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
@@ -39,6 +42,13 @@ export class BackgroundSyncService {
 
       this.isRegistered = true;
       console.log('Background sync service initialized');
+
+      // Auto-retry pending announcements when coming back online
+      if (typeof window !== 'undefined' && 'addEventListener' in window) {
+        window.addEventListener('online', () => {
+          void this.triggerManualSync();
+        });
+      }
     } catch (error) {
       console.error('Failed to initialize background sync service:', error);
     }
@@ -110,6 +120,7 @@ export class BackgroundSyncService {
   async triggerManualSync(): Promise<void> {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Worker not supported, falling back to direct sync');
+      await retryPendingOutgoingAnnouncements();
       await announcementService.fetchAndProcessAnnouncements();
       await messageService.fetchMessages();
       return;
@@ -123,6 +134,10 @@ export class BackgroundSyncService {
           type: 'SYNC_MESSAGES',
         });
       }
+
+      // Also perform retries and a direct fetch in case SW message doesn't fire immediately
+      await retryPendingOutgoingAnnouncements();
+      await announcementService.fetchAndProcessAnnouncements();
     } catch (error) {
       console.error('Failed to trigger manual sync:', error);
     }
