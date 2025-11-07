@@ -3,7 +3,7 @@ import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
 import { useAccountStore } from '../stores/accountStore';
 import { useAppStore } from '../stores/appStore';
-import { formatMassaAddress } from '../utils/addressUtils';
+import { formatUserId } from '../utils/userId';
 import appLogo from '../assets/echo_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
 import ShareContact from '../components/settings/ShareContact';
@@ -16,7 +16,7 @@ enum SettingsView {
 }
 
 const Settings = (): React.ReactElement => {
-  const { userProfile, account, getMnemonicBackupInfo, resetAccount } =
+  const { userProfile, getMnemonicBackupInfo, resetAccount } =
     useAccountStore();
   const { showDebugPanel, setShowDebugPanel } = useAppStore();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
@@ -57,15 +57,20 @@ const Settings = (): React.ReactElement => {
                 <h3 className="text-base font-semibold text-black dark:text-white mb-2">
                   {userProfile?.username || 'Account name'}
                 </h3>
-                {account?.address && (
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                      {formatMassaAddress(account.address.toString())}
+                {userProfile?.userId && (
+                  <div className="mb-2 flex items-baseline gap-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      User ID:
                     </p>
-                    <CopyClipboard
-                      text={account.address.toString()}
-                      title="Copy address"
-                    />
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                        {formatUserId(userProfile.userId, 5, 3)}
+                      </p>
+                      <CopyClipboard
+                        text={userProfile.userId}
+                        title="Copy user ID"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
