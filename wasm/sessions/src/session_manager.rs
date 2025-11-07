@@ -356,14 +356,15 @@ impl SessionManager {
     ///
     /// # Security Warning
     ///
-    /// **The user_data in announcements is NOT as secure as regular messages:**
-    /// - ❌ **No plausible deniability**: Announcements are cryptographically signed,
-    ///   proving who created them. They cannot be repudiated.
+    /// **The user_data in announcements has reduced security compared to regular messages:**
+    /// - ✅ **Plausible deniability preserved**: The user_data is not cryptographically signed,
+    ///   so the sender can deny having sent specific user_data content (though they cannot deny
+    ///   the announcement itself).
     /// - ❌ **No post-compromise secrecy**: If the sender's long-term keys are compromised
     ///   in the future, all past announcements (including their user_data) can be decrypted.
     ///
-    /// **Recommendation**: Treat user_data as semi-public information. Only use it for
-    /// non-sensitive metadata. Any sensitive information should be sent through regular
+    /// **Recommendation**: Treat user_data as having limited confidentiality. Use it for
+    /// metadata that is not highly sensitive. Send truly sensitive information through regular
     /// messages after the session is established.
     ///
     /// # Example
@@ -460,16 +461,16 @@ impl SessionManager {
     ///
     /// # Security Warning
     ///
-    /// **The user_data in announcements is NOT as secure as regular messages:**
-    /// - ❌ **No plausible deniability**: The announcement is cryptographically signed,
-    ///   proving that you created it. Unlike messages, announcements cannot be repudiated.
+    /// **The user_data in announcements has reduced security compared to regular messages:**
+    /// - ✅ **Plausible deniability preserved**: The user_data is not cryptographically signed,
+    ///   so you can deny having sent specific user_data content (though you cannot deny the
+    ///   announcement itself).
     /// - ❌ **No post-compromise secrecy**: If your long-term keys are compromised in the
     ///   future, past announcements (including their user_data) can be decrypted.
     ///
-    /// **Recommendation**: Avoid including sensitive information in user_data. Use it only
-    /// for non-sensitive metadata like protocol version, public display names, or
-    /// capability flags. Send sensitive data through regular messages after the session
-    /// is established.
+    /// **Recommendation**: Avoid including highly sensitive information in user_data. Use it for
+    /// metadata like protocol version, public display names, or capability flags. Send truly
+    /// sensitive data through regular messages after the session is established.
     ///
     /// # Returns
     ///

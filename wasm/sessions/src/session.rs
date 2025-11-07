@@ -83,14 +83,21 @@ const MESSAGE_SEEKER_DB_KEY: &[u8] = &[1u8];
 ///
 /// This is serialized, encrypted in an auth blob, and included in the announcement.
 /// It contains the random seed used to derive the initial seeker keypair through KDF,
-/// the message timestamp, and atbirary user data.
+/// and the message timestamp.
 #[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
 pub(crate) struct SessionInitPayload {
     /// Random 32-byte seed used to derive the initial seeker keypair via KDF
     pub(crate) seeker_seed: [u8; 32],
     /// Unix timestamp in milliseconds when this payload was created
     pub(crate) unix_timestamp_millis: u128,
-    /// Arbitrary user data
+}
+
+/// Auth payload embedded in announcements.
+#[derive(Serialize, Deserialize, Zeroize, ZeroizeOnDrop)]
+pub(crate) struct AuthPayload {
+    /// Auth blob
+    pub(crate) auth_blob: auth::AuthBlob,
+    /// Custom user data
     pub(crate) user_data: Vec<u8>,
 }
 
@@ -187,19 +194,19 @@ impl IncomingInitiationRequest {
         let auth_key = incoming_announcement_precursor.auth_key();
 
         // deserialize announcement contents
-        let auth_blob: auth::AuthBlob =
+        let auth_payload: AuthPayload =
             bincode::serde::decode_from_slice(auth_payload, bincode::config::standard())
                 .ok()?
                 .0;
 
         // verify auth blob
-        if !auth_blob.verify(auth_key) {
+        if !auth_payload.auth_blob.verify(auth_key) {
             return None;
         }
 
         // deserialize inner data
         let init_payload: SessionInitPayload = bincode::serde::decode_from_slice(
-            auth_blob.public_payload(),
+            auth_payload.auth_blob.public_payload(),
             bincode::config::standard(),
         )
         .ok()?
@@ -207,16 +214,16 @@ impl IncomingInitiationRequest {
 
         // finalize agraphon announcement
         let agraphon_announcement = incoming_announcement_precursor
-            .finalize(auth_blob.public_keys().kem_public_key.clone())?;
+            .finalize(auth_payload.auth_blob.public_keys().kem_public_key.clone())?;
 
         Some((
             Self {
                 agraphon_announcement: agraphon_announcement.clone(),
-                origin_public_keys: auth_blob.public_keys().clone(),
+                origin_public_keys: auth_payload.auth_blob.public_keys().clone(),
                 timestamp_millis: init_payload.unix_timestamp_millis,
                 seeker_seed: init_payload.seeker_seed,
             },
-            init_payload.user_data.clone(),
+            auth_payload.user_data.clone(),
         ))
     }
 }
@@ -263,17 +270,23 @@ impl OutgoingInitiationRequest {
         let session_init_payload = SessionInitPayload {
             seeker_seed,
             unix_timestamp_millis: timestamp_millis,
-            user_data,
         };
         let session_init_payload_bytes =
             bincode::serde::encode_to_vec(&session_init_payload, bincode::config::standard())
                 .expect("Failed to serialize outgoing session initiation request");
 
-        // create auth blob
-        let auth_blob =
-            auth::AuthBlob::new(our_pk.clone(), our_sk, session_init_payload_bytes, auth_key);
+        // create auth payload
+        let auth_payload = AuthPayload {
+            auth_blob: auth::AuthBlob::new(
+                our_pk.clone(),
+                our_sk,
+                session_init_payload_bytes,
+                auth_key,
+            ),
+            user_data,
+        };
         let auth_payload_bytes = Zeroizing::new(
-            bincode::serde::encode_to_vec(&auth_blob, bincode::config::standard())
+            bincode::serde::encode_to_vec(&auth_payload, bincode::config::standard())
                 .expect("Failed to serialize auth blob"),
         );
 
