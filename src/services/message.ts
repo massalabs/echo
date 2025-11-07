@@ -5,7 +5,7 @@
  * This service works both in the main app context and Service Worker context.
  */
 
-import { db, Message } from '../db';
+import { db, Message, Discussion } from '../db';
 import { decodeUserId, encodeUserId } from '../utils/userId';
 import {
   IMessageProtocol,
@@ -104,21 +104,40 @@ export class MessageService {
 
         await db.transaction('rw', db.messages, db.discussions, async () => {
           // ---- 2a. Pre-load all discussions (parallel) ----
+          // Use allSettled to handle missing discussions gracefully
           const discPromises = decrypted.map(async ({ senderId }) => {
             const d = await db.getDiscussionByOwnerAndContact(
               ownerUserId,
               senderId
             );
-            if (!d) throw new Error(`Discussion missing for ${senderId}`);
+            if (!d) {
+              return { senderId, discussion: null };
+            }
             return { senderId, discussion: d };
           });
-          const discResults = await Promise.all(discPromises);
-          const discMap = new Map(
-            discResults.map(r => [r.senderId, r.discussion])
+          const discResults = await Promise.allSettled(discPromises);
+          const discMap = new Map<string, Discussion>();
+
+          // Filter out senders without discussions
+          for (const result of discResults) {
+            if (result.status === 'fulfilled' && result.value.discussion) {
+              discMap.set(result.value.senderId, result.value.discussion);
+            }
+          }
+
+          // Filter decrypted messages to only process those with discussions
+          const messagesWithDiscussions = decrypted.filter(({ senderId }) =>
+            discMap.has(senderId)
           );
 
+          if (!messagesWithDiscussions.length) {
+            // No messages have valid discussions, skip this batch
+            return;
+          }
+
           // ---- 2b. Insert messages (parallel) ----
-          const msgPromises = decrypted.map(
+          // Only insert messages for senders that have discussions
+          const msgPromises = messagesWithDiscussions.map(
             async ({ content, sentAt, senderId }) => {
               const id = await db.messages.add({
                 ownerUserId,
@@ -211,7 +230,7 @@ export class MessageService {
         return {
           success: false,
           error: 'Invalid contact userId (must decode to 32 bytes)',
-          message: { ...message, id: message.id, status: 'failed' },
+          message: { ...message, status: 'failed' },
         };
       }
 
@@ -225,7 +244,7 @@ export class MessageService {
         return {
           success: false,
           error: `Session not ready: ${statusName}`,
-          message: { ...message, id: message.id, status: 'failed' },
+          message: { ...message, status: 'failed' },
         };
       }
 
@@ -249,7 +268,7 @@ export class MessageService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Send failed',
-        message: { ...message, id: message.id, status: 'failed' },
+        message: { ...message, status: 'failed' },
       };
     }
   }

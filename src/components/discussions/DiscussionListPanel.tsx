@@ -1,18 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscussionList } from '../../hooks/useDiscussionList';
-import { Contact, Discussion } from '../../db';
+import { useDiscussionStore } from '../../stores/discussionStore';
 import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 
 interface DiscussionListPanelProps {
-  discussions: Discussion[];
-  lastMessages: Map<string, { content: string; timestamp: Date }>;
-  areDiscussionsLoaded: boolean;
-  getContactByUserId: (userId: string) => Contact | undefined;
-  getDiscussionByContactUserId: (
-    contactUserId: string
-  ) => Discussion | undefined;
   onRefresh: () => void;
   onSelect: (contactUserId: string) => void;
   activeUserId?: string;
@@ -20,14 +13,15 @@ interface DiscussionListPanelProps {
 }
 
 const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
-  discussions,
-  lastMessages,
-  areDiscussionsLoaded,
-  getContactByUserId,
   onRefresh,
   onSelect,
   activeUserId,
 }) => {
+  // Use the store directly instead of receiving props
+  const discussions = useDiscussionStore(s => s.discussions);
+  const lastMessages = useDiscussionStore(s => s.lastMessages);
+  const areDiscussionsLoaded = useDiscussionStore(s => s.areDiscussionsLoaded);
+  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
   const navigate = useNavigate();
 
   const {

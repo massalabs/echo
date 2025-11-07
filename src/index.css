@@ -160,6 +160,9 @@
   /* Global scrollbar styling - thin, minimal, no track background */
   * {
     scrollbar-width: thin; /* Firefox */
+    /* Fallback for browsers without color-mix support (light mode default) */
+    scrollbar-color: rgba(26, 26, 29, 0.35) transparent;
+    /* Modern browsers with color-mix support will use this */
     scrollbar-color: color-mix(in oklch, var(--foreground) 35%, transparent)
       transparent;
   }
@@ -180,13 +183,33 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
+    /* Fallback for browsers without color-mix support (light mode default) */
+    background-color: rgba(26, 26, 29, 0.35);
+    /* Modern browsers with color-mix support will use this */
     background-color: color-mix(in oklch, var(--foreground) 35%, transparent);
     border-radius: 9999px;
     border: 2px solid transparent; /* create inset look with transparent track */
     background-clip: padding-box;
   }
   *::-webkit-scrollbar-thumb:hover {
+    /* Fallback for browsers without color-mix support (light mode default) */
+    background-color: rgba(26, 26, 29, 0.5);
+    /* Modern browsers with color-mix support will use this */
     background-color: color-mix(in oklch, var(--foreground) 50%, transparent);
+  }
+
+  /* Dark mode fallbacks for browsers without color-mix support */
+  /* These only apply when color-mix is not supported */
+  @supports not (color: color-mix(in oklch, red, blue)) {
+    .dark * {
+      scrollbar-color: rgba(232, 232, 234, 0.35) transparent;
+    }
+    .dark *::-webkit-scrollbar-thumb {
+      background-color: rgba(232, 232, 234, 0.35);
+    }
+    .dark *::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(232, 232, 234, 0.5);
+    }
   }
 
   /* Disable pull-to-refresh for the entire app */

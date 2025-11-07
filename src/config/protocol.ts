@@ -12,7 +12,7 @@ export interface ProtocolConfig {
 }
 
 export const protocolConfig: ProtocolConfig = {
-  baseUrl: import.meta.env.VITE_PROTOCOL_API_URL ?? 'http://localhost:3001/api',
+  baseUrl: import.meta.env.VITE_PROTOCOL_API_URL || 'http://localhost:3000/api',
   timeout: 10000, // 10 seconds
   retryAttempts: 3,
 };

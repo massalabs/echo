@@ -4,7 +4,6 @@ import DebugPanel from '../components/ui/DebugPanel';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import { useAccountStore } from '../stores/accountStore';
 import { useAppStore } from '../stores/appStore';
-import { useDiscussionStore } from '../stores/discussionStore';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { PrivacyGraphic } from '../components/ui/PrivacyGraphic';
@@ -14,13 +13,6 @@ const Discussions: React.FC = () => {
   const navigate = useNavigate();
   const isLoading = useAccountStore(s => s.isLoading);
   const showDebugPanel = useAppStore(s => s.showDebugPanel);
-  const discussions = useDiscussionStore(s => s.discussions);
-  const lastMessages = useDiscussionStore(s => s.lastMessages);
-  const areDiscussionsLoaded = useDiscussionStore(s => s.areDiscussionsLoaded);
-  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
-  const getDiscussionByContactUserId = useDiscussionStore(
-    s => s.getDiscussionByContactUserId
-  );
   if (isLoading) {
     return (
       <div className="min-h-screen-mobile bg-background flex items-center justify-center">
@@ -37,11 +29,6 @@ const Discussions: React.FC = () => {
       <div className="max-w-md mx-auto h-screen-mobile flex flex-col bg-card">
         <div className="pb-20 flex-1 overflow-y-auto relative">
           <DiscussionListPanel
-            discussions={discussions}
-            lastMessages={lastMessages}
-            areDiscussionsLoaded={areDiscussionsLoaded}
-            getContactByUserId={getContactByUserId}
-            getDiscussionByContactUserId={getDiscussionByContactUserId}
             onRefresh={handlers.handleRefresh}
             onSelect={id => {
               navigate(`/discussion/${id}`);

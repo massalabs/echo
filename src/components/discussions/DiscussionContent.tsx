@@ -105,7 +105,6 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
           messages={messages}
           contact={contact}
           isLoading={isLoading || isDiscussionLoading}
-          isSending={isSending}
           onResend={resendMessage}
         />
 

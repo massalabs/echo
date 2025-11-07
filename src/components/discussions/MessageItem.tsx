@@ -7,7 +7,6 @@ interface MessageItemProps {
   message: Message;
   contact: Contact;
   showAvatar: boolean;
-  isSending: boolean;
   onResend: (message: Message) => void;
 }
 
@@ -15,7 +14,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
   message,
   contact,
   showAvatar,
-  isSending,
   onResend,
 }) => {
   const isOutgoing = message.direction === 'outgoing';
@@ -87,8 +85,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   <span className="text-[10px] font-medium">Failed</span>
                   <button
                     onClick={() => onResend(message)}
-                    disabled={isSending}
-                    className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-accent-foreground/20 hover:bg-accent-foreground/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-accent-foreground"
+                    className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-accent-foreground/20 hover:bg-accent-foreground/30 rounded transition-colors text-accent-foreground"
                     title="Resend message"
                   >
                     Resend

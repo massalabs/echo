@@ -24,16 +24,9 @@ export const useMessages = ({
 
     try {
       setIsLoading(true);
-      console.log('Loading messages for contact:', contact.userId);
       if (!userProfile?.userId) return;
       const messageList = await db.getMessagesForContactByOwner(
         userProfile.userId,
-        contact.userId
-      );
-      console.log(
-        'Loaded messages:',
-        messageList.length,
-        'for contact:',
         contact.userId
       );
       // Reverse to show oldest messages first (chronological order)
@@ -98,66 +91,75 @@ export const useMessages = ({
 
       setIsSending(true);
 
-      const ownerUserId = useAccountStore.getState().userProfile?.userId;
-      if (!ownerUserId)
-        return { success: false, error: 'No authenticated user' };
-
-      const discussion = await db.getDiscussionByOwnerAndContact(
-        ownerUserId,
-        contact.userId
-      );
-
-      if (!discussion) return { success: false, error: 'Discussion not found' };
-
-      // Create message with sending status
-      const message: Omit<Message, 'id'> = {
-        ownerUserId,
-        contactUserId: contact.userId,
-        content,
-        type: 'text',
-        direction: 'outgoing',
-        status: 'sending',
-        timestamp: new Date(),
-        encrypted: true,
-      };
-
-      // Persist to DB, keep the generated id for later status updates
-      const messageId = await db.addMessage(message);
-      const messageWithId = { ...message, id: messageId };
-      setMessages(prev => [...prev, messageWithId]);
-
       try {
-        const result = await messageService.sendMessage(messageWithId);
+        const ownerUserId = useAccountStore.getState().userProfile?.userId;
+        if (!ownerUserId) {
+          return { success: false, error: 'No authenticated user' };
+        }
 
-        // Reflect final status in local state (always update if message is provided)
-        if (result.message) {
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === messageId ? { ...m, status: result.message!.status } : m
-            )
-          );
-        } else if (!result.success) {
-          // If no message in result but it failed, mark as failed in local state
+        const discussion = await db.getDiscussionByOwnerAndContact(
+          ownerUserId,
+          contact.userId
+        );
+
+        if (!discussion) {
+          return { success: false, error: 'Discussion not found' };
+        }
+
+        // Create message with sending status
+        const message: Omit<Message, 'id'> = {
+          ownerUserId,
+          contactUserId: contact.userId,
+          content,
+          type: 'text',
+          direction: 'outgoing',
+          status: 'sending',
+          timestamp: new Date(),
+          encrypted: true,
+        };
+
+        // Persist to DB, keep the generated id for later status updates
+        const messageId = await db.addMessage(message);
+        const messageWithId = { ...message, id: messageId };
+        setMessages(prev => [...prev, messageWithId]);
+
+        try {
+          const result = await messageService.sendMessage(messageWithId);
+
+          // Reflect final status in local state (always update if message is provided)
+          if (result.message) {
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === messageId
+                  ? { ...m, status: result.message!.status }
+                  : m
+              )
+            );
+          } else if (!result.success) {
+            // If no message in result but it failed, mark as failed in local state
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === messageId ? { ...m, status: 'failed' } : m
+              )
+            );
+          }
+
+          if (!result.success) {
+            console.error('Failed to send message:', result.error);
+            throw new Error(result.error);
+          }
+        } catch (error) {
+          // Ensure message is marked as failed in local state on any error
           setMessages(prev =>
             prev.map(m => (m.id === messageId ? { ...m, status: 'failed' } : m))
           );
+          throw error;
         }
-
-        if (!result.success) {
-          console.error('Failed to send message:', result.error);
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        // Ensure message is marked as failed in local state on any error
-        setMessages(prev =>
-          prev.map(m => (m.id === messageId ? { ...m, status: 'failed' } : m))
-        );
-        throw error;
       } finally {
         setIsSending(false);
       }
     },
-    [contact?.userId, userProfile, isSending]
+    [contact?.userId, userProfile?.userId, isSending]
   );
 
   const resendMessage = useCallback(

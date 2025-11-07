@@ -8,7 +8,6 @@ interface MessageListProps {
   messages: Message[];
   contact: Contact;
   isLoading: boolean;
-  isSending: boolean;
   onResend: (message: Message) => void;
 }
 
@@ -16,7 +15,6 @@ const MessageList: React.FC<MessageListProps> = ({
   messages,
   contact,
   isLoading,
-  isSending,
   onResend,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -106,8 +104,13 @@ const MessageList: React.FC<MessageListProps> = ({
     // Update refs for next render
     prevMessagesLengthRef.current = messages.length;
     prevLastMessageSignatureRef.current = lastMessageSignature;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages.length, lastMessageSignature, isNearBottom, isLoading]);
+  }, [
+    messages.length,
+    lastMessageSignature,
+    isNearBottom,
+    isLoading,
+    lastMessage?.direction,
+  ]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -134,7 +137,6 @@ const MessageList: React.FC<MessageListProps> = ({
             message={message}
             contact={contact}
             showAvatar={showAvatar}
-            isSending={isSending}
             onResend={onResend}
           />
         );

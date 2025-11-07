@@ -191,7 +191,7 @@ const Login: React.FC<LoginProps> = React.memo(
             <img
               src="/logo.svg"
               alt="Echo"
-              className="mx-auto my-10 w-6xl h-auto dark:invert"
+              className="mx-auto my-10 w-11/12 h-auto dark:invert"
             />
             <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
               {displayUsername ? (
