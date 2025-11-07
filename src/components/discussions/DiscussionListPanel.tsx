@@ -27,7 +27,6 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
   onRefresh,
   onSelect,
   activeUserId,
-  headerVariant = 'button',
 }) => {
   const navigate = useNavigate();
 
@@ -39,21 +38,12 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
     <div className="bg-card rounded-lg">
       <div className="px-6 py-4 border-b border-border flex justify-between items-center">
         <h2 className="text-lg font-medium text-foreground">Discussions</h2>
-        {headerVariant === 'link' ? (
-          <button
-            onClick={onRefresh}
-            className="text-xs text-primary hover:text-primary/80 underline"
-          >
-            Refresh
-          </button>
-        ) : (
-          <button
-            onClick={onRefresh}
-            className="text-xs text-primary hover:text-primary/80 underline"
-          >
-            Refresh
-          </button>
-        )}
+        <button
+          onClick={onRefresh}
+          className="text-xs text-primary hover:text-primary/80 underline"
+        >
+          Refresh
+        </button>
       </div>
 
       <div className="divide-y divide-border">
