@@ -30,12 +30,13 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [proposedName, setProposedName] = useState(contact.name || '');
   const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
-  const [, setCurrentTime] = useState(Date.now());
+  // Re-render trigger to update relative time display every minute
+  const [_updateKey, setUpdateKey] = useState(0);
 
-  // Update time every minute to refresh relative time display
+  // Update every minute to refresh relative time display
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(Date.now());
+      setUpdateKey(prev => prev + 1);
     }, 60000); // Update every minute
 
     return () => clearInterval(interval);
