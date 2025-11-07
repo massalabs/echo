@@ -505,6 +505,19 @@ impl SessionManagerWrapper {
     /// - `our_sk`: Our secret keys
     /// - `user_data`: Arbitrary user data to include in the announcement (can be empty)
     ///
+    /// # Security Warning
+    ///
+    /// **The user_data in announcements is NOT as secure as regular messages:**
+    /// - ❌ **No plausible deniability**: The announcement is cryptographically signed,
+    ///   proving that you created it. Unlike messages, announcements cannot be repudiated.
+    /// - ❌ **No post-compromise secrecy**: If your long-term keys are compromised in the
+    ///   future, past announcements (including their user_data) can be decrypted.
+    ///
+    /// **Recommendation**: Avoid including sensitive information in user_data. Use it only
+    /// for non-sensitive metadata like protocol version, public display names, or
+    /// capability flags. Send sensitive data through regular messages after the session
+    /// is established.
+    ///
     /// # Returns
     ///
     /// The announcement bytes to publish to the blockchain.
@@ -539,6 +552,18 @@ impl SessionManagerWrapper {
     /// - The user data embedded in the announcement
     ///
     /// Returns `None` if the announcement is invalid or too old.
+    ///
+    /// # Security Warning
+    ///
+    /// **The user_data in announcements is NOT as secure as regular messages:**
+    /// - ❌ **No plausible deniability**: Announcements are cryptographically signed,
+    ///   proving who created them. They cannot be repudiated.
+    /// - ❌ **No post-compromise secrecy**: If the sender's long-term keys are compromised
+    ///   in the future, all past announcements (including their user_data) can be decrypted.
+    ///
+    /// **Recommendation**: Treat user_data as semi-public information. Only use it for
+    /// non-sensitive metadata. Any sensitive information should be sent through regular
+    /// messages after the session is established.
     pub fn feed_incoming_announcement(
         &mut self,
         announcement_bytes: &[u8],
