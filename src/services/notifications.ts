@@ -61,7 +61,7 @@ export class NotificationService {
     }
 
     try {
-      const title = 'Echo Messenger';
+      const title = 'Gossip Messenger';
       const body = messageCount
         ? `You have ${messageCount} new message${messageCount > 1 ? 's' : ''}`
         : 'You have new messages';
@@ -70,7 +70,7 @@ export class NotificationService {
         body,
         icon: '/favicon-64.png',
         badge: '/favicon-64.png',
-        tag: 'echo-new-messages', // Replace previous notifications with same tag
+        tag: 'gossip-new-messages', // Replace previous notifications with same tag
         requireInteraction: false,
         silent: false,
       });
@@ -112,7 +112,7 @@ export class NotificationService {
         body,
         icon: '/favicon-64.png',
         badge: '/favicon-64.png',
-        tag: `echo-discussion-${contactName}`,
+        tag: `gossip-discussion-${contactName}`,
         requireInteraction: false,
         silent: false,
       });
@@ -150,7 +150,7 @@ export class NotificationService {
         body,
         icon: '/favicon-64.png',
         badge: '/favicon-64.png',
-        tag: `echo-new-discussion-${contactName}`,
+        tag: `gossip-new-discussion-${contactName}`,
         requireInteraction: true, // Require interaction for new discussions
         silent: false,
       });
@@ -236,7 +236,7 @@ export class NotificationService {
         registrations.forEach(() => {
           // This would be handled by the service worker
           // For now, we just log that we would clear notifications
-          console.log('Would clear all Echo notifications');
+          console.log('Would clear all Gossip notifications');
         });
       });
     }

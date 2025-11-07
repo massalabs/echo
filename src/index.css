@@ -5,14 +5,15 @@
 :root {
   /* Quantum Dawn Light Mode - "Bert Light Mode" */
   /* Airy, warm, privacy-first – the daytime twin of "Quantum Velvet" */
+  /* Teal primary - distinct from Phantom's purple */
   --background: #f8f9fa; /* creamy cloud (never pure white) */
   --foreground: #1a1a1d; /* deep charcoal - primary text */
   --card: #ffffff; /* true white cards */
   --card-foreground: #1a1a1d;
   --popover: #ffffff;
   --popover-foreground: #1a1a1d;
-  --primary: #8c8cff; /* vivid lavender - encrypted/Button/CTA */
-  --primary-foreground: #ffffff; /* white text on lavender */
+  --primary: #0d9488; /* teal - encrypted/Button/CTA */
+  --primary-foreground: #ffffff; /* white text on teal */
   --secondary: #ff8c8c; /* coral timer - self-destruct/Secondary */
   --secondary-foreground: #ffffff; /* white text on coral */
   --muted: #f0f1f3; /* muted background */
@@ -23,9 +24,9 @@
   --destructive-foreground: #ffffff;
   --border: #e5e6e8; /* subtle border */
   --input: #ffffff; /* input background */
-  --ring: #8c8cff; /* focus ring using vivid lavender */
+  --ring: #0d9488; /* focus ring using teal */
   --chart-1: #6db8a2; /* deeper sea-foam */
-  --chart-2: #8c8cff; /* vivid lavender */
+  --chart-2: #0d9488; /* teal */
   --chart-3: #ff8c8c; /* coral timer */
   --chart-4: #c17bc9; /* rich orchid - offline key */
   --chart-5: #6db8a2; /* sea-foam variant */
@@ -37,21 +38,22 @@
   --sidebar-accent: #6db8a2;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #e5e6e8;
-  --sidebar-ring: #8c8cff;
+  --sidebar-ring: #0d9488;
   --tail-border: #e5e7eb; /* soft gray border for light mode tail */
 }
 
 .dark {
   /* Quantum Velvet Dark Mode - "Bert Dark Mode" */
   /* Warm charcoal base, zero pure black, privacy-coded accents */
+  /* Teal primary - distinct from Phantom's purple */
   --background: #18181b; /* warm charcoal (never #000) */
   --foreground: #e8e8ea; /* creamy off-white - primary text */
   --card: #1e1e22; /* surface/cards - +1 step lighter */
   --card-foreground: #e8e8ea;
   --popover: #1e1e22;
   --popover-foreground: #e8e8ea;
-  --primary: #b3b3ff; /* lavender shield - encrypted/Button/CTA */
-  --primary-foreground: #18181b; /* dark text on lavender for good contrast */
+  --primary: #2dd4bf; /* teal - encrypted/Button/CTA */
+  --primary-foreground: #18181b; /* dark text on teal for good contrast */
   --secondary: #ffb3b3; /* peach timer - self-destruct/Secondary */
   --secondary-foreground: #18181b; /* dark text on peach for good contrast */
   --muted: #252529; /* muted background */
@@ -62,9 +64,9 @@
   --destructive-foreground: #18181b;
   --border: #2a2a2e; /* subtle border */
   --input: #1e1e22; /* input background */
-  --ring: #b3b3ff; /* focus ring using lavender shield */
+  --ring: #2dd4bf; /* focus ring using teal */
   --chart-1: #a8e0d2; /* sea-foam proof */
-  --chart-2: #b3b3ff; /* lavender shield */
+  --chart-2: #2dd4bf; /* teal */
   --chart-3: #ffb3b3; /* peach timer */
   --chart-4: #d6a8dc; /* muted orchid - offline key */
   --chart-5: #a8e0d2; /* sea-foam variant */
@@ -75,7 +77,7 @@
   --sidebar-accent: #a8e0d2;
   --sidebar-accent-foreground: #18181b;
   --sidebar-border: #2a2a2e;
-  --sidebar-ring: #b3b3ff;
+  --sidebar-ring: #2dd4bf;
   --tail-border: transparent; /* transparent border for dark mode tail */
 }
 

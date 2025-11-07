@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import appLogo from '../assets/echo_face.svg';
+import appLogo from '../assets/gossip_face.svg';
 import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
 import { validateUsername, isValidUserId, encodeUserId } from '../utils';
@@ -211,7 +211,7 @@ const NewContact: React.FC = () => {
               <img
                 src={appLogo}
                 className="w-9 h-9 rounded object-cover"
-                alt="Echo logo"
+                alt="Gossip logo"
               />
               <h1 className="text-xl font-semibold text-black dark:text-white">
                 New contact

@@ -190,7 +190,7 @@ const Login: React.FC<LoginProps> = React.memo(
           <div className="text-center mb-8">
             <img
               src="/logo.svg"
-              alt="Echo"
+              alt="Gossip"
               className="mx-auto my-10 w-11/12 h-auto dark:invert"
             />
             <h1 className="mt-4 text-[28px] font-semibold tracking-tight text-gray-900 dark:text-white">
@@ -202,7 +202,7 @@ const Login: React.FC<LoginProps> = React.memo(
                   </span>
                 </>
               ) : (
-                'Welcome to Echo'
+                'Welcome to Gossip'
               )}
             </h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">

@@ -1,6 +1,6 @@
-# Echo WASM - WebAssembly Bindings
+# Gossip WASM - WebAssembly Bindings
 
-This crate provides WebAssembly bindings for the Echo secure messaging system, exposing the SessionManager and Auth facilities to JavaScript/TypeScript applications.
+This crate provides WebAssembly bindings for the Gossip secure messaging system, exposing the SessionManager and Auth facilities to JavaScript/TypeScript applications.
 
 ## Features
 
@@ -226,7 +226,7 @@ Output from receiving a message:
 
 ## Architecture
 
-The Echo system uses a multi-layer architecture:
+The Gossip system uses a multi-layer architecture:
 
 1. **Crypto Primitives**: ML-KEM (post-quantum KEM), ML-DSA (post-quantum signatures), AES-SIV (AEAD)
 2. **Agraphon Protocol**: Double-ratchet encryption with forward secrecy and post-compromise security

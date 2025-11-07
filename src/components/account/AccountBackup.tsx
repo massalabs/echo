@@ -208,9 +208,9 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
               <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <p className="text-xs text-yellow-800 dark:text-yellow-300 leading-relaxed">
                   <strong>⚠️ Warning:</strong> This Massa private key cannot be
-                  used to restore your Echo account. Use this only for external
-                  wallet compatibility. To restore your Echo account, you must
-                  use the 24-word mnemonic phrase.
+                  used to restore your Gossip account. Use this only for
+                  external wallet compatibility. To restore your Gossip account,
+                  you must use the 24-word mnemonic phrase.
                 </p>
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-400">

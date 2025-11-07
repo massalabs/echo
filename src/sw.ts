@@ -170,7 +170,7 @@ class ServiceWorkerMessageReception {
 
   private async getActiveDiscussions(): Promise<Discussion[]> {
     try {
-      const db = await this.openEchoDB();
+      const db = await this.openGossipDB();
       const tx = db.transaction('discussions', 'readonly');
       const store = tx.objectStore('discussions');
       const index = store.index('status');
@@ -209,9 +209,9 @@ class ServiceWorkerMessageReception {
     }
   }
 
-  private async openEchoDB(): Promise<IDBDatabase> {
+  private async openGossipDB(): Promise<IDBDatabase> {
     return await new Promise((resolve, reject) => {
-      const request = self.indexedDB.open('EchoDatabase', 1);
+      const request = self.indexedDB.open('GossipDatabase', 1);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
       request.onblocked = () =>
@@ -230,7 +230,7 @@ class ServiceWorkerMessageReception {
   ): Promise<void> {
     if (!messages.length) return;
     try {
-      const db = await this.openEchoDB();
+      const db = await this.openGossipDB();
       const tx = db.transaction('discussionMessages', 'readwrite');
       const store = tx.objectStore('discussionMessages');
 
@@ -274,7 +274,7 @@ class ServiceWorkerMessageReception {
   ): Promise<void> {
     if (!announcements.length) return;
     try {
-      const db = await this.openEchoDB();
+      const db = await this.openGossipDB();
       const tx = db.transaction('discussionMessages', 'readwrite');
       const store = tx.objectStore('discussionMessages');
 
@@ -359,11 +359,11 @@ self.addEventListener('message', event => {
           }
 
           // Show notification for new messages/announcements
-          self.registration.showNotification('Echo Messenger', {
+          self.registration.showNotification('Gossip Messenger', {
             body,
             icon: '/favicon-64.png',
             badge: '/favicon-64.png',
-            tag: 'echo-new-messages',
+            tag: 'gossip-new-messages',
             requireInteraction: false,
           });
         }
@@ -378,7 +378,7 @@ self.addEventListener('sync', (event: Event) => {
     'Service Worker: Periodic sync event triggered',
     (event as SyncEvent).tag
   );
-  if ((event as SyncEvent).tag === 'echo-message-sync') {
+  if ((event as SyncEvent).tag === 'gossip-message-sync') {
     (event as SyncEvent).waitUntil(
       Promise.all([
         messageReception.fetchAllDiscussions(),
@@ -407,11 +407,11 @@ self.addEventListener('sync', (event: Event) => {
             }
 
             // Show notification for new messages/announcements
-            self.registration.showNotification('Echo Messenger', {
+            self.registration.showNotification('Gossip Messenger', {
               body,
               icon: '/favicon-64.png',
               badge: '/favicon-64.png',
-              tag: 'echo-new-messages',
+              tag: 'gossip-new-messages',
               requireInteraction: false,
             });
           }
@@ -463,11 +463,11 @@ function startFallbackSync() {
           }
 
           // Show generic notification for new messages/discussions
-          self.registration.showNotification('Echo Messenger', {
+          self.registration.showNotification('Gossip Messenger', {
             body,
             icon: '/favicon-64.png',
             badge: '/favicon-64.png',
-            tag: 'echo-new-messages',
+            tag: 'gossip-new-messages',
             requireInteraction: false,
           });
         }
@@ -481,9 +481,9 @@ function startFallbackSync() {
   // Store timer reference for potential cleanup
   (
     self as ServiceWorkerGlobalScope & {
-      echoSyncTimer?: ReturnType<typeof setInterval>;
+      gossipSyncTimer?: ReturnType<typeof setInterval>;
     }
-  ).echoSyncTimer = syncTimer;
+  ).gossipSyncTimer = syncTimer;
 }
 
 // Start fallback sync when service worker activates

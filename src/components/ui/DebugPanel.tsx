@@ -60,7 +60,7 @@ const DebugPanel: React.FC = () => {
       try {
         const databases = await indexedDB.databases();
         for (const database of databases) {
-          if (database.name?.includes('EchoDatabase')) {
+          if (database.name?.includes('GossipDatabase')) {
             indexedDB.deleteDatabase(database.name);
           }
         }
