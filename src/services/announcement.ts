@@ -16,7 +16,7 @@ import {
 
 export interface AnnouncementReceptionResult {
   success: boolean;
-  newDiscussionsCount: number;
+  newAnnouncementsCount: number;
   error?: string;
 }
 
@@ -44,14 +44,14 @@ export class AnnouncementService {
     try {
       const announcements = await this._fetchAnnouncements();
 
-      let newDiscussionsCount = 0;
+      let newAnnouncementsCount = 0;
       let hasErrors = false;
 
       for (const announcement of announcements) {
         try {
           const result = await this._processIncomingAnnouncement(announcement);
           if (result.success) {
-            newDiscussionsCount++;
+            newAnnouncementsCount++;
           } else if (result.error) {
             hasErrors = true;
           }
@@ -62,15 +62,15 @@ export class AnnouncementService {
       }
 
       return {
-        success: !hasErrors || newDiscussionsCount > 0,
-        newDiscussionsCount,
+        success: !hasErrors || newAnnouncementsCount > 0,
+        newAnnouncementsCount,
         error: hasErrors ? 'Some announcements failed to process' : undefined,
       };
     } catch (error) {
       console.error('Failed to fetch/process incoming announcements:', error);
       return {
         success: false,
-        newDiscussionsCount: 0,
+        newAnnouncementsCount: 0,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

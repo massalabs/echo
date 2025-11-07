@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useAccountStore } from './stores/accountStore';
+import { useAppStore } from './stores/appStore';
 import { db, UserProfile } from './db';
 import OnboardingFlow from './components/OnboardingFlow';
 import {
@@ -86,7 +87,7 @@ const AppContent: React.FC = () => {
 
   // Trigger message sync when user logs in (when userProfile is available)
   useEffect(() => {
-    if (userProfile) {
+    if (userProfile?.userId) {
       // Latch authenticated state to avoid transient flicker of unauth routes
       hasAuthenticatedRef.current = true;
       console.log('User logged in, triggering message sync');
@@ -94,7 +95,33 @@ const AppContent: React.FC = () => {
         console.error('Failed to sync messages on login:', error);
       });
     }
-  }, [userProfile]);
+  }, [userProfile?.userId]);
+
+  // Separate effect: refresh full app state (announcements, messages, discussions, contacts)
+  useEffect(() => {
+    if (userProfile?.userId) {
+      const { refreshAppState } = useAppStore.getState();
+
+      // Initial refresh on login
+      refreshAppState().catch(error => {
+        console.error('Failed to refresh app state on login:', error);
+      });
+
+      // Set up periodic refresh every 10 seconds
+      const refreshInterval = setInterval(() => {
+        console.log('Periodic app state refresh triggered (every 10s)');
+        refreshAppState().catch(error => {
+          console.error('Failed to refresh app state periodically:', error);
+        });
+      }, 10000); // 10 seconds
+
+      // Cleanup interval when user logs out or component unmounts
+      return () => {
+        clearInterval(refreshInterval);
+        console.log('Periodic app state refresh interval cleared');
+      };
+    }
+  }, [userProfile?.userId]);
 
   // Load existing account info to show username in WelcomeBack when unauthenticated
   useEffect(() => {

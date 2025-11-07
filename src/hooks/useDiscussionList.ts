@@ -6,16 +6,12 @@ import {
   acceptDiscussionRequest,
   initializeDiscussion,
 } from '../crypto/discussionInit';
-import { announcementService } from '../services/announcement';
-import { useMessages } from './useMessages';
 
 export const useDiscussionList = () => {
   const { userProfile } = useAccountStore();
 
   const loadDiscussions = useDiscussionStore(s => s.loadDiscussions);
   const loadContacts = useDiscussionStore(s => s.loadContacts);
-
-  const { syncAllMessages } = useMessages();
 
   useEffect(() => {
     if (userProfile?.userId) {
@@ -70,15 +66,6 @@ export const useDiscussionList = () => {
     [loadDiscussions, loadContacts, userProfile?.userId]
   );
 
-  const handleRefresh = useCallback(async () => {
-    await announcementService.fetchAndProcessAnnouncements();
-    await syncAllMessages();
-    if (userProfile?.userId) {
-      await loadDiscussions(userProfile.userId);
-      await loadContacts(userProfile.userId);
-    }
-  }, [loadDiscussions, loadContacts, syncAllMessages, userProfile?.userId]);
-
   const handleRefuseDiscussionRequest = useCallback(
     async (discussion: Discussion) => {
       try {
@@ -105,11 +92,8 @@ export const useDiscussionList = () => {
 
   // Only return handlers that are actually used - state and selectors should be accessed directly from stores
   return {
-    handlers: {
-      handleCreatedNewContact,
-      handleAcceptDiscussionRequest,
-      handleRefuseDiscussionRequest,
-      handleRefresh,
-    },
+    handleCreatedNewContact,
+    handleAcceptDiscussionRequest,
+    handleRefuseDiscussionRequest,
   };
 };

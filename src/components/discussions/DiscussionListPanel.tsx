@@ -24,9 +24,8 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
   const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
   const navigate = useNavigate();
 
-  const {
-    handlers: { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest },
-  } = useDiscussionList();
+  const { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest } =
+    useDiscussionList();
 
   return (
     <div className="bg-card rounded-lg">

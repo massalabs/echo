@@ -1,7 +1,6 @@
 import React from 'react';
 import DiscussionListPanel from '../components/discussions/DiscussionListPanel';
 import DebugPanel from '../components/ui/DebugPanel';
-import { useDiscussionList } from '../hooks/useDiscussionList';
 import { useAccountStore } from '../stores/accountStore';
 import { useAppStore } from '../stores/appStore';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +8,7 @@ import Button from '../components/ui/Button';
 import { PrivacyGraphic } from '../components/ui/PrivacyGraphic';
 
 const Discussions: React.FC = () => {
-  const { handlers } = useDiscussionList();
+  const refreshAppState = useAppStore(s => s.refreshAppState);
   const navigate = useNavigate();
   const isLoading = useAccountStore(s => s.isLoading);
   const showDebugPanel = useAppStore(s => s.showDebugPanel);
@@ -29,7 +28,7 @@ const Discussions: React.FC = () => {
       <div className="max-w-md mx-auto h-screen-mobile flex flex-col bg-card">
         <div className="pb-20 flex-1 overflow-y-auto relative">
           <DiscussionListPanel
-            onRefresh={handlers.handleRefresh}
+            onRefresh={refreshAppState}
             onSelect={id => {
               navigate(`/discussion/${id}`);
             }}
