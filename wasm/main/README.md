@@ -1,6 +1,6 @@
-# Echo WASM - WebAssembly Bindings
+# Gossip WASM - WebAssembly Bindings
 
-This crate provides WebAssembly bindings for the Echo secure messaging system, exposing the SessionManager and Auth facilities to JavaScript/TypeScript applications.
+This crate provides WebAssembly bindings for the Gossip secure messaging system, exposing the SessionManager and Auth facilities to JavaScript/TypeScript applications.
 
 ## Features
 
@@ -26,7 +26,7 @@ cargo build --target wasm32-unknown-unknown --release
 The compiled WASM module will be at:
 
 ```
-../target/wasm32-unknown-unknown/release/echo_wasm.wasm
+../target/wasm32-unknown-unknown/release/gossip_wasm.wasm
 ```
 
 ### Build with wasm-pack
@@ -47,7 +47,7 @@ import init, {
   SessionConfig,
   generate_user_keys,
   EncryptionKey,
-} from './echo_wasm';
+} from './gossip_wasm';
 
 // Initialize WASM
 await init();
@@ -143,7 +143,12 @@ Direct access to AES-256-SIV authenticated encryption:
 #### AEAD Example
 
 ```typescript
-import { EncryptionKey, Nonce, aead_encrypt, aead_decrypt } from './echo_wasm';
+import {
+  EncryptionKey,
+  Nonce,
+  aead_encrypt,
+  aead_decrypt,
+} from './gossip_wasm';
 
 // Generate key and nonce
 const key = EncryptionKey.generate();
@@ -226,7 +231,7 @@ Output from receiving a message:
 
 ## Architecture
 
-The Echo system uses a multi-layer architecture:
+The Gossip system uses a multi-layer architecture:
 
 1. **Crypto Primitives**: ML-KEM (post-quantum KEM), ML-DSA (post-quantum signatures), AES-SIV (AEAD)
 2. **Agraphon Protocol**: Double-ratchet encryption with forward secrecy and post-compromise security

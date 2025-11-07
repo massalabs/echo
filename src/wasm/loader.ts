@@ -6,7 +6,7 @@
  * the application lifecycle.
  */
 
-import init from '../assets/generated/wasm/echo_wasm';
+import init from '../assets/generated/wasm/gossip_wasm';
 
 /**
  * WASM Initialization State

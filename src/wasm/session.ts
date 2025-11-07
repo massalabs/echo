@@ -14,7 +14,7 @@ import {
   SessionStatus,
   EncryptionKey,
   SessionConfig,
-} from '../assets/generated/wasm/echo_wasm';
+} from '../assets/generated/wasm/gossip_wasm';
 import { UserProfile } from '../db';
 
 export class SessionModule {

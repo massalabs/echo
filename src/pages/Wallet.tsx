@@ -7,7 +7,7 @@ import sendIcon from '../assets/icons/send.svg';
 import receiveIcon from '../assets/icons/receive.svg';
 import swapIcon from '../assets/icons/swap.svg';
 import { formatMassaAddress } from '../utils/addressUtils';
-import { formatAmount } from '../hooks/temp/parseAmount';
+import { formatAmount } from '../utils/parseAmount';
 import Button from '../components/ui/Button';
 import CopyClipboard from '../components/ui/CopyClipboard';
 // no-op
@@ -77,7 +77,7 @@ const Wallet: React.FC = () => {
             <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
               <span className="uppercase tracking-wide">Address</span>
               <div className="flex items-center gap-2">
-                <span className="font-mono px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">
+                <span className="px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">
                   {displayAddress}
                 </span>
                 <CopyClipboard text={fullAddress} title="Copy address" />
@@ -97,51 +97,45 @@ const Wallet: React.FC = () => {
         <div className="px-6 py-4">
           <div className="flex justify-center gap-6">
             {/* Send Button */}
-            <Button
+            <button
               onClick={() => setIsSendModalOpen(true)}
-              variant="ghost"
-              size="custom"
-              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+              className="flex flex-col items-center group bg-transparent hover:bg-transparent active:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
             >
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 group-hover:bg-gray-300 dark:group-hover:bg-gray-600 rounded-full flex items-center justify-center mb-2 transition-colors">
                 <img src={sendIcon} alt="Send" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 send
               </span>
-            </Button>
+            </button>
 
             {/* Receive Button */}
-            <Button
+            <button
               onClick={() => setIsReceiveModalOpen(true)}
-              variant="ghost"
-              size="custom"
-              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+              className="flex flex-col items-center group bg-transparent hover:bg-transparent active:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
             >
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 group-hover:bg-gray-300 dark:group-hover:bg-gray-600 rounded-full flex items-center justify-center mb-2 transition-colors">
                 <img src={receiveIcon} alt="Receive" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 receive
               </span>
-            </Button>
+            </button>
 
             {/* Swap Button */}
-            <Button
+            <button
               onClick={() =>
                 alert('Swap functionality will be implemented soon!')
               }
-              variant="ghost"
-              size="custom"
-              className="flex flex-col items-center hover:opacity-80 transition-opacity"
+              className="flex flex-col items-center group bg-transparent hover:bg-transparent active:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
             >
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 group-hover:bg-gray-300 dark:group-hover:bg-gray-600 rounded-full flex items-center justify-center mb-2 transition-colors">
                 <img src={swapIcon} alt="Swap" />
               </div>
               <span className="text-xs font-medium text-black dark:text-white">
                 swap
               </span>
-            </Button>
+            </button>
           </div>
         </div>
 

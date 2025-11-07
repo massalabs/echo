@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Discussion, Contact } from '../../db';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { formatRelativeTime } from '../../utils/timeUtils';
@@ -30,6 +30,17 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [proposedName, setProposedName] = useState(contact.name || '');
   const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
+  // Re-render trigger to update relative time display every minute
+  const [_updateKey, setUpdateKey] = useState(0);
+
+  // Update every minute to refresh relative time display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setUpdateKey(prev => prev + 1);
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   const isPendingIncoming =
     discussion.status === 'pending' && discussion.direction === 'received';
@@ -65,9 +76,11 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                     Waiting approval
                   </span>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  {lastMessage && formatRelativeTime(lastMessage.timestamp)}
-                </p>
+                {lastMessage && (
+                  <p className="text-xs text-muted-foreground">
+                    {formatRelativeTime(lastMessage.timestamp)}
+                  </p>
+                )}
                 {!isPendingIncoming && !isPendingOutgoing && (
                   <svg
                     className="w-4 h-4 text-muted-foreground"

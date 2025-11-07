@@ -95,7 +95,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 mb-4"
                     placeholder="Enter your password"
                   />
                   {(error || passwordError) && (
@@ -110,7 +110,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                     variant="primary"
                     size="custom"
                     fullWidth
-                    className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                    className="h-[54px] rounded-lg font-medium"
                   >
                     {!isLoading && 'Show Backup'}
                   </Button>
@@ -123,7 +123,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                   variant="primary"
                   size="custom"
                   fullWidth
-                  className="h-[54px] bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 text-white rounded-lg font-medium"
+                  className="h-[54px] rounded-lg font-medium"
                 >
                   {!isLoading && 'Show Backup'}
                 </Button>
@@ -161,7 +161,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 </Button>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
+                <p className="text-sm text-black dark:text-white break-all leading-relaxed">
                   {backupInfo.mnemonic}
                 </p>
               </div>
@@ -201,16 +201,16 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
                 </Button>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-                <p className="text-sm font-mono text-black dark:text-white break-all leading-relaxed">
+                <p className="text-sm text-black dark:text-white break-all leading-relaxed">
                   {privateKeyString}
                 </p>
               </div>
               <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <p className="text-xs text-yellow-800 dark:text-yellow-300 leading-relaxed">
                   <strong>⚠️ Warning:</strong> This Massa private key cannot be
-                  used to restore your Echo account. Use this only for external
-                  wallet compatibility. To restore your Echo account, you must
-                  use the 24-word mnemonic phrase.
+                  used to restore your Gossip account. Use this only for
+                  external wallet compatibility. To restore your Gossip account,
+                  you must use the 24-word mnemonic phrase.
                 </p>
               </div>
               <p className="text-xs text-yellow-700 dark:text-yellow-400">

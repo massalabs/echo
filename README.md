@@ -1,6 +1,6 @@
-# Echo - Secure Messaging App
+# Gossip - Secure Messaging App
 
-Echo is a privacy-first, secure messaging application built with React, TypeScript, and Vite. It provides end-to-end encrypted communication with local data storage, ensuring your conversations remain private and secure.
+Gossip is a privacy-first, secure messaging application built with React, TypeScript, and Vite. It provides end-to-end encrypted communication with local data storage, ensuring your conversations remain private and secure.
 
 ## Features
 
@@ -34,7 +34,7 @@ Echo is a privacy-first, secure messaging application built with React, TypeScri
 
 ```bash
 git clone <repository-url>
-cd echo
+cd Gossip
 ```
 
 2. Install dependencies:
@@ -77,7 +77,7 @@ src/
 
 ## Database Schema
 
-Echo uses Dexie (IndexedDB) for local data storage with the following entities:
+Gossip uses Dexie (IndexedDB) for local data storage with the following entities:
 
 - **UserProfile**: User account information and blockchain credentials
 - **Contacts**: Contact list with usernames and public keys
@@ -108,7 +108,7 @@ This project uses ESLint with TypeScript support. The configuration can be found
 
 ## Security
 
-Echo prioritizes user privacy and security:
+Gossip prioritizes user privacy and security:
 
 - All data is stored locally on your device
 - Messages are encrypted before storage

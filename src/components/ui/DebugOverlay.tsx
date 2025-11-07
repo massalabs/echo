@@ -126,7 +126,7 @@ const DebugOverlay: React.FC = () => {
             </Button>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 text-xs font-mono">
+        <div className="flex-1 overflow-y-auto p-3 text-xs">
           {logs.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No logs yet</p>
           ) : showRawText ? (

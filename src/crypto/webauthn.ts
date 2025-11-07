@@ -88,7 +88,7 @@ export async function createWebAuthnCredential(
     publicKey: {
       challenge,
       rp: {
-        name: 'Echo',
+        name: 'Gossip',
         id: window.location.hostname,
       },
       user: {
@@ -259,7 +259,7 @@ async function deriveEncryptionKeyFromCredential(
 ): Promise<CryptoKey> {
   // Create a deterministic seed from the credential ID and some app-specific data
   const credentialIdBuffer = new TextEncoder().encode(credential.id);
-  const appSalt = new TextEncoder().encode('echo-app-salt-2024');
+  const appSalt = new TextEncoder().encode('gossip-app-salt-2024');
 
   // Combine credential ID with app salt
   const combined = new Uint8Array(credentialIdBuffer.length + appSalt.length);

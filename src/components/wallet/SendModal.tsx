@@ -8,7 +8,7 @@ import FeeConfigModal, { FeeConfig } from './FeeConfigModal';
 import { useAccountStore } from '../../stores/accountStore';
 import TokenSelect from './TokenSelect';
 import { useSend } from '../../hooks/temp/useSend';
-import { formatAmount } from '../../hooks/temp/parseAmount';
+import { formatAmount } from '../../utils/parseAmount';
 import toast from 'react-hot-toast';
 import { parseMas, parseUnits } from '@massalabs/massa-web3';
 

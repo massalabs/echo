@@ -1,12 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDiscussionList } from '../../hooks/useDiscussionList';
+import { useDiscussionStore } from '../../stores/discussionStore';
 import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 
 interface DiscussionListPanelProps {
-  state: ReturnType<typeof useDiscussionList>['state'];
-  selectors: ReturnType<typeof useDiscussionList>['selectors'];
   onRefresh: () => void;
   onSelect: (contactUserId: string) => void;
   activeUserId?: string;
@@ -14,13 +13,15 @@ interface DiscussionListPanelProps {
 }
 
 const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
-  state,
-  selectors,
   onRefresh,
   onSelect,
   activeUserId,
-  headerVariant = 'button',
 }) => {
+  // Use the store directly instead of receiving props
+  const discussions = useDiscussionStore(s => s.discussions);
+  const lastMessages = useDiscussionStore(s => s.lastMessages);
+  const areDiscussionsLoaded = useDiscussionStore(s => s.areDiscussionsLoaded);
+  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
   const navigate = useNavigate();
 
   const {
@@ -31,39 +32,26 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
     <div className="bg-card rounded-lg">
       <div className="px-6 py-4 border-b border-border flex justify-between items-center">
         <h2 className="text-lg font-medium text-foreground">Discussions</h2>
-        {headerVariant === 'link' ? (
-          <button
-            onClick={onRefresh}
-            className="text-xs text-primary hover:text-primary/80 underline"
-          >
-            Refresh
-          </button>
-        ) : (
-          <button
-            onClick={onRefresh}
-            className="text-xs text-primary hover:text-primary/80 underline"
-          >
-            Refresh
-          </button>
-        )}
+        <button
+          onClick={onRefresh}
+          className="text-xs text-primary hover:text-primary/80 underline"
+        >
+          Refresh
+        </button>
       </div>
 
       <div className="divide-y divide-border">
-        {!state.areDiscussionsLoaded ? null : state.discussions.filter(
+        {!areDiscussionsLoaded ? null : discussions.filter(
             d => d.status !== 'closed'
           ).length === 0 ? (
           <EmptyDiscussions />
         ) : (
-          state.discussions
+          discussions
             .filter(d => d.status !== 'closed')
             .map(discussion => {
-              const contact = selectors.getContactByUserId(
-                discussion.contactUserId
-              );
+              const contact = getContactByUserId(discussion.contactUserId);
               if (!contact) return null;
-              const lastMessage = state.lastMessages.get(
-                discussion.contactUserId
-              );
+              const lastMessage = lastMessages.get(discussion.contactUserId);
 
               const isSelected = discussion.contactUserId === activeUserId;
 

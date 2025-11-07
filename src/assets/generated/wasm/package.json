@@ -1,14 +1,14 @@
 {
-  "name": "echo-wasm",
+  "name": "gossip-wasm",
   "type": "module",
   "version": "0.1.0",
   "files": [
-    "echo_wasm_bg.wasm",
-    "echo_wasm.js",
-    "echo_wasm.d.ts"
+    "gossip_wasm_bg.wasm",
+    "gossip_wasm.js",
+    "gossip_wasm.d.ts"
   ],
-  "main": "echo_wasm.js",
-  "types": "echo_wasm.d.ts",
+  "main": "gossip_wasm.js",
+  "types": "gossip_wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

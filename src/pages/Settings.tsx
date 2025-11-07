@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
-import SettingsButton from '../components/ui/SettingsButton';
 import { useAccountStore } from '../stores/accountStore';
-import { formatMassaAddress } from '../utils/addressUtils';
-import appLogo from '../assets/echo_face.svg';
+import { useAppStore } from '../stores/appStore';
+import { useTheme } from '../components/ui/use-theme';
+import { formatUserId } from '../utils/userId';
+import appLogo from '../assets/gossip_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
 import ShareContact from '../components/settings/ShareContact';
 import Button from '../components/ui/Button';
@@ -16,8 +17,10 @@ enum SettingsView {
 }
 
 const Settings = (): React.ReactElement => {
-  const { userProfile, account, getMnemonicBackupInfo, resetAccount } =
+  const { userProfile, getMnemonicBackupInfo, resetAccount } =
     useAccountStore();
+  const { showDebugPanel, setShowDebugPanel } = useAppStore();
+  const { setTheme, resolvedTheme } = useTheme();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
@@ -56,15 +59,20 @@ const Settings = (): React.ReactElement => {
                 <h3 className="text-base font-semibold text-black dark:text-white mb-2">
                   {userProfile?.username || 'Account name'}
                 </h3>
-                {account?.address && (
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                      {formatMassaAddress(account.address.toString())}
+                {userProfile?.userId && (
+                  <div className="mb-2 flex items-baseline gap-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      User ID:
                     </p>
-                    <CopyClipboard
-                      text={account.address.toString()}
-                      title="Copy address"
-                    />
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                        {formatUserId(userProfile.userId, 5, 3)}
+                      </p>
+                      <CopyClipboard
+                        text={userProfile.userId}
+                        title="Copy user ID"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -75,139 +83,249 @@ const Settings = (): React.ReactElement => {
         {/* Settings Options */}
         <div className="px-4 pb-20 space-y-2">
           {/* Account Backup Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-            }
-            label="Account Backup"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => setActiveView(SettingsView.SHOW_ACCOUNT_BACKUP)}
-            badge={
-              mnemonicBackupInfo?.backedUp ? (
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              ) : undefined
-            }
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Account Backup
+            </span>
+            {mnemonicBackupInfo?.backedUp && (
+              <div className="w-2 h-2 bg-green-500 rounded-full ml-auto"></div>
+            )}
+          </Button>
 
           {/* Share Contact Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
-                />
-              </svg>
-            }
-            label="Share Contact"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => setActiveView(SettingsView.SHARE_CONTACT)}
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Share Contact
+            </span>
+          </Button>
 
           {/* Security Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            }
-            label="Security"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Security
+            </span>
+          </Button>
 
           {/* Notifications Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-            }
-            label="Notifications"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Notifications
+            </span>
+          </Button>
 
           {/* Privacy Button */}
-          <SettingsButton
-            icon={
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            }
-            label="Privacy"
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Privacy
+            </span>
+          </Button>
 
-          {/* Logout Button */}
-          <SettingsButton
-            icon={
+          {/* Theme Toggle */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
+            {resolvedTheme === 'dark' ? (
               <svg
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                className="w-5 h-5"
+                className="w-5 h-5 text-black dark:text-white mr-4"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
                 />
               </svg>
-            }
-            label="Logout"
+            ) : (
+              <svg
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                className="w-5 h-5 text-black dark:text-white mr-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+            )}
+            <span className="text-base font-semibold text-black dark:text-white flex-1 text-left">
+              {resolvedTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+            </span>
+            <button
+              onClick={() => {
+                setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                resolvedTheme === 'dark'
+                  ? 'bg-primary'
+                  : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+              role="switch"
+              aria-checked={resolvedTheme === 'dark'}
+              aria-label="Toggle theme"
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  resolvedTheme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Debug Panel Toggle */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 text-black dark:text-white mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+              />
+            </svg>
+            <span className="text-base font-semibold text-black dark:text-white flex-1 text-left">
+              Show Debug Panel
+            </span>
+            <button
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                showDebugPanel ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+              role="switch"
+              aria-checked={showDebugPanel}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  showDebugPanel ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Logout Button */}
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
             onClick={handleResetAccount}
-            variant="danger"
-          />
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Logout
+            </span>
+          </Button>
         </div>
       </div>
       <BaseModal

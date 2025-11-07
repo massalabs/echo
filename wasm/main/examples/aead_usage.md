@@ -1,6 +1,6 @@
 # AEAD (Authenticated Encryption with Associated Data) Usage Examples
 
-This document demonstrates how to use the AEAD encryption facilities exposed by echo-wasm.
+This document demonstrates how to use the AEAD encryption facilities exposed by gossip-wasm.
 
 ## Basic Encryption and Decryption
 
@@ -10,7 +10,7 @@ import init, {
   Nonce,
   aead_encrypt,
   aead_decrypt,
-} from './echo_wasm';
+} from './gossip_wasm';
 
 await init();
 
@@ -132,7 +132,7 @@ async function decryptFile(encryptedData, keyBytes, nonceBytes, metadata) {
 ## Deriving Keys from Passwords
 
 ```javascript
-import { generate_user_keys } from './echo_wasm';
+import { generate_user_keys } from './gossip_wasm';
 
 // Use the auth system to derive a key from a password
 const userKeys = generate_user_keys('user_password_123', new Uint8Array(32));

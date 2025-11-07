@@ -7,6 +7,7 @@
 
 import { notificationService } from './notifications';
 import { messageService } from './message';
+import { announcementService } from './announcement';
 
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
@@ -65,7 +66,7 @@ export class BackgroundSyncService {
         registration as ServiceWorkerRegistration & {
           sync: { register: (tag: string) => Promise<void> };
         }
-      ).sync.register('echo-message-sync');
+      ).sync.register('gossip-message-sync');
       console.log(
         'Periodic background sync registered - browser will control timing'
       );
@@ -109,7 +110,8 @@ export class BackgroundSyncService {
   async triggerManualSync(): Promise<void> {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Worker not supported, falling back to direct sync');
-      await messageService.fetchAllDiscussions();
+      await announcementService.fetchAndProcessAnnouncements();
+      await messageService.fetchMessages();
       return;
     }
 

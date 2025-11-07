@@ -1,5 +1,3 @@
-// TODO: For announcement handle if there is already an announcement for this contact ?
-
 /**
  * Discussion Initialization Module
  *
@@ -8,7 +6,7 @@
 
 import { Contact, db, Discussion, DiscussionMessage } from '../db';
 import { useAccountStore } from '../stores/accountStore';
-import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import { announcementService } from '../services/announcement';
 
 /**
@@ -30,26 +28,19 @@ export async function initializeDiscussion(contact: Contact): Promise<{
     if (!userProfile?.userId) throw new Error('No authenticated user');
     if (!session) throw new Error('Session module not initialized');
 
-    // Establish outgoing session and get announcement bytes
     const announcement = session.establishOutgoingSession(
       UserPublicKeys.from_bytes(contact.publicKeys),
       ourPk,
       ourSk
     );
 
-    // Store discussion in database with UI metadata and keep announcement on discussion
-    // Broadcast announcement to bulletin and obtain counter
-
-    // TODO Handle fail to broadcast announcement
-    const annSvc = await announcementService.getInstance();
-    const result = await annSvc.sendAnnouncement(announcement);
+    const result = await announcementService.sendAnnouncement(announcement);
     if (!result.success) {
       throw new Error(
         `Failed to broadcast outgoing session: ${result.error || 'Unknown error'}`
       );
     }
 
-    // Store discussion in database
     const discussionId = await db.discussions.add({
       ownerUserId: userProfile.userId,
       contactUserId: contact.userId,
@@ -91,8 +82,8 @@ export async function acceptDiscussionRequest(
     );
 
     // send announcement to contact
-    const announcementSvc = await announcementService.getInstance();
-    const result = await announcementSvc.sendAnnouncement(announcement);
+
+    const result = await announcementService.sendAnnouncement(announcement);
     if (!result.success) {
       throw new Error(
         `Failed to send outgoing session: ${result.error || 'Unknown error'}`

@@ -1,5 +1,5 @@
 [package]
-name = "echo-wasm"
+name = "gossip-wasm"
 version.workspace = true
 edition.workspace = true
 

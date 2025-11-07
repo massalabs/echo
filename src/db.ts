@@ -109,7 +109,7 @@ export interface DiscussionMessage {
 }
 
 // Define the database class
-export class EchoDatabase extends Dexie {
+export class GossipDatabase extends Dexie {
   // Define tables
   contacts!: Table<Contact>;
   messages!: Table<Message>;
@@ -120,7 +120,7 @@ export class EchoDatabase extends Dexie {
   discussionMessages!: Table<DiscussionMessage>;
 
   constructor() {
-    super('EchoDatabase');
+    super('GossipDatabase');
 
     this.version(10).stores({
       contacts:
@@ -376,4 +376,4 @@ export class EchoDatabase extends Dexie {
 }
 
 // Create and export the database instance
-export const db = new EchoDatabase();
+export const db = new GossipDatabase();

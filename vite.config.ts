@@ -62,9 +62,9 @@ export default defineConfig({
       },
 
       manifest: {
-        name: 'echo',
-        short_name: 'echo',
-        description: 'Echo private messenger',
+        name: 'Gossip',
+        short_name: 'Gossip',
+        description: 'Gossip private messenger',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',

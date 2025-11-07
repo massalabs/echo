@@ -4,6 +4,7 @@ import { useFileShareContact } from '../../hooks/useFileShareContact';
 import TabSwitcher from '../ui/TabSwitcher';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
+import QrCodePlaceholder from '../ui/QrCodePlaceholder';
 
 interface ShareContactProps {
   onBack: () => void;
@@ -17,13 +18,13 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
   const { exportFileContact, isLoading, error } = useFileShareContact();
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-background">
       <div className="max-w-sm mx-auto">
         <PageHeader title="Share Contact" onBack={onBack} />
 
         <div className="px-4 pb-20 space-y-6">
           {/* Tabs */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+          <div className="bg-card rounded-lg p-6">
             <TabSwitcher
               options={[
                 {
@@ -42,7 +43,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
 
           {/* Content */}
           {activeTab === 'files' && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <div className="bg-card rounded-lg p-6">
               <div className="text-center mb-6">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                   <svg
@@ -62,7 +63,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
                   Share with file
                 </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Download your profile file and share it with people you want
                   to talk to.
                 </p>
@@ -77,7 +78,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 }}
                 disabled={!ourPk || isLoading}
                 loading={isLoading}
-                variant="gradient-blue"
+                variant="primary"
                 size="custom"
                 fullWidth
                 className="h-11 rounded-xl text-sm font-medium"
@@ -110,7 +111,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
           )}
 
           {activeTab === 'qr' && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <div className="bg-card rounded-lg p-6">
               <div className="text-center mb-6">
                 <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
                   <svg
@@ -130,15 +131,11 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
                   Scan QR code
                 </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Share your contact information via QR code
                 </p>
               </div>
-              <div className="w-full aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                <span className="text-gray-500 dark:text-gray-300 text-sm">
-                  QR code placeholder
-                </span>
-              </div>
+              <QrCodePlaceholder />
             </div>
           )}
         </div>

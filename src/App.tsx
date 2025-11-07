@@ -16,6 +16,7 @@ import { addDebugLog } from './components/ui/debugLogs';
 import AccountImport from './components/account/AccountImport.tsx';
 import { backgroundSyncService } from './services/backgroundSync';
 import { Toaster } from 'react-hot-toast';
+import { PrivacyGraphic } from './components/ui/PrivacyGraphic';
 import './App.css';
 
 // Route components and helpers
@@ -95,23 +96,6 @@ const AppContent: React.FC = () => {
     }
   }, [userProfile]);
 
-  // Sync messages when app becomes visible (user returns to app)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && userProfile) {
-        console.log('App became visible, triggering message sync');
-        backgroundSyncService.triggerManualSync().catch(error => {
-          console.error('Failed to sync messages on visibility change:', error);
-        });
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [userProfile]);
-
   // Load existing account info to show username in WelcomeBack when unauthenticated
   useEffect(() => {
     (async () => {
@@ -145,8 +129,8 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen-mobile bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-border border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <PrivacyGraphic size={120} loading={true} />
+          <p className="text-sm text-muted-foreground mt-4">Loading...</p>
         </div>
       </div>
     );

@@ -61,12 +61,12 @@ window.addEventListener('beforeunload', () => {
     path: currentPath,
     timestamp: Date.now(),
   };
-  sessionStorage.setItem('echo-app-state', JSON.stringify(currentState));
+  sessionStorage.setItem('gossip-app-state', JSON.stringify(currentState));
 });
 
 // Restore state on page load
 window.addEventListener('load', () => {
-  const savedState = sessionStorage.getItem('echo-app-state');
+  const savedState = sessionStorage.getItem('gossip-app-state');
   if (savedState) {
     try {
       const state = JSON.parse(savedState);
@@ -86,7 +86,7 @@ startWasmInitialization();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="system" storageKey="echo-theme">
+    <ThemeProvider defaultTheme="system" storageKey="gossip-theme">
       <App />
     </ThemeProvider>
   </StrictMode>

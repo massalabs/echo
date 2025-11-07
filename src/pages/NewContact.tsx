@@ -6,15 +6,13 @@ import React, {
   useState,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import appLogo from '../assets/echo_face.svg';
+import appLogo from '../assets/gossip_face.svg';
 import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
 import { validateUsername, isValidUserId, encodeUserId } from '../utils';
 import { useFileShareContact } from '../hooks/useFileShareContact';
-import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import BaseModal from '../components/ui/BaseModal';
-import TabSwitcher from '../components/ui/TabSwitcher';
-import { generateUserKeys } from '../wasm';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';
 
@@ -36,7 +34,6 @@ const NewContact: React.FC = () => {
     error: importFileContactError,
     isLoading: isImportingFileContact,
   } = useFileShareContact();
-  const [activeImportTab, setActiveImportTab] = useState<'file' | 'qr'>('file');
 
   const isValid = useMemo(() => {
     return validateUsername(name).valid && isValidUserId(userId);
@@ -109,20 +106,20 @@ const NewContact: React.FC = () => {
     }
   }, [fileContact, validateName, validateUserId]);
 
-  const handleGenerate = useCallback(async () => {
-    const nameIsValid = validateUsername(name).valid;
-    if (!nameIsValid || userId || isSubmitting) return;
-    try {
-      const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
-      const pub = newUserKeys.public_keys();
-      setPublicKeys(pub);
-      setUserId(encodeUserId(pub.derive_id()));
-      setUserIdError(null);
-    } catch (e) {
-      console.error(e);
-      setUserIdError('Failed to generate user ID. Please try again.');
-    }
-  }, [name, userId, isSubmitting]);
+  // const handleGenerate = useCallback(async () => {
+  //   const nameIsValid = validateUsername(name).valid;
+  //   if (!nameIsValid || userId || isSubmitting) return;
+  //   try {
+  //     const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
+  //     const pub = newUserKeys.public_keys();
+  //     setPublicKeys(pub);
+  //     setUserId(encodeUserId(pub.derive_id()));
+  //     setUserIdError(null);
+  //   } catch (e) {
+  //     console.error(e);
+  //     setUserIdError('Failed to generate user ID. Please try again.');
+  //   }
+  // }, [name, userId, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid || !publicKeys) return;
@@ -185,7 +182,7 @@ const NewContact: React.FC = () => {
   ]);
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-background">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4">
@@ -198,7 +195,7 @@ const NewContact: React.FC = () => {
                 className="w-8 h-8 flex items-center justify-center"
               >
                 <svg
-                  className="w-5 h-5 text-gray-600 dark:text-gray-300"
+                  className="w-5 h-5 text-foreground/70"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -214,7 +211,7 @@ const NewContact: React.FC = () => {
               <img
                 src={appLogo}
                 className="w-9 h-9 rounded object-cover"
-                alt="Echo logo"
+                alt="Gossip logo"
               />
               <h1 className="text-xl font-semibold text-black dark:text-white">
                 New contact
@@ -225,124 +222,48 @@ const NewContact: React.FC = () => {
 
         {/* Form */}
         <div className="px-4 pb-20">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-5">
-            {/* Import Tabs */}
-            <div className="space-y-4">
-              <TabSwitcher
-                options={[
-                  {
-                    value: 'file',
-                    label: 'From File',
-                    icon: (
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                    ),
-                  },
-                  {
-                    value: 'qr',
-                    label: 'From QR',
-                    icon: (
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2.01M19 8h2.01M12 19h.01M12 4h.01"
-                        />
-                      </svg>
-                    ),
-                  },
-                ]}
-                value={activeImportTab}
-                onChange={setActiveImportTab}
-              />
-
-              {activeImportTab === 'file' && (
-                <div className="p-6">
-                  <div className="text-center mb-6">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <svg
-                        className="w-6 h-6 text-primary"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Import a contact from a .yaml file
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      You can setup a discussion with a Gossip user by importing
-                      its .yaml file
-                    </p>
-                  </div>
-                  <div className="flex justify-center">
-                    <label className="flex items-center justify-center gap-3 px-6 py-3 bg-primary text-primary-foreground rounded-xl transition-all duration-200 text-sm font-semibold cursor-pointer hover:bg-primary/90 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full max-w-xs">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".yaml,.yml"
-                        className="hidden"
-                        onChange={handleFileImport}
-                        disabled={isImportingFileContact}
-                      />
-                      {isImportingFileContact ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
-                          <span>Importing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                            />
-                          </svg>
-                          <span>Choose .yaml file</span>
-                        </>
-                      )}
-                    </label>
-                  </div>
+          <div className="bg-card rounded-lg p-6 space-y-5">
+            {/* Import Section */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg
+                    className="w-6 h-6 text-primary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
                 </div>
-              )}
-
-              {activeImportTab === 'qr' && (
-                <div className="p-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Import a contact from a file
+                </h3>
+              </div>
+              <div className="flex justify-center">
+                <label className="flex items-center justify-center gap-3 px-6 py-3 bg-primary text-primary-foreground rounded-xl transition-all duration-200 text-sm font-semibold cursor-pointer hover:bg-primary/90 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full max-w-xs">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".yaml,.yml"
+                    className="hidden"
+                    onChange={handleFileImport}
+                    disabled={isImportingFileContact}
+                  />
+                  {isImportingFileContact ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                      <span>Importing...</span>
+                    </>
+                  ) : (
+                    <>
                       <svg
-                        className="w-6 h-6 text-muted-foreground"
+                        className="w-5 h-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -351,24 +272,21 @@ const NewContact: React.FC = () => {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2.01M19 8h2.01M12 19h.01M12 4h.01"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                         />
                       </svg>
-                    </div>
-                    <p className="text-base font-medium text-foreground mb-1">
-                      Import from QR code
-                    </p>
-                    <p className="text-sm text-muted-foreground">Coming soon</p>
-                  </div>
-                </div>
-              )}
+                      <span>Choose .yaml file</span>
+                    </>
+                  )}
+                </label>
+              </div>
             </div>
 
             {/* Divider */}
-            <div className="h-px bg-gray-200 dark:bg-gray-700" />
+            <div className="h-px bg-border" />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Name
               </label>
               <input
@@ -380,10 +298,8 @@ const NewContact: React.FC = () => {
                 }}
                 onBlur={e => validateName(e.target.value)}
                 placeholder="Enter contact name"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                  nameError
-                    ? 'border-red-500 dark:border-red-500'
-                    : 'border-gray-300 dark:border-gray-600'
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-input text-foreground placeholder-muted-foreground ${
+                  nameError ? 'border-destructive' : 'border-border'
                 }`}
               />
               {nameError && (
@@ -394,7 +310,7 @@ const NewContact: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 User ID
               </label>
               <div className="flex gap-2 flex-wrap sm:flex-nowrap">
@@ -407,13 +323,11 @@ const NewContact: React.FC = () => {
                   }}
                   onBlur={e => validateUserId(e.target.value)}
                   placeholder="Enter gossip Bech32 user ID"
-                  className={`flex-1 min-w-0 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                    userIdError
-                      ? 'border-red-500 dark:border-red-500'
-                      : 'border-gray-300 dark:border-gray-600'
+                  className={`flex-1 min-w-0 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-input text-foreground placeholder-muted-foreground ${
+                    userIdError ? 'border-destructive' : 'border-border'
                   }`}
                 />
-                <Button
+                {/* <Button
                   type="button"
                   onClick={async () => {
                     await handleGenerate();
@@ -421,20 +335,20 @@ const NewContact: React.FC = () => {
                   disabled={
                     !validateUsername(name).valid || !!userId || isSubmitting
                   }
-                  variant="gradient-blue"
+                  variant="ghost"
                   size="custom"
                   className="px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap"
                   title="Generate random user ID"
                 >
                   Generate
-                </Button>
+                </Button> */}
               </div>
               {userIdError && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                   {userIdError}
                 </p>
               )}
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-xs text-muted-foreground">
                 User ID is a unique 32-byte identifier
               </p>
             </div>
@@ -449,7 +363,7 @@ const NewContact: React.FC = () => {
               onClick={handleSubmit}
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
-              variant="gradient-blue"
+              variant="ghost"
               size="custom"
               fullWidth
               className="py-3 px-4 rounded-xl text-sm font-medium"
@@ -466,9 +380,7 @@ const NewContact: React.FC = () => {
         title="Discard new contact?"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            Your changes will be lost.
-          </p>
+          <p className="text-sm text-foreground">Your changes will be lost.</p>
           <div className="flex gap-3">
             <Button
               onClick={() => {
@@ -485,7 +397,7 @@ const NewContact: React.FC = () => {
               onClick={() => setIsDiscardModalOpen(false)}
               variant="secondary"
               size="custom"
-              className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+              className="flex-1 h-11 rounded-lg font-semibold"
             >
               Cancel
             </Button>

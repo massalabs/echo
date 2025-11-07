@@ -3,79 +3,86 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.145 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0.145 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.97 0 0);
-  --ring: oklch(0.145 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Quantum Dawn Light Mode - "Bert Light Mode" */
+  /* Airy, warm, privacy-first – the daytime twin of "Quantum Velvet" */
+  /* Teal primary - distinct from Phantom's purple */
+  --background: #f8f9fa; /* creamy cloud (never pure white) */
+  --foreground: #1a1a1d; /* deep charcoal - primary text */
+  --card: #ffffff; /* true white cards */
+  --card-foreground: #1a1a1d;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1d;
+  --primary: #0d9488; /* teal - encrypted/Button/CTA */
+  --primary-foreground: #ffffff; /* white text on teal */
+  --secondary: #ff8c8c; /* coral timer - self-destruct/Secondary */
+  --secondary-foreground: #ffffff; /* white text on coral */
+  --muted: #f0f1f3; /* muted background */
+  --muted-foreground: #6b6b73; /* warm mid-gray - subtle text */
+  --accent: #6db8a2; /* deeper sea-foam - verified/Accent */
+  --accent-foreground: #ffffff; /* white text on sea-foam */
+  --destructive: #ff8c8c; /* coral timer - also works for destructive */
+  --destructive-foreground: #ffffff;
+  --border: #e5e6e8; /* subtle border */
+  --input: #ffffff; /* input background */
+  --ring: #0d9488; /* focus ring using teal */
+  --chart-1: #6db8a2; /* deeper sea-foam */
+  --chart-2: #0d9488; /* teal */
+  --chart-3: #ff8c8c; /* coral timer */
+  --chart-4: #c17bc9; /* rich orchid - offline key */
+  --chart-5: #6db8a2; /* sea-foam variant */
   --radius: 0.25rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.97 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.96 0 0);
-  --sidebar-accent-foreground: oklch(0.145 0 0);
-  --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.5 0 0);
+  --sidebar: #f8f9fa;
+  --sidebar-foreground: #1a1a1d;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #1a1a1d;
+  --sidebar-accent: #6db8a2;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e5e6e8;
+  --sidebar-ring: #0d9488;
+  --tail-border: #e5e7eb; /* soft gray border for light mode tail */
 }
 
 .dark {
-  --background: oklch(0.08 0 0);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.12 0 0);
-  --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.98 0 0);
-  --primary-foreground: oklch(0.08 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.22 0 0);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.22 0 0);
-  --input: oklch(0.18 0 0);
-  --ring: oklch(0.98 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Quantum Velvet Dark Mode - "Bert Dark Mode" */
+  /* Warm charcoal base, zero pure black, privacy-coded accents */
+  /* Teal primary - distinct from Phantom's purple */
+  --background: #18181b; /* warm charcoal (never #000) */
+  --foreground: #e8e8ea; /* creamy off-white - primary text */
+  --card: #1e1e22; /* surface/cards - +1 step lighter */
+  --card-foreground: #e8e8ea;
+  --popover: #1e1e22;
+  --popover-foreground: #e8e8ea;
+  --primary: #2dd4bf; /* teal - encrypted/Button/CTA */
+  --primary-foreground: #18181b; /* dark text on teal for good contrast */
+  --secondary: #ffb3b3; /* peach timer - self-destruct/Secondary */
+  --secondary-foreground: #18181b; /* dark text on peach for good contrast */
+  --muted: #252529; /* muted background */
+  --muted-foreground: #a0a0a8; /* dove gray - subtle text */
+  --accent: #a8e0d2; /* sea-foam proof - verified/Accent */
+  --accent-foreground: #18181b; /* dark text on sea-foam for good contrast */
+  --destructive: #ffb3b3; /* peach timer - also works for destructive */
+  --destructive-foreground: #18181b;
+  --border: #2a2a2e; /* subtle border */
+  --input: #1e1e22; /* input background */
+  --ring: #2dd4bf; /* focus ring using teal */
+  --chart-1: #a8e0d2; /* sea-foam proof */
+  --chart-2: #2dd4bf; /* teal */
+  --chart-3: #ffb3b3; /* peach timer */
+  --chart-4: #d6a8dc; /* muted orchid - offline key */
+  --chart-5: #a8e0d2; /* sea-foam variant */
+  --sidebar: #18181b;
+  --sidebar-foreground: #e8e8ea;
+  --sidebar-primary: #1e1e22;
+  --sidebar-primary-foreground: #e8e8ea;
+  --sidebar-accent: #a8e0d2;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #2a2a2e;
+  --sidebar-ring: #2dd4bf;
+  --tail-border: transparent; /* transparent border for dark mode tail */
 }
 
 @theme inline {
   --font-sans: 'Inter', 'Inter Fallback';
-  --font-mono: 'Space Mono', 'Space Mono Fallback';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -150,6 +157,61 @@
     /* Disable pull-to-refresh on mobile */
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Global scrollbar styling - thin, minimal, no track background */
+  * {
+    scrollbar-width: thin; /* Firefox */
+    /* Fallback for browsers without color-mix support (light mode default) */
+    scrollbar-color: rgba(26, 26, 29, 0.35) transparent;
+    /* Progressive enhancement: override with color-mix if supported */
+    scrollbar-color: color-mix(in oklch, var(--foreground) 35%, transparent)
+      transparent;
+  }
+
+  /* WebKit (Chrome, Edge, Safari) */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* Ensure no background shows behind the scrollbar in all cases */
+  *::-webkit-scrollbar-track-piece {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    /* Fallback for browsers without color-mix support (light mode default) */
+    background-color: rgba(26, 26, 29, 0.35);
+    /* Progressive enhancement: override with color-mix if supported */
+    background-color: color-mix(in oklch, var(--foreground) 35%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent; /* create inset look with transparent track */
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    /* Fallback for browsers without color-mix support (light mode default) */
+    background-color: rgba(26, 26, 29, 0.5);
+    /* Progressive enhancement: override with color-mix if supported */
+    background-color: color-mix(in oklch, var(--foreground) 50%, transparent);
+  }
+
+  /* Dark mode fallbacks for browsers without color-mix support */
+  /* These only apply when color-mix is not supported */
+  @supports not (color: color-mix(in oklch, red, blue)) {
+    .dark * {
+      scrollbar-color: rgba(232, 232, 234, 0.35) transparent;
+    }
+    .dark *::-webkit-scrollbar-thumb {
+      background-color: rgba(232, 232, 234, 0.35);
+    }
+    .dark *::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(232, 232, 234, 0.5);
+    }
   }
 
   /* Disable pull-to-refresh for the entire app */
@@ -314,6 +376,75 @@
     }
   }
 
+  /* Loading-specific animations - faster and more active */
+  @keyframes float-loading {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-15px);
+    }
+  }
+
+  @keyframes tilt-loading {
+    0%,
+    100% {
+      transform: rotate(-5deg);
+    }
+    50% {
+      transform: rotate(5deg);
+    }
+  }
+
+  @keyframes blink-loading {
+    0%,
+    85%,
+    100% {
+      transform: scaleY(1);
+    }
+    92.5% {
+      transform: scaleY(0.1);
+    }
+  }
+
+  @keyframes pulse-loading {
+    0%,
+    100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+  }
+
+  /* Chat bubble animations */
+  @keyframes bubbleIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  .animate-bubble-in {
+    animation: bubbleIn 0.22s ease-out;
+  }
+
   .animate-fade-in {
     animation: fade-in 0.6s ease-out;
   }
@@ -326,16 +457,32 @@
     animation: pulse-slow 3s ease-in-out infinite;
   }
 
+  .animate-pulse-loading {
+    animation: pulse-loading 2s ease-in-out infinite;
+  }
+
   .animate-float {
     animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-float-loading {
+    animation: float-loading 2.5s ease-in-out infinite;
   }
 
   .animate-tilt {
     animation: tilt 6s ease-in-out infinite;
   }
 
+  .animate-tilt-loading {
+    animation: tilt-loading 3s ease-in-out infinite;
+  }
+
   .animate-blink {
     animation: blink 4s ease-in-out infinite;
+  }
+
+  .animate-blink-loading {
+    animation: blink-loading 2s ease-in-out infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {

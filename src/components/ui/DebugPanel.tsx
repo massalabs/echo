@@ -60,7 +60,7 @@ const DebugPanel: React.FC = () => {
       try {
         const databases = await indexedDB.databases();
         for (const database of databases) {
-          if (database.name?.includes('EchoDatabase')) {
+          if (database.name?.includes('GossipDatabase')) {
             indexedDB.deleteDatabase(database.name);
           }
         }
@@ -81,8 +81,8 @@ const DebugPanel: React.FC = () => {
       if ('Notification' in window && Notification.permission === 'default') {
         await Notification.requestPermission();
       }
-      const ann = await announcementService.getInstance();
-      const result = await ann.simulateIncomingDiscussion();
+
+      const result = await announcementService.simulateIncomingDiscussion();
       if (result.success) {
         console.log(
           'Simulated incoming discussion. New messages:',
@@ -97,7 +97,7 @@ const DebugPanel: React.FC = () => {
   }, []);
 
   return (
-    <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-left">
+    <div className="mt-8 p-4 text-left">
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
         User: {userProfile?.username}
       </p>
