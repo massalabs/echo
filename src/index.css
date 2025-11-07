@@ -162,7 +162,7 @@
     scrollbar-width: thin; /* Firefox */
     /* Fallback for browsers without color-mix support (light mode default) */
     scrollbar-color: rgba(26, 26, 29, 0.35) transparent;
-    /* Modern browsers with color-mix support will use this */
+    /* Progressive enhancement: override with color-mix if supported */
     scrollbar-color: color-mix(in oklch, var(--foreground) 35%, transparent)
       transparent;
   }
@@ -185,7 +185,7 @@
   *::-webkit-scrollbar-thumb {
     /* Fallback for browsers without color-mix support (light mode default) */
     background-color: rgba(26, 26, 29, 0.35);
-    /* Modern browsers with color-mix support will use this */
+    /* Progressive enhancement: override with color-mix if supported */
     background-color: color-mix(in oklch, var(--foreground) 35%, transparent);
     border-radius: 9999px;
     border: 2px solid transparent; /* create inset look with transparent track */
@@ -194,7 +194,7 @@
   *::-webkit-scrollbar-thumb:hover {
     /* Fallback for browsers without color-mix support (light mode default) */
     background-color: rgba(26, 26, 29, 0.5);
-    /* Modern browsers with color-mix support will use this */
+    /* Progressive enhancement: override with color-mix if supported */
     background-color: color-mix(in oklch, var(--foreground) 50%, transparent);
   }
 

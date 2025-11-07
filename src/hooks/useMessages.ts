@@ -92,7 +92,7 @@ export const useMessages = ({
       setIsSending(true);
 
       try {
-        const ownerUserId = useAccountStore.getState().userProfile?.userId;
+        const ownerUserId = userProfile?.userId;
         if (!ownerUserId) {
           return { success: false, error: 'No authenticated user' };
         }

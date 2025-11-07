@@ -24,6 +24,7 @@ export class RestMessageProtocol implements IMessageProtocol {
     private retryAttempts: number = 3
   ) {}
 
+  // TODO: Implement a fetch with pagination to avoid fetching all messages at once
   async fetchMessages(seekers: Uint8Array[]): Promise<EncryptedMessage[]> {
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/fetch`;
 

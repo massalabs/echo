@@ -46,152 +46,135 @@ export class MessageService {
       if (!userProfile?.userId) throw new Error('No authenticated user');
 
       const ownerUserId = userProfile.userId;
-      let totalStored = 0;
-      const maxIterations = 100; // Safety limit to prevent infinite loops
-      let iteration = 0;
+
+      // Get all seekers for all active sessions
+      const seekers = session.getMessageBoardReadKeys();
+      if (!seekers?.length) {
+        return { success: true, newMessagesCount: 0 };
+      }
+
+      // Fetch encrypted messages for all seekers
+      const encrypted = await this.messageProtocol.fetchMessages(seekers);
+      if (!encrypted.length) {
+        return { success: true, newMessagesCount: 0 };
+      }
 
       // -------------------------------------------------
-      // Loop until no new messages are found
-      // Each iteration processes messages and advances seekers,
-      // so we need to fetch again with the new seekers
+      // 1. Decrypt everything (CPU only)
       // -------------------------------------------------
-      while (iteration < maxIterations) {
-        iteration++;
+      interface Decrypted {
+        content: string;
+        sentAt: Date;
+        senderId: string;
+      }
+      const decrypted: Decrypted[] = [];
 
-        // Get current seekers (these advance after each message is processed)
-        const seekers = session.getMessageBoardReadKeys();
-        if (!seekers?.length) break;
+      for (const msg of encrypted) {
+        try {
+          const out = session.feedIncomingMessageBoardRead(
+            msg.seeker,
+            msg.ciphertext,
+            ourSk
+          );
+          if (!out) continue;
 
-        // Fetch encrypted messages for current seekers
-        const encrypted = await this.messageProtocol.fetchMessages(seekers);
-        if (!encrypted.length) break; // No more messages available
-
-        // -------------------------------------------------
-        // 1. Decrypt everything (CPU only)
-        // -------------------------------------------------
-        interface Decrypted {
-          content: string;
-          sentAt: Date;
-          senderId: string;
-        }
-        const decrypted: Decrypted[] = [];
-
-        for (const msg of encrypted) {
-          try {
-            const out = session.feedIncomingMessageBoardRead(
-              msg.seeker,
-              msg.ciphertext,
-              ourSk
-            );
-            if (!out) continue;
-
-            decrypted.push({
-              content: new TextDecoder().decode(out.message),
-              sentAt: new Date(Number(out.timestamp)),
-              senderId: encodeUserId(out.user_id),
-            });
-          } catch (e) {
-            console.error('Decrypt failed:', e);
-          }
-        }
-
-        if (!decrypted.length) break; // No valid messages in this batch
-
-        // -------------------------------------------------
-        // 2. One transaction → parallel DB work
-        // -------------------------------------------------
-        let stored = 0;
-
-        await db.transaction('rw', db.messages, db.discussions, async () => {
-          // ---- 2a. Pre-load all discussions (parallel) ----
-          // Use allSettled to handle missing discussions gracefully
-          const discPromises = decrypted.map(async ({ senderId }) => {
-            const d = await db.getDiscussionByOwnerAndContact(
-              ownerUserId,
-              senderId
-            );
-            if (!d) {
-              return { senderId, discussion: null };
-            }
-            return { senderId, discussion: d };
+          decrypted.push({
+            content: new TextDecoder().decode(out.message),
+            sentAt: new Date(Number(out.timestamp)),
+            senderId: encodeUserId(out.user_id),
           });
-          const discResults = await Promise.allSettled(discPromises);
-          const discMap = new Map<string, Discussion>();
+        } catch (e) {
+          console.error('Decrypt failed:', e);
+        }
+      }
 
-          // Filter out senders without discussions
-          for (const result of discResults) {
-            if (result.status === 'fulfilled' && result.value.discussion) {
-              discMap.set(result.value.senderId, result.value.discussion);
-            }
+      if (!decrypted.length) {
+        return { success: true, newMessagesCount: 0 };
+      }
+
+      // -------------------------------------------------
+      // 2. One transaction → parallel DB work
+      // -------------------------------------------------
+      let stored = 0;
+
+      await db.transaction('rw', db.messages, db.discussions, async () => {
+        // ---- 2a. Pre-load all discussions (parallel) ----
+        // Use allSettled to handle missing discussions gracefully
+        const discPromises = decrypted.map(async ({ senderId }) => {
+          const d = await db.getDiscussionByOwnerAndContact(
+            ownerUserId,
+            senderId
+          );
+          if (!d) {
+            return { senderId, discussion: null };
           }
-
-          // Filter decrypted messages to only process those with discussions
-          const messagesWithDiscussions = decrypted.filter(({ senderId }) =>
-            discMap.has(senderId)
-          );
-
-          if (!messagesWithDiscussions.length) {
-            // No messages have valid discussions, skip this batch
-            return;
-          }
-
-          // ---- 2b. Insert messages (parallel) ----
-          // Only insert messages for senders that have discussions
-          const msgPromises = messagesWithDiscussions.map(
-            async ({ content, sentAt, senderId }) => {
-              const id = await db.messages.add({
-                ownerUserId,
-                contactUserId: senderId,
-                content,
-                type: 'text' as const,
-                direction: 'incoming' as const,
-                status: 'delivered' as const,
-                timestamp: sentAt,
-                encrypted: true,
-                metadata: {},
-              });
-              return { id, senderId, content, sentAt };
-            }
-          );
-          const inserted = await Promise.all(msgPromises);
-
-          // ---- 2c. Update discussions (parallel, best-effort) ----
-          const now = new Date();
-          const updPromises = inserted.map(
-            async ({ id, senderId, content, sentAt }) => {
-              const disc = discMap.get(senderId);
-              if (!disc) return;
-
-              await db.discussions.update(disc.id, {
-                lastMessageId: id,
-                lastMessageContent: content,
-                lastMessageTimestamp: sentAt,
-                updatedAt: now,
-                lastSyncTimestamp: now,
-                unreadCount: disc.unreadCount + 1,
-              });
-            }
-          );
-
-          // Use allSettled so one bad discussion doesn't kill the whole batch
-          await Promise.allSettled(updPromises);
-
-          stored = inserted.length;
+          return { senderId, discussion: d };
         });
+        const discResults = await Promise.allSettled(discPromises);
+        const discMap = new Map<string, Discussion>();
 
-        totalStored += stored;
+        // Filter out senders without discussions
+        for (const result of discResults) {
+          if (result.status === 'fulfilled' && result.value.discussion) {
+            discMap.set(result.value.senderId, result.value.discussion);
+          }
+        }
 
-        // If we processed fewer messages than we fetched, we might have hit the end
-        // Continue to next iteration to check for more messages with updated seekers
-      }
-
-      if (iteration >= maxIterations) {
-        console.warn(
-          `fetchMessages reached max iterations (${maxIterations}), stopping to prevent infinite loop`
+        // Filter decrypted messages to only process those with discussions
+        const messagesWithDiscussions = decrypted.filter(({ senderId }) =>
+          discMap.has(senderId)
         );
-      }
 
-      return { success: true, newMessagesCount: totalStored };
+        if (!messagesWithDiscussions.length) {
+          // No messages have valid discussions, skip this batch
+          return;
+        }
+
+        // ---- 2b. Insert messages (parallel) ----
+        // Only insert messages for senders that have discussions
+        const msgPromises = messagesWithDiscussions.map(
+          async ({ content, sentAt, senderId }) => {
+            const id = await db.messages.add({
+              ownerUserId,
+              contactUserId: senderId,
+              content,
+              type: 'text' as const,
+              direction: 'incoming' as const,
+              status: 'delivered' as const,
+              timestamp: sentAt,
+              encrypted: true,
+              metadata: {},
+            });
+            return { id, senderId, content, sentAt };
+          }
+        );
+        const inserted = await Promise.all(msgPromises);
+
+        // ---- 2c. Update discussions (parallel, best-effort) ----
+        const now = new Date();
+        const updPromises = inserted.map(
+          async ({ id, senderId, content, sentAt }) => {
+            const disc = discMap.get(senderId);
+            if (!disc) return;
+
+            await db.discussions.update(disc.id, {
+              lastMessageId: id,
+              lastMessageContent: content,
+              lastMessageTimestamp: sentAt,
+              updatedAt: now,
+              lastSyncTimestamp: now,
+              unreadCount: disc.unreadCount + 1,
+            });
+          }
+        );
+
+        // Use allSettled so one bad discussion doesn't kill the whole batch
+        await Promise.allSettled(updPromises);
+
+        stored = inserted.length;
+      });
+
+      return { success: true, newMessagesCount: stored };
     } catch (err) {
       console.error('fetchMessages error:', err);
       return {

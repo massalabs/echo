@@ -168,9 +168,7 @@ export class AnnouncementService {
       // if we can't decrypt the announcement, it means we are not the intended recipient. It's not an error.
       if (!announcerPkeys) {
         return {
-          success: false,
-          error:
-            'Failed to decrypt announcement - not intended recipient or malformed data',
+          success: true,
         };
       }
       const contactUserId = announcerPkeys.derive_id();
