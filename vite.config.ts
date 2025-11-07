@@ -115,6 +115,14 @@ export default defineConfig({
     fs: {
       allow: ['..'],
     },
+    // Proxy API requests to avoid mixed content issues (HTTPS frontend → HTTP API)
+    proxy: {
+      '/api': {
+        target: 'http://145.239.66.206:3001',
+        changeOrigin: true,
+        secure: false, // Allow HTTP even if Vite is HTTPS
+      },
+    },
   },
   build: {
     target: 'esnext',
