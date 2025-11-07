@@ -354,6 +354,18 @@ impl SessionManager {
     /// - The announcement is too old or too far in the future
     /// - The announcement is older than a previously received announcement from the same peer
     ///
+    /// # Security Warning
+    ///
+    /// **The user_data in announcements is NOT as secure as regular messages:**
+    /// - ❌ **No plausible deniability**: Announcements are cryptographically signed,
+    ///   proving who created them. They cannot be repudiated.
+    /// - ❌ **No post-compromise secrecy**: If the sender's long-term keys are compromised
+    ///   in the future, all past announcements (including their user_data) can be decrypted.
+    ///
+    /// **Recommendation**: Treat user_data as semi-public information. Only use it for
+    /// non-sensitive metadata. Any sensitive information should be sent through regular
+    /// messages after the session is established.
+    ///
     /// # Example
     ///
     /// ```ignore
@@ -445,6 +457,19 @@ impl SessionManager {
     /// * `user_data` - Arbitrary data to include in the announcement (can be empty).
     ///   This data will be encrypted and can only be read by the intended recipient.
     ///   Use cases include: contact requests, metadata, application-specific info.
+    ///
+    /// # Security Warning
+    ///
+    /// **The user_data in announcements is NOT as secure as regular messages:**
+    /// - ❌ **No plausible deniability**: The announcement is cryptographically signed,
+    ///   proving that you created it. Unlike messages, announcements cannot be repudiated.
+    /// - ❌ **No post-compromise secrecy**: If your long-term keys are compromised in the
+    ///   future, past announcements (including their user_data) can be decrypted.
+    ///
+    /// **Recommendation**: Avoid including sensitive information in user_data. Use it only
+    /// for non-sensitive metadata like protocol version, public display names, or
+    /// capability flags. Send sensitive data through regular messages after the session
+    /// is established.
     ///
     /// # Returns
     ///
