@@ -13,7 +13,7 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
   contact,
 }) => {
   const navigate = useNavigate();
-  const onBack = () => navigate('/');
+  const onBack = () => navigate(-1);
 
   // Provide a fallback contact to prevent hook errors
   // The hooks will handle the undefined case internally
