@@ -97,7 +97,7 @@ const DebugPanel: React.FC = () => {
   }, []);
 
   return (
-    <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-left">
+    <div className="mt-8 p-4 text-left">
       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
         User: {userProfile?.username}
       </p>
