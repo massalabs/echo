@@ -225,7 +225,7 @@ export class NotificationService {
   }
 
   /**
-   * Clear all notifications with Echo tags
+   * Clear all notifications with Gossip tags
    */
   clearAllNotifications(): void {
     if (

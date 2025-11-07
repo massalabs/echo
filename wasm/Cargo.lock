@@ -431,26 +431,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "echo-wasm"
-version = "0.1.0"
-dependencies = [
- "auth",
- "bincode",
- "console_error_panic_hook",
- "crypto-aead",
- "crypto-password-kdf",
- "crypto-rng",
- "js-sys",
- "massa_signature",
- "serde",
- "serde-wasm-bindgen",
- "sessions",
- "wasm-bindgen",
- "web-sys",
- "web-time",
-]
-
-[[package]]
 name = "ed25519"
 version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -527,6 +507,26 @@ dependencies = [
  "libc",
  "r-efi",
  "wasi 0.14.7+wasi-0.2.4",
+]
+
+[[package]]
+name = "gossip-wasm"
+version = "0.1.0"
+dependencies = [
+ "auth",
+ "bincode",
+ "console_error_panic_hook",
+ "crypto-aead",
+ "crypto-password-kdf",
+ "crypto-rng",
+ "js-sys",
+ "massa_signature",
+ "serde",
+ "serde-wasm-bindgen",
+ "sessions",
+ "wasm-bindgen",
+ "web-sys",
+ "web-time",
 ]
 
 [[package]]

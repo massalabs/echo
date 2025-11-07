@@ -6,7 +6,7 @@
 
 import { Contact, db, Discussion, DiscussionMessage } from '../db';
 import { useAccountStore } from '../stores/accountStore';
-import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import { announcementService } from '../services/announcement';
 
 /**

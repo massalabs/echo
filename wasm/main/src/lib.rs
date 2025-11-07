@@ -1,6 +1,6 @@
-//! Echo WASM API
+//! Gossip WASM API
 //!
-//! This crate provides WebAssembly bindings for the Echo secure messaging system,
+//! This crate provides WebAssembly bindings for the Gossip secure messaging system,
 //! exposing the SessionManager, Auth, and AEAD encryption facilities to JavaScript/TypeScript applications.
 //!
 //! # Features

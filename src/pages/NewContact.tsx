@@ -11,7 +11,7 @@ import { Contact, db } from '../db';
 import { useAccountStore } from '../stores/accountStore';
 import { validateUsername, isValidUserId, encodeUserId } from '../utils';
 import { useFileShareContact } from '../hooks/useFileShareContact';
-import { UserPublicKeys } from '../assets/generated/wasm/echo_wasm';
+import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import BaseModal from '../components/ui/BaseModal';
 import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';

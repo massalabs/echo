@@ -28,7 +28,7 @@ import {
 import {
   UserPublicKeys,
   UserSecretKeys,
-} from '../assets/generated/wasm/echo_wasm';
+} from '../assets/generated/wasm/gossip_wasm';
 import { encodeUserId } from '../utils/userId';
 import { getActiveOrFirstProfile } from './utils/getAccount';
 import { ensureWasmInitialized } from '../wasm/loader';

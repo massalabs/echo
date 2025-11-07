@@ -13,7 +13,7 @@ import {
 } from '../api/messageProtocol';
 import { useAccountStore } from '../stores/accountStore';
 import { strToBytes } from '@massalabs/massa-web3';
-import { SessionStatus } from '../assets/generated/wasm/echo_wasm';
+import { SessionStatus } from '../assets/generated/wasm/gossip_wasm';
 
 export interface MessageResult {
   success: boolean;

@@ -66,7 +66,7 @@ export class BackgroundSyncService {
         registration as ServiceWorkerRegistration & {
           sync: { register: (tag: string) => Promise<void> };
         }
-      ).sync.register('echo-message-sync');
+      ).sync.register('gossip-message-sync');
       console.log(
         'Periodic background sync registered - browser will control timing'
       );
