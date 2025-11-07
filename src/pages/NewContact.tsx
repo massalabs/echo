@@ -164,6 +164,7 @@ const NewContact: React.FC = () => {
       }
 
       await db.contacts.add(contact);
+
       await handleCreatedNewContact(contact);
       navigate(`/`);
     } catch (e) {

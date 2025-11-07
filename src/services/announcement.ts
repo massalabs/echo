@@ -30,6 +30,7 @@ export class AnnouncementService {
   }> {
     try {
       const counter = await this.messageProtocol.sendAnnouncement(announcement);
+
       return { success: true, counter };
     } catch (error) {
       console.error('Failed to broadcast outgoing session:', error);

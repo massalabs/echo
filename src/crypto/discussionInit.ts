@@ -47,6 +47,15 @@ export async function initializeDiscussion(contact: Contact): Promise<{
       updatedAt: new Date(),
     });
 
+    // Send the announcement to the contact
+    const result = await announcementService.sendAnnouncement(announcement);
+    if (!result.success) {
+      console.warn(
+        `Failed to send announcement: ${result.error || 'Unknown error'}. Discussion saved for retry.`
+      );
+      // Don't throw - the discussion is saved and can be retried later
+    }
+
     return { discussionId, announcement };
   } catch (error) {
     console.error('Failed to initialize discussion:', error);
@@ -218,4 +227,48 @@ export async function getDiscussionMessages(
     .then(messages =>
       messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
     );
+}
+
+/**
+ * Ensure a discussion exists for a contact, creating one if it doesn't
+ * @param contact - The contact to ensure a discussion exists for
+ * @param existingDiscussion - Optional existing discussion to check first (for performance)
+ * @returns true if a discussion exists (or was created), false if creation failed
+ */
+export async function ensureDiscussionExists(
+  contact: Contact,
+  existingDiscussion?: Discussion | null
+): Promise<boolean> {
+  // If we already have a discussion, return early
+  if (existingDiscussion) return true;
+
+  // Check if a discussion already exists for this contact
+  const discussion = await db.discussions
+    .where('[ownerUserId+contactUserId]')
+    .equals([contact.ownerUserId, contact.userId])
+    .first();
+
+  if (discussion) {
+    console.log('Discussion already exists for contact:', contact.userId);
+    return true;
+  }
+
+  // Guard: we cannot initialize a discussion without the contact's public keys
+  if (!contact.publicKeys || contact.publicKeys.length === 0) {
+    console.warn(
+      'Contact is missing public keys. Cannot start a discussion yet.'
+    );
+    return false;
+  }
+
+  // If no discussion exists, initialize one
+  try {
+    console.log('Initializing new discussion with contact:', contact.userId);
+    await initializeDiscussion(contact);
+    console.log('Discussion initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize discussion:', error);
+    return false;
+  }
 }

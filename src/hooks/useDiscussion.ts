@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Contact, Discussion, db } from '../db';
+import { Contact, Discussion } from '../db';
 import {
   initializeDiscussion,
   getDiscussionsForContact,
+  ensureDiscussionExists as ensureDiscussionExistsUtil,
 } from '../crypto/discussionInit';
 
 interface UseDiscussionProps {
@@ -43,6 +44,8 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     try {
       setIsInitializing(true);
 
+      console.log('Initializing new discussion with contact:', contact.userId);
+
       // Guard: we cannot initialize a discussion without the contact's public keys
       if (!contact.publicKeys || contact.publicKeys.length === 0) {
         throw new Error(
@@ -67,27 +70,13 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
   }, [contact, isInitializing, loadDiscussion]);
 
   const ensureDiscussionExists = useCallback(async (): Promise<boolean> => {
-    if (discussion) return true;
-
-    // Check if a discussion already exists for this contact
-    const existingDiscussion = await db.discussions
-      .where('[ownerUserId+contactUserId]')
-      .equals([contact.ownerUserId, contact.userId])
-      .first();
-
-    if (existingDiscussion) {
-      console.log('Discussion already exists for contact:', contact.userId);
-      return true;
+    const result = await ensureDiscussionExistsUtil(contact, discussion);
+    if (result && !discussion) {
+      // Reload discussion if one was created
+      await loadDiscussion();
     }
-
-    // If no discussion exists, initialize one
-    return await initializeNewDiscussion();
-  }, [
-    discussion,
-    contact.ownerUserId,
-    contact.userId,
-    initializeNewDiscussion,
-  ]);
+    return result;
+  }, [contact, discussion, loadDiscussion]);
 
   useEffect(() => {
     loadDiscussion();

@@ -4,7 +4,7 @@ import { useDiscussionStore } from '../stores/discussionStore';
 import { Discussion, Contact, db } from '../db';
 import {
   acceptDiscussionRequest,
-  initializeDiscussion,
+  ensureDiscussionExists,
 } from '../crypto/discussionInit';
 
 export const useDiscussionList = () => {
@@ -23,10 +23,10 @@ export const useDiscussionList = () => {
   const handleCreatedNewContact = useCallback(
     async (contact: Contact): Promise<void> => {
       try {
-        await initializeDiscussion(contact);
+        await ensureDiscussionExists(contact);
       } catch (e) {
         console.error(
-          'Failed to initialize discussion after contact creation:',
+          'Failed to ensure discussion exists after contact creation:',
           e
         );
       } finally {
