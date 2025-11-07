@@ -7,10 +7,7 @@
 
 import { notificationService } from './notifications';
 import { messageService } from './message';
-import {
-  announcementService,
-  retryPendingOutgoingAnnouncements,
-} from './announcement';
+import { announcementService } from './announcement';
 
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
@@ -120,7 +117,6 @@ export class BackgroundSyncService {
   async triggerManualSync(): Promise<void> {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Worker not supported, falling back to direct sync');
-      await retryPendingOutgoingAnnouncements();
       await announcementService.fetchAndProcessAnnouncements();
       await messageService.fetchMessages();
       return;
@@ -135,8 +131,6 @@ export class BackgroundSyncService {
         });
       }
 
-      // Also perform retries and a direct fetch in case SW message doesn't fire immediately
-      await retryPendingOutgoingAnnouncements();
       await announcementService.fetchAndProcessAnnouncements();
     } catch (error) {
       console.error('Failed to trigger manual sync:', error);

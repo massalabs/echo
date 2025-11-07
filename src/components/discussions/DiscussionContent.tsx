@@ -8,7 +8,6 @@ import toast from 'react-hot-toast';
 import DiscussionHeader from './DiscussionHeader';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
-import { retryPendingOutgoingAnnouncements } from '../../services/announcement';
 
 const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
   contact,
@@ -101,27 +100,6 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
           onBack={onBack}
           onSync={syncMessages}
         />
-
-        {discussion &&
-          discussion.status === 'pending' &&
-          discussion.direction === 'initiated' && (
-            <div className="mx-4 mt-3 mb-1 px-3 py-2 rounded-lg bg-muted">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">
-                  Awaiting connection – we’ll retry automatically when online.
-                </p>
-                <button
-                  className="text-xs font-medium px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={async () => {
-                    await retryPendingOutgoingAnnouncements();
-                    await syncMessages();
-                  }}
-                >
-                  Retry now
-                </button>
-              </div>
-            </div>
-          )}
 
         <MessageList
           messages={messages}

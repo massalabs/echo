@@ -21,7 +21,6 @@ import { announcementService } from '../services/announcement';
 export async function initializeDiscussion(contact: Contact): Promise<{
   discussionId: number;
   announcement: Uint8Array;
-  sent: boolean;
 }> {
   try {
     const { ourPk, ourSk, userProfile, session } = useAccountStore.getState();
@@ -48,10 +47,7 @@ export async function initializeDiscussion(contact: Contact): Promise<{
       updatedAt: new Date(),
     });
 
-    // Try to send; on failure keep pending for automatic retry
-    const result = await announcementService.sendAnnouncement(announcement);
-
-    return { discussionId, announcement, sent: !!result.success };
+    return { discussionId, announcement };
   } catch (error) {
     console.error('Failed to initialize discussion:', error);
     throw new Error('Discussion initialization failed');
