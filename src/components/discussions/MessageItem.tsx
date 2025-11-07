@@ -30,19 +30,22 @@ const MessageItem: React.FC<MessageItemProps> = ({
         </div>
       )}
       <div
-        className={`max-w-[78%] sm:max-w-[70%] md:max-w-[65%] lg:max-w-[60%] px-4 py-2.5 md:px-5 md:py-3 rounded-2xl shadow-sm transition-all duration-200 ${
+        className={`relative max-w-[78%] sm:max-w-[70%] md:max-w-[65%] lg:max-w-[60%] px-4 py-3 rounded-2xl font-medium text-[15px] leading-tight animate-bubble-in ${
           isOutgoing
-            ? 'bg-primary text-primary-foreground rounded-br-[6px] shadow-primary/20'
-            : 'bg-card text-card-foreground border border-border rounded-bl-[6px] shadow-sm'
+            ? 'ml-auto mr-3 bg-accent text-accent-foreground rounded-br-[6px]'
+            : 'ml-3 mr-auto bg-card text-card-foreground rounded-bl-[6px] shadow-sm'
         }`}
       >
-        <p
-          className={`text-[15px] leading-relaxed whitespace-pre-wrap wrap-break-word ${isOutgoing ? 'text-primary-foreground' : 'text-card-foreground'}`}
-        >
+        {/* Message */}
+        <p className="whitespace-pre-wrap wrap-break-word pr-6">
           {message.content}
         </p>
+
+        {/* Timestamp and Status */}
         <div
-          className={`flex items-center justify-end gap-1.5 mt-1.5 ${isOutgoing ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+          className={`flex items-center justify-end gap-1.5 mt-1.5 ${
+            isOutgoing ? 'text-accent-foreground/80' : 'text-muted-foreground'
+          }`}
         >
           <span className="text-[11px] font-medium">
             {formatTime(message.timestamp)}
@@ -71,7 +74,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               {message.status === 'failed' && (
                 <div className="flex items-center gap-1.5">
                   <svg
-                    className="w-3.5 h-3.5 text-red-300"
+                    className="w-3.5 h-3.5 text-accent-foreground/90"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -85,7 +88,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
                   <button
                     onClick={() => onResend(message)}
                     disabled={isSending}
-                    className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-white/20 hover:bg-white/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-accent-foreground/20 hover:bg-accent-foreground/30 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-accent-foreground"
                     title="Resend message"
                   >
                     Resend
@@ -109,6 +112,58 @@ const MessageItem: React.FC<MessageItemProps> = ({
             </div>
           )}
         </div>
+
+        {/* Tail - Sent (right side) */}
+        {isOutgoing && (
+          <>
+            {/* Border layer (slightly larger, behind) */}
+            <div
+              className="absolute bottom-0 right-2 w-0 h-0"
+              style={{
+                borderLeft: '13px solid transparent',
+                borderTop: '13px solid var(--tail-border)',
+                marginBottom: '-13px',
+                zIndex: 0,
+              }}
+            />
+            {/* Fill layer (slightly smaller, in front) */}
+            <div
+              className="absolute bottom-0 right-2 w-0 h-0"
+              style={{
+                borderLeft: '12px solid transparent',
+                borderTop: '12px solid var(--accent)',
+                marginBottom: '-12px',
+                zIndex: 1,
+              }}
+            />
+          </>
+        )}
+
+        {/* Tail - Received (left side) */}
+        {!isOutgoing && (
+          <>
+            {/* Border layer (slightly larger, behind) */}
+            <div
+              className="absolute bottom-0 left-2 w-0 h-0"
+              style={{
+                borderRight: '13px solid transparent',
+                borderTop: '13px solid var(--tail-border)',
+                marginBottom: '-13px',
+                zIndex: 0,
+              }}
+            />
+            {/* Fill layer (slightly smaller, in front) */}
+            <div
+              className="absolute bottom-0 left-2 w-0 h-0"
+              style={{
+                borderRight: '12px solid transparent',
+                borderTop: '12px solid var(--card)',
+                marginBottom: '-12px',
+                zIndex: 1,
+              }}
+            />
+          </>
+        )}
       </div>
       {isOutgoing && <div className="w-8 h-8 shrink-0 mb-1"></div>}
     </div>

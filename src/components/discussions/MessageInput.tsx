@@ -20,7 +20,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     setNewMessage('');
     onSend(text);
   }, [newMessage, disabled, onSend]);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();

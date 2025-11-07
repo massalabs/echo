@@ -38,6 +38,7 @@
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #e5e6e8;
   --sidebar-ring: #8c8cff;
+  --tail-border: #e5e7eb; /* soft gray border for light mode tail */
 }
 
 .dark {
@@ -75,6 +76,7 @@
   --sidebar-accent-foreground: #18181b;
   --sidebar-border: #2a2a2e;
   --sidebar-ring: #b3b3ff;
+  --tail-border: transparent; /* transparent border for dark mode tail */
 }
 
 @theme inline {
@@ -391,6 +393,31 @@
       opacity: 1;
       transform: scale(1.05);
     }
+  }
+
+  /* Chat bubble animations */
+  @keyframes bubbleIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  .animate-bubble-in {
+    animation: bubbleIn 0.22s ease-out;
   }
 
   .animate-fade-in {
