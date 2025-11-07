@@ -22,6 +22,8 @@
   --accent-foreground: #ffffff; /* white text on sea-foam */
   --destructive: #ff8c8c; /* coral timer - also works for destructive */
   --destructive-foreground: #ffffff;
+  --success: #16a34a; /* green-600 - online status, success states */
+  --success-foreground: #ffffff; /* white text on green */
   --border: #e5e6e8; /* subtle border */
   --input: #ffffff; /* input background */
   --ring: #0d9488; /* focus ring using teal */
@@ -62,6 +64,8 @@
   --accent-foreground: #18181b; /* dark text on sea-foam for good contrast */
   --destructive: #ffb3b3; /* peach timer - also works for destructive */
   --destructive-foreground: #18181b;
+  --success: #22c55e; /* green-500 - online status, success states */
+  --success-foreground: #18181b; /* dark text on green for good contrast */
   --border: #2a2a2e; /* subtle border */
   --input: #1e1e22; /* input background */
   --ring: #2dd4bf; /* focus ring using teal */
@@ -99,6 +103,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

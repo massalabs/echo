@@ -33,7 +33,7 @@ const CopyClipboard: React.FC<CopyClipboardProps> = ({
     >
       {isCopied ? (
         <svg
-          className={`${iconSize} text-green-500`}
+          className={`${iconSize} text-success`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

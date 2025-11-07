@@ -106,7 +106,7 @@ const Settings = (): React.ReactElement => {
               Account Backup
             </span>
             {mnemonicBackupInfo?.backedUp && (
-              <div className="w-2 h-2 bg-green-500 rounded-full ml-auto"></div>
+              <div className="w-2 h-2 bg-success rounded-full ml-auto"></div>
             )}
           </Button>
 

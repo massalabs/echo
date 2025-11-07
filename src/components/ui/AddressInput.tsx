@@ -45,7 +45,7 @@ const AddressInput: React.FC<AddressInputProps> = ({
 
   const inputClasses = `w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border rounded-xl focus:ring-2 focus:border-transparent dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
     isValid === true
-      ? 'border-green-500 focus:ring-green-500'
+      ? 'border-success focus:ring-success'
       : isValid === false
         ? 'border-red-500 focus:ring-red-500'
         : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
@@ -73,7 +73,7 @@ const AddressInput: React.FC<AddressInputProps> = ({
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
             {isValid ? (
               <svg
-                className="w-5 h-5 text-green-500"
+                className="w-5 h-5 text-success"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -114,7 +114,7 @@ const AddressInput: React.FC<AddressInputProps> = ({
             <div className="text-sm text-red-500">Invalid address format</div>
           )}
           {isValid === true && (
-            <div className="text-sm text-green-500">Valid address</div>
+            <div className="text-sm text-success">Valid address</div>
           )}
         </div>
       )}

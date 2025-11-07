@@ -1,0 +1,205 @@
+# Echo/Gossip App Development Rules
+
+## 1. Always Use Global Theme CSS Variables
+
+**NEVER use hardcoded colors.** Always use CSS variables from the global theme defined in `src/index.css`.
+
+**Global styles belong in `src/index.css`**, not in `tailwind.config.js`. The `index.css` file:
+- Imports Tailwind CSS (`@import 'tailwindcss';`)
+- Defines all CSS custom properties (theme variables)
+- Contains global styles, animations, and utilities
+- Is the single source of truth for theming
+
+### Available Theme Variables:
+- **Colors**: `bg-primary`, `text-primary`, `bg-secondary`, `text-secondary`, `bg-accent`, `text-accent`, `bg-muted`, `text-muted-foreground`, `bg-destructive`, `text-destructive`, `bg-success`, `text-success`, `bg-card`, `text-card-foreground`, `bg-background`, `text-foreground`
+- **Borders**: `border-border`
+- **Focus rings**: `ring-ring` or `focus:ring-ring`
+
+### Examples:
+✅ **CORRECT:**
+```tsx
+<div className="bg-primary text-primary-foreground">
+<div className="bg-card border border-border">
+<div className="text-success">
+<button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+```
+
+❌ **WRONG:**
+```tsx
+<div className="bg-blue-500 text-white">
+<div className="bg-gray-100 border border-gray-300">
+<div className="text-green-600">
+<button className="bg-teal-500 hover:bg-teal-600">
+```
+
+### Special Cases:
+- For success states: Use `bg-success`, `text-success`, `border-success`
+- For destructive actions: Use `bg-destructive`, `text-destructive`
+- For muted/secondary content: Use `bg-muted`, `text-muted-foreground`
+- For primary actions: Use `bg-primary`, `text-primary-foreground`
+
+## 2. Use Zustand for State Management
+
+**Use Zustand stores when:**
+- State needs to be shared across multiple components
+- State should persist across navigation
+- State is complex or has multiple related pieces
+- State needs to be accessed from non-React code (services, etc.)
+
+### Existing Zustand Stores:
+- `accountStore` - User authentication, profile, keys
+- `discussionStore` - Discussions and contacts list
+- `walletStore` - Wallet state and balances
+- `appStore` - App-level state
+
+### Store Pattern:
+```tsx
+// Use createSelectors for better TypeScript support
+import { useDiscussionStore } from '../stores/discussionStore';
+
+// Access store
+const contacts = useDiscussionStore(s => s.contacts);
+const loadContacts = useDiscussionStore(s => s.loadContacts);
+```
+
+**Avoid useState/useContext when:**
+- State is needed in multiple unrelated components
+- State needs to persist across page navigation
+- State is complex with multiple related values
+
+## 3. Reuse Existing Components
+
+**ALWAYS check for existing components before creating new ones.** Available components in `src/components/ui/`:
+
+### UI Components:
+- **Button** - `Button.tsx` - Supports variants: primary, secondary, danger, ghost, outline, circular, link, icon
+- **BackButton** - `BackButton.tsx` - Reusable back navigation button
+- **NavButton** - `NavButton.tsx` - Navigation button for bottom bar
+- **BaseModal** - `BaseModal.tsx` - Base modal component
+- **ContactNameModal** - `ContactNameModal.tsx` - Modal for editing contact names
+- **CopyClipboard** - `CopyClipboard.tsx` - Copy to clipboard button with feedback
+- **AddressInput** - `AddressInput.tsx` - Address input with validation
+- **Select** - `Select.tsx` - Dropdown select component
+- **Popover** - `Popover.tsx` - Popover component
+- **TabSwitcher** - `TabSwitcher.tsx` - Tab switching component
+- **PageHeader** - `PageHeader.tsx` - Page header component
+- **MainLayout** - `MainLayout.tsx` - Main layout wrapper
+- **BottomNavigation** - `BottomNavigation.tsx` - Bottom navigation bar
+- **PrivacyGraphic** - `PrivacyGraphic.tsx` - Privacy ghost graphic
+- **ContactAvatar** - `src/components/avatar/ContactAvatar.tsx` - Contact avatar component
+
+### Icons:
+- Navigation icons: `src/components/ui/icons/navigationIcons.tsx`
+  - `WalletIcon`, `DiscussionsIcon`, `SettingsIcon`
+
+### Examples:
+✅ **CORRECT:**
+```tsx
+import Button from '../components/ui/Button';
+import BackButton from '../components/ui/BackButton';
+import ContactAvatar from '../components/avatar/ContactAvatar';
+
+<Button variant="primary" onClick={handleClick}>Click me</Button>
+<BackButton />
+<ContactAvatar contact={contact} size={12} />
+```
+
+❌ **WRONG:**
+```tsx
+// Creating a new button component when Button exists
+// Creating a new back button when BackButton exists
+// Creating a new avatar when ContactAvatar exists
+```
+
+## 4. Component Organization
+
+- **UI Components**: `src/components/ui/` - Reusable UI primitives
+- **Feature Components**: `src/components/[feature]/` - Feature-specific components
+- **Pages**: `src/pages/` - Page-level components
+- **Stores**: `src/stores/` - Zustand state management
+- **Hooks**: `src/hooks/` - Custom React hooks
+- **Services**: `src/services/` - Business logic and API calls
+- **Utils**: `src/utils/` - Utility functions
+
+## 5. Styling Guidelines
+
+- **Global styles**: Add to `src/index.css` (not tailwind.config.js)
+  - CSS custom properties (theme variables)
+  - Global animations and keyframes
+  - Utility classes
+  - Base element styles
+- **Component styles**: Use Tailwind classes in components, not separate CSS files
+- Use theme variables via Tailwind (e.g., `bg-primary`, `text-foreground`)
+- Prefer semantic color names (primary, secondary, accent, muted, destructive, success)
+- Use responsive classes: `sm:`, `md:`, `lg:`, `xl:`
+- Use dark mode classes: `dark:bg-card`, `dark:text-foreground`
+- Mobile-first approach: Base styles for mobile, then add breakpoints
+
+### Where to Add Styles:
+- ✅ **Global styles, theme variables, animations**: `src/index.css`
+- ✅ **Component-specific styles**: Tailwind classes in component files
+- ❌ **Don't create separate CSS files for components** (use Tailwind classes instead)
+- ❌ **Don't put global styles in tailwind.config.js** (use index.css)
+
+## 6. TypeScript Best Practices
+
+- Always type props interfaces
+- Use existing types from `src/db.ts` when available (Contact, Message, Discussion, etc.)
+- Prefer `interface` over `type` for component props
+- Use `React.FC<Props>` or explicit function signatures
+
+## 7. Code Quality
+
+- Keep components small and focused
+- Extract reusable logic into custom hooks
+- Use `useCallback` and `useMemo` for performance optimization when needed
+- Prefer composition over inheritance
+- Follow existing code patterns and conventions
+
+## 8. Before Creating New Components
+
+1. **Check `src/components/ui/`** - Is there a similar component?
+2. **Check existing stores** - Can you use existing Zustand store?
+3. **Check theme variables** - Are you using CSS variables?
+4. **Check existing hooks** - Is there a hook that does this?
+5. **Check existing utils** - Is there a utility function?
+
+## 9. Common Patterns
+
+### Navigation:
+```tsx
+import { useNavigate } from 'react-router-dom';
+const navigate = useNavigate();
+navigate('/path');
+navigate(-1); // Go back
+```
+
+### Store Access:
+```tsx
+import { useAccountStore } from '../stores/accountStore';
+const { userProfile } = useAccountStore();
+```
+
+### Theme Colors:
+```tsx
+// Always use theme variables
+className="bg-primary text-primary-foreground"
+className="bg-card border border-border"
+className="text-success"
+```
+
+### Loading States:
+```tsx
+// Use existing LoadingState component
+import LoadingState from './LoadingState';
+if (isLoading) return <LoadingState />;
+```
+
+## 10. File Naming
+
+- Components: PascalCase (e.g., `Button.tsx`, `ContactAvatar.tsx`)
+- Hooks: camelCase with `use` prefix (e.g., `useMessages.ts`, `useDiscussion.ts`)
+- Stores: camelCase with `Store` suffix (e.g., `accountStore.tsx`, `discussionStore.tsx`)
+- Utils: camelCase (e.g., `timeUtils.ts`, `addressUtils.ts`)
+- Services: camelCase (e.g., `message.ts`, `announcement.ts`)
+

@@ -52,7 +52,9 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
             onClick={handleCopyAddress}
             variant={copied ? 'secondary' : 'primary'}
             className={
-              copied ? 'bg-green-500 hover:bg-green-600 text-white' : ''
+              copied
+                ? 'bg-success hover:opacity-90 text-success-foreground'
+                : ''
             }
           >
             {copied ? (

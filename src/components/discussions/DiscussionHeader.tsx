@@ -108,7 +108,7 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
           <div className="relative">
             <ContactAvatar contact={contact} size={12} />
             {contact?.isOnline && (
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-sm"></span>
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success border-2 border-white dark:border-gray-900 rounded-full shadow-sm"></span>
             )}
           </div>
           <div className="ml-3.5 flex-1 min-w-0 text-left">
