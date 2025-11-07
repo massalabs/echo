@@ -4,6 +4,7 @@ import { Contact, Discussion } from '../../db';
 import { formatUserId } from '../../utils/userId';
 import ContactAvatar from '../avatar/ContactAvatar';
 import Button from '../ui/Button';
+import BackButton from '../ui/BackButton';
 
 interface DiscussionHeaderProps {
   contact?: Contact | null | undefined;
@@ -42,28 +43,7 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
     return (
       <div className="h-[72px] flex items-center bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800/50 shadow-sm">
         <div className="flex items-center w-full px-5">
-          {onBack && (
-            <Button
-              onClick={onBack}
-              variant="circular"
-              size="custom"
-              className="w-11 h-11 flex items-center justify-center mr-2 group hover:bg-muted/50 active:bg-muted/70"
-            >
-              <svg
-                className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </Button>
-          )}
+          <BackButton />
           <div className="flex-1">
             <p className="text-gray-500 dark:text-gray-400">
               Contact not found

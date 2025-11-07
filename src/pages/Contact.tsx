@@ -25,6 +25,7 @@ const Contact: React.FC = () => {
   const [proposedName, setProposedName] = useState(contact?.name || '');
   const [displayName, setDisplayName] = useState(contact?.name || '');
   const [nameError, setNameError] = useState<string | null>(null);
+  const [showSuccessCheck, setShowSuccessCheck] = useState(false);
 
   // Update state when contact changes
   React.useEffect(() => {
@@ -52,9 +53,20 @@ const Contact: React.FC = () => {
       }
       setDisplayName(result.trimmedName);
       setIsNameModalOpen(false);
+      setShowSuccessCheck(true);
     },
     [ownerUserId, contact]
   );
+
+  // Hide success check after 3 seconds
+  React.useEffect(() => {
+    if (showSuccessCheck) {
+      const timer = setTimeout(() => {
+        setShowSuccessCheck(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessCheck]);
 
   if (!contact) {
     return (
@@ -91,6 +103,7 @@ const Contact: React.FC = () => {
                   <p className="text-base font-semibold text-gray-900 dark:text-white truncate">
                     {displayName}
                   </p>
+
                   <button
                     onClick={handleOpenEditName}
                     disabled={!canEditName}
@@ -111,6 +124,23 @@ const Contact: React.FC = () => {
                       />
                     </svg>
                   </button>
+                  <div className="flex items-center gap-1">
+                    {showSuccessCheck && (
+                      <svg
+                        className="w-4 h-4 text-green-500 transition-opacity duration-200"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
