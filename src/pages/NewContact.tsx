@@ -18,7 +18,7 @@ import Button from '../components/ui/Button';
 
 const NewContact: React.FC = () => {
   const navigate = useNavigate();
-  const { handlers } = useDiscussionList();
+  const { handleCreatedNewContact } = useDiscussionList();
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
   const [publicKeys, setPublicKeys] = useState<UserPublicKeys | null>(null);
@@ -106,6 +106,7 @@ const NewContact: React.FC = () => {
     }
   }, [fileContact, validateName, validateUserId]);
 
+  // TODO: Remove, test purpose
   // const handleGenerate = useCallback(async () => {
   //   const nameIsValid = validateUsername(name).valid;
   //   if (!nameIsValid || userId || isSubmitting) return;
@@ -163,7 +164,7 @@ const NewContact: React.FC = () => {
       }
 
       await db.contacts.add(contact);
-      await handlers.handleCreatedNewContact(contact);
+      await handleCreatedNewContact(contact);
       navigate(`/`);
     } catch (e) {
       console.error(e);
@@ -177,7 +178,7 @@ const NewContact: React.FC = () => {
     userProfile?.userId,
     name,
     userId,
-    handlers,
+    handleCreatedNewContact,
     navigate,
   ]);
 
