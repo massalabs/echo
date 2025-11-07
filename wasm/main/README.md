@@ -216,11 +216,11 @@ Result from processing an incoming announcement:
 
 **⚠️ Security Warning:**
 
-The user_data in announcements is **NOT as secure as regular messages**:
-- ❌ **No plausible deniability**: Announcements are cryptographically signed, proving who created them
+The user_data in announcements has **reduced security compared to regular messages**:
+- ✅ **Plausible deniability preserved**: The user_data is not cryptographically signed, so the sender can deny specific content
 - ❌ **No post-compromise secrecy**: If long-term keys are compromised, past announcements can be decrypted
 
-**Recommendation**: Use user_data only for non-sensitive metadata. Send sensitive information through regular messages after the session is established.
+**Recommendation**: Use user_data for non-highly-sensitive metadata. Send truly sensitive information through regular messages after the session is established.
 
 ### SendMessageOutput
 
