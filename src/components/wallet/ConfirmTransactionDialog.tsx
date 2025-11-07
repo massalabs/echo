@@ -67,7 +67,7 @@ const ConfirmTransactionDialog: React.FC<ConfirmTransactionDialogProps> = ({
                 To:
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm  text-gray-900 dark:text-white truncate">
+                <div className="text-sm text-gray-900 dark:text-white truncate">
                   {formatMassaAddress(recipient)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 break-all leading-snug">
