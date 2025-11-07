@@ -47,7 +47,7 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
               onClick={onBack}
               variant="circular"
               size="custom"
-              className="w-11 h-11 flex items-center justify-center mr-2 group"
+              className="w-11 h-11 flex items-center justify-center mr-2 group hover:bg-muted/50 active:bg-muted/70"
             >
               <svg
                 className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
@@ -82,7 +82,7 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
             onClick={onBack}
             variant="circular"
             size="custom"
-            className="w-11 h-11 flex items-center justify-center mr-2 group"
+            className="w-11 h-11 flex items-center justify-center mr-2 group hover:bg-muted/50 active:bg-muted/70"
           >
             <svg
               className="w-6 h-6 text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
@@ -100,19 +100,20 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
           </Button>
         )}
 
-        <div className="flex items-center flex-1 min-w-0">
+        <button
+          onClick={() => navigate(`/contact/${contact.userId}`)}
+          className="flex items-center flex-1 min-w-0 group hover:opacity-80 transition-opacity active:opacity-70"
+          title="View contact details"
+        >
           <div className="relative">
             <ContactAvatar contact={contact} size={12} />
             {contact?.isOnline && (
               <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-sm"></span>
             )}
           </div>
-          <div
-            className="ml-3.5 flex-1 min-w-0"
-            onClick={() => navigate(`/contact/${contact.userId}`)}
-          >
+          <div className="ml-3.5 flex-1 min-w-0 text-left">
             <div className="flex items-center gap-2">
-              <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
+              <h1 className="text-[17px] font-semibold text-gray-900 dark:text-white truncate leading-tight group-hover:text-primary transition-colors">
                 {contact.name || 'Unknown'}
               </h1>
               {discussion && (
@@ -128,6 +129,19 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
                   />
                 </svg>
               )}
+              <svg
+                className="w-4 h-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <p className="text-[13px] text-gray-500 dark:text-gray-400 truncate font-medium">
@@ -143,37 +157,37 @@ const DiscussionHeader: React.FC<DiscussionHeaderProps> = ({
               )}
             </div>
           </div>
+        </button>
 
-          {discussion && onSync && (
-            <div className="flex items-center gap-2 ml-2">
-              <Button
-                onClick={onSync}
-                disabled={isSyncing}
-                loading={isSyncing}
-                variant="circular"
-                size="custom"
-                className="w-9 h-9 flex items-center justify-center"
-                title="Sync messages"
-              >
-                {!isSyncing && (
-                  <svg
-                    className="w-5 h-5 text-gray-600 dark:text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                )}
-              </Button>
-            </div>
-          )}
-        </div>
+        {discussion && onSync && (
+          <div className="flex items-center gap-2 ml-2">
+            <Button
+              onClick={onSync}
+              disabled={isSyncing}
+              loading={isSyncing}
+              variant="circular"
+              size="custom"
+              className="w-9 h-9 flex items-center justify-center"
+              title="Sync messages"
+            >
+              {!isSyncing && (
+                <svg
+                  className="w-5 h-5 text-gray-600 dark:text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { updateContactName, formatUserId } from '../utils';
 import { useDiscussionStore } from '../stores/discussionStore';
 import ContactAvatar from '../components/avatar/ContactAvatar';
@@ -7,11 +7,11 @@ import { useFileShareContact } from '../hooks/useFileShareContact';
 import { useAccountStore } from '../stores/accountStore';
 import ContactNameModal from '../components/ui/ContactNameModal';
 import Button from '../components/ui/Button';
+import BackButton from '../components/ui/BackButton';
 import CopyClipboard from '../components/ui/CopyClipboard';
 
 const Contact: React.FC = () => {
   const { userId } = useParams();
-  const navigate = useNavigate();
   const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
   const getDiscussionByContactUserId = useDiscussionStore(
     s => s.getDiscussionByContactUserId
@@ -72,32 +72,11 @@ const Contact: React.FC = () => {
   const disc = getDiscussionByContactUserId(contact.userId);
   const canStart = disc ? disc.status === 'active' : true;
 
-  const onBack = () => navigate('/');
-
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         <div className="px-4 py-3 flex items-center gap-3">
-          <Button
-            onClick={onBack}
-            variant="ghost"
-            size="custom"
-            className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </Button>
+          <BackButton />
           <h1 className="text-xl font-semibold text-black dark:text-white">
             Contact
           </h1>
