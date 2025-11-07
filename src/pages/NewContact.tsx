@@ -182,7 +182,7 @@ const NewContact: React.FC = () => {
   ]);
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+    <div className="min-h-screen-mobile bg-background">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4">
@@ -195,7 +195,7 @@ const NewContact: React.FC = () => {
                 className="w-8 h-8 flex items-center justify-center"
               >
                 <svg
-                  className="w-5 h-5 text-gray-600 dark:text-gray-300"
+                  className="w-5 h-5 text-foreground/70"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -222,7 +222,7 @@ const NewContact: React.FC = () => {
 
         {/* Form */}
         <div className="px-4 pb-20">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-5">
+          <div className="bg-card rounded-lg p-6 space-y-5">
             {/* Import Section */}
             <div className="p-6">
               <div className="text-center mb-6">
@@ -283,10 +283,10 @@ const NewContact: React.FC = () => {
             </div>
 
             {/* Divider */}
-            <div className="h-px bg-gray-200 dark:bg-gray-700" />
+            <div className="h-px bg-border" />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Name
               </label>
               <input
@@ -298,10 +298,8 @@ const NewContact: React.FC = () => {
                 }}
                 onBlur={e => validateName(e.target.value)}
                 placeholder="Enter contact name"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                  nameError
-                    ? 'border-red-500 dark:border-red-500'
-                    : 'border-gray-300 dark:border-gray-600'
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-input text-foreground placeholder-muted-foreground ${
+                  nameError ? 'border-destructive' : 'border-border'
                 }`}
               />
               {nameError && (
@@ -312,7 +310,7 @@ const NewContact: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 User ID
               </label>
               <div className="flex gap-2 flex-wrap sm:flex-nowrap">
@@ -325,10 +323,8 @@ const NewContact: React.FC = () => {
                   }}
                   onBlur={e => validateUserId(e.target.value)}
                   placeholder="Enter gossip Bech32 user ID"
-                  className={`flex-1 min-w-0 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
-                    userIdError
-                      ? 'border-red-500 dark:border-red-500'
-                      : 'border-gray-300 dark:border-gray-600'
+                  className={`flex-1 min-w-0 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-input text-foreground placeholder-muted-foreground ${
+                    userIdError ? 'border-destructive' : 'border-border'
                   }`}
                 />
                 {/* <Button
@@ -352,7 +348,7 @@ const NewContact: React.FC = () => {
                   {userIdError}
                 </p>
               )}
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-xs text-muted-foreground">
                 User ID is a unique 32-byte identifier
               </p>
             </div>
@@ -384,9 +380,7 @@ const NewContact: React.FC = () => {
         title="Discard new contact?"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            Your changes will be lost.
-          </p>
+          <p className="text-sm text-foreground">Your changes will be lost.</p>
           <div className="flex gap-3">
             <Button
               onClick={() => {
@@ -403,7 +397,7 @@ const NewContact: React.FC = () => {
               onClick={() => setIsDiscardModalOpen(false)}
               variant="secondary"
               size="custom"
-              className="flex-1 h-11 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+              className="flex-1 h-11 rounded-lg font-semibold"
             >
               Cancel
             </Button>

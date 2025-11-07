@@ -39,12 +39,12 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
 
       {/* Address Section */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Your Address
         </label>
         <div className="flex items-center gap-2">
-          <div className="flex-1 p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl">
-            <p className="text-sm text-gray-900 dark:text-white break-all">
+          <div className="flex-1 p-3 bg-input border border-border rounded-xl">
+            <p className="text-sm text-foreground break-all">
               {displayAddress}
             </p>
           </div>
@@ -121,7 +121,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
 
       {/* Info Text */}
       <div className="text-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-muted-foreground">
           Share this address to receive payments. Only send MAS and supported
           tokens to this address.
         </p>

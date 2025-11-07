@@ -3,74 +3,78 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.145 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0.145 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0 0);
-  --input: oklch(0.97 0 0);
-  --ring: oklch(0.145 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  /* Quantum Dawn Light Mode - "Bert Light Mode" */
+  /* Airy, warm, privacy-first – the daytime twin of "Quantum Velvet" */
+  --background: #f8f9fa; /* creamy cloud (never pure white) */
+  --foreground: #1a1a1d; /* deep charcoal - primary text */
+  --card: #ffffff; /* true white cards */
+  --card-foreground: #1a1a1d;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1d;
+  --primary: #8c8cff; /* vivid lavender - encrypted/Button/CTA */
+  --primary-foreground: #ffffff; /* white text on lavender */
+  --secondary: #ff8c8c; /* coral timer - self-destruct/Secondary */
+  --secondary-foreground: #ffffff; /* white text on coral */
+  --muted: #f0f1f3; /* muted background */
+  --muted-foreground: #6b6b73; /* warm mid-gray - subtle text */
+  --accent: #6db8a2; /* deeper sea-foam - verified/Accent */
+  --accent-foreground: #ffffff; /* white text on sea-foam */
+  --destructive: #ff8c8c; /* coral timer - also works for destructive */
+  --destructive-foreground: #ffffff;
+  --border: #e5e6e8; /* subtle border */
+  --input: #ffffff; /* input background */
+  --ring: #8c8cff; /* focus ring using vivid lavender */
+  --chart-1: #6db8a2; /* deeper sea-foam */
+  --chart-2: #8c8cff; /* vivid lavender */
+  --chart-3: #ff8c8c; /* coral timer */
+  --chart-4: #c17bc9; /* rich orchid - offline key */
+  --chart-5: #6db8a2; /* sea-foam variant */
   --radius: 0.25rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.97 0 0);
-  --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.96 0 0);
-  --sidebar-accent-foreground: oklch(0.145 0 0);
-  --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.5 0 0);
+  --sidebar: #f8f9fa;
+  --sidebar-foreground: #1a1a1d;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #1a1a1d;
+  --sidebar-accent: #6db8a2;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e5e6e8;
+  --sidebar-ring: #8c8cff;
 }
 
 .dark {
-  --background: oklch(0.08 0 0);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.12 0 0);
-  --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.98 0 0);
-  --primary-foreground: oklch(0.08 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.22 0 0);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.22 0 0);
-  --input: oklch(0.18 0 0);
-  --ring: oklch(0.98 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Quantum Velvet Dark Mode - "Bert Dark Mode" */
+  /* Warm charcoal base, zero pure black, privacy-coded accents */
+  --background: #18181b; /* warm charcoal (never #000) */
+  --foreground: #e8e8ea; /* creamy off-white - primary text */
+  --card: #1e1e22; /* surface/cards - +1 step lighter */
+  --card-foreground: #e8e8ea;
+  --popover: #1e1e22;
+  --popover-foreground: #e8e8ea;
+  --primary: #b3b3ff; /* lavender shield - encrypted/Button/CTA */
+  --primary-foreground: #18181b; /* dark text on lavender for good contrast */
+  --secondary: #ffb3b3; /* peach timer - self-destruct/Secondary */
+  --secondary-foreground: #18181b; /* dark text on peach for good contrast */
+  --muted: #252529; /* muted background */
+  --muted-foreground: #a0a0a8; /* dove gray - subtle text */
+  --accent: #a8e0d2; /* sea-foam proof - verified/Accent */
+  --accent-foreground: #18181b; /* dark text on sea-foam for good contrast */
+  --destructive: #ffb3b3; /* peach timer - also works for destructive */
+  --destructive-foreground: #18181b;
+  --border: #2a2a2e; /* subtle border */
+  --input: #1e1e22; /* input background */
+  --ring: #b3b3ff; /* focus ring using lavender shield */
+  --chart-1: #a8e0d2; /* sea-foam proof */
+  --chart-2: #b3b3ff; /* lavender shield */
+  --chart-3: #ffb3b3; /* peach timer */
+  --chart-4: #d6a8dc; /* muted orchid - offline key */
+  --chart-5: #a8e0d2; /* sea-foam variant */
+  --sidebar: #18181b;
+  --sidebar-foreground: #e8e8ea;
+  --sidebar-primary: #1e1e22;
+  --sidebar-primary-foreground: #e8e8ea;
+  --sidebar-accent: #a8e0d2;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #2a2a2e;
+  --sidebar-ring: #b3b3ff;
 }
 
 @theme inline {

@@ -32,17 +32,17 @@ const MessageItem: React.FC<MessageItemProps> = ({
       <div
         className={`max-w-[78%] sm:max-w-[70%] md:max-w-[65%] lg:max-w-[60%] px-4 py-2.5 md:px-5 md:py-3 rounded-2xl shadow-sm transition-all duration-200 ${
           isOutgoing
-            ? 'bg-blue-600 text-white rounded-br-[6px] shadow-blue-500/20'
-            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700/50 rounded-bl-[6px] shadow-gray-900/5'
+            ? 'bg-primary text-primary-foreground rounded-br-[6px] shadow-primary/20'
+            : 'bg-card text-card-foreground border border-border rounded-bl-[6px] shadow-sm'
         }`}
       >
         <p
-          className={`text-[15px] leading-relaxed whitespace-pre-wrap wrap-break-word ${isOutgoing ? 'text-white' : 'text-gray-900 dark:text-white'}`}
+          className={`text-[15px] leading-relaxed whitespace-pre-wrap wrap-break-word ${isOutgoing ? 'text-primary-foreground' : 'text-card-foreground'}`}
         >
           {message.content}
         </p>
         <div
-          className={`flex items-center justify-end gap-1.5 mt-1.5 ${isOutgoing ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}
+          className={`flex items-center justify-end gap-1.5 mt-1.5 ${isOutgoing ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
         >
           <span className="text-[11px] font-medium">
             {formatTime(message.timestamp)}

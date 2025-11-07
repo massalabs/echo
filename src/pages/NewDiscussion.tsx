@@ -177,15 +177,12 @@ const NewDiscussion: React.FC = () => {
               <ul className="max-h-[60vh] overflow-y-auto">
                 {contacts.map(contact => {
                   return (
-                    <li
-                      key={contact.userId}
-                      className="flex items-stretch hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    >
+                    <li key={contact.userId} className="flex items-stretch">
                       <Button
                         onClick={() => onSelectContact(contact)}
                         variant="ghost"
                         size="custom"
-                        className="flex-1 px-4 py-3 flex items-center gap-3 text-left"
+                        className="flex-1 px-4 py-3 flex items-center gap-3 text-left hover:bg-accent/50"
                       >
                         <ContactAvatar contact={contact} size={10} />
                         <div className="flex-1 min-w-0">
@@ -199,7 +196,7 @@ const NewDiscussion: React.FC = () => {
                       </Button>
                       <button
                         onClick={() => navigate(`/contact/${contact.userId}`)}
-                        className="shrink-0 p-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors h-auto flex items-center justify-center"
+                        className="shrink-0 p-3 hover:bg-accent/50 transition-colors h-auto flex items-center justify-center"
                         title="Edit contact"
                         aria-label="Edit contact"
                       >
