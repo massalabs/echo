@@ -114,8 +114,13 @@ export class RestMessageProtocol implements IMessageProtocol {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+        // Merge headers with ngrok bypass header
+        const headers = new Headers(options.headers);
+        headers.set('ngrok-skip-browser-warning', '69420');
+
         const response = await fetch(url, {
           ...options,
+          headers,
           signal: controller.signal,
         });
 

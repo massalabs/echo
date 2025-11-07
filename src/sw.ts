@@ -50,7 +50,12 @@ class ServiceWorkerMessageProtocol {
   async fetchMessages(discussionKey: string): Promise<EncryptedMessage[]> {
     try {
       const response = await fetch(
-        `${this.baseUrl}/messages/${encodeURIComponent(discussionKey)}`
+        `${this.baseUrl}/messages/${encodeURIComponent(discussionKey)}`,
+        {
+          headers: {
+            'ngrok-skip-browser-warning': '69420',
+          },
+        }
       );
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -81,7 +86,11 @@ class ServiceWorkerMessageProtocol {
 
   async fetchAnnouncements(): Promise<Uint8Array[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/announcements`);
+      const response = await fetch(`${this.baseUrl}/announcements`, {
+        headers: {
+          'ngrok-skip-browser-warning': '69420',
+        },
+      });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
