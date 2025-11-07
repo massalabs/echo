@@ -73,7 +73,11 @@ export const useKeyDown = (
         enterCallbackRef.current
       ) {
         // Only trigger if not already on a button to avoid double triggering
-        if (!(document.activeElement instanceof HTMLButtonElement)) {
+        if (
+          !(document.activeElement instanceof HTMLButtonElement) &&
+          !(document.activeElement instanceof HTMLInputElement) &&
+          !(document.activeElement instanceof HTMLTextAreaElement)
+        ) {
           e.preventDefault();
           enterCallbackRef.current();
         }
