@@ -214,6 +214,14 @@ Result from processing an incoming announcement:
 - Display names or profile information
 - Protocol negotiation parameters
 
+**⚠️ Security Warning:**
+
+The user_data in announcements is **NOT as secure as regular messages**:
+- ❌ **No plausible deniability**: Announcements are cryptographically signed, proving who created them
+- ❌ **No post-compromise secrecy**: If long-term keys are compromised, past announcements can be decrypted
+
+**Recommendation**: Use user_data only for non-sensitive metadata. Send sensitive information through regular messages after the session is established.
+
 ### SendMessageOutput
 
 Output from sending a message:
