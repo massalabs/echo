@@ -12,7 +12,7 @@ export interface ProtocolConfig {
 }
 
 export const protocolConfig: ProtocolConfig = {
-  baseUrl: '/api', // Relative URL → Vite proxy intercepte en dev
+  baseUrl: ' https://145.239.66.206:3001/api', // Relative URL → Vite proxy intercepte en dev
   timeout: 10000, // 10 seconds
   retryAttempts: 3,
 };
