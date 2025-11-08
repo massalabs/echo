@@ -12,8 +12,8 @@ export interface ProtocolConfig {
 }
 
 export const protocolConfig: ProtocolConfig = {
-  baseUrl: 'https://yearningly-environmental-jamila.ngrok-free.dev/api', // Relative URL → Vite proxy intercepte en dev
-  timeout: 10000, // 10 seconds
+  baseUrl: `${import.meta.env.VITE_PROTOCOL_API_URL}/api`,
+  timeout: 10000,
   retryAttempts: 3,
 };
 

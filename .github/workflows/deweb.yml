@@ -22,6 +22,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_PROTOCOL_API_URL: ${{ secrets.VITE_PROTOCOL_API_URL }}
         run: npm run build
 
       - name: Deploy to Massa DeWeb (${{ matrix.network }})
