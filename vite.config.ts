@@ -105,7 +105,7 @@ export default defineConfig({
       },
 
       devOptions: {
-        enabled: false,
+        enabled: true, // Enable service workers in dev mode for testing
         navigateFallback: 'index.html',
         suppressWarnings: true,
         type: 'module',

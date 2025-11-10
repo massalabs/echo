@@ -211,3 +211,53 @@ export async function updateDiscussionStatus(
 ): Promise<void> {
   await db.discussions.update(discussionId, { status });
 }
+
+/**
+ * Ensure a discussion exists for a contact, creating one if it doesn't exist
+ * @param contact - The contact to ensure a discussion exists for
+ * @param existingDiscussion - Optional existing discussion (if already loaded)
+ * @returns true if a discussion exists (or was created), false otherwise
+ */
+export async function ensureDiscussionExists(
+  contact: Contact,
+  existingDiscussion?: Discussion | null
+): Promise<boolean> {
+  try {
+    const { userProfile } = useAccountStore.getState();
+    if (!userProfile?.userId) {
+      console.warn('No authenticated user, cannot ensure discussion exists');
+      return false;
+    }
+
+    // If we already have a discussion, check if it's valid
+    if (existingDiscussion) {
+      return true;
+    }
+
+    // Check if a discussion already exists in the database
+    const existing = await db.getDiscussionByOwnerAndContact(
+      userProfile.userId,
+      contact.userId
+    );
+
+    if (existing) {
+      return true;
+    }
+
+    // No discussion exists, try to create one
+    // Guard: we cannot initialize a discussion without the contact's public keys
+    if (!contact.publicKeys || contact.publicKeys.length === 0) {
+      console.warn(
+        'Contact is missing public keys. Cannot create discussion yet.'
+      );
+      return false;
+    }
+
+    // Initialize a new discussion
+    await initializeDiscussion(contact);
+    return true;
+  } catch (error) {
+    console.error('Failed to ensure discussion exists:', error);
+    return false;
+  }
+}

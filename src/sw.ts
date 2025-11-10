@@ -6,8 +6,32 @@ import {
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { protocolConfig } from './config/protocol';
+import { defaultSyncConfig } from './config/sync';
+import { RestMessageProtocol } from './api/messageProtocol/rest';
+import type { EncryptedMessage } from './api/messageProtocol/types';
 
 declare let self: ServiceWorkerGlobalScope;
+
+// Service Worker configuration constants
+// Import from centralized config for easy adjustment
+const FALLBACK_SYNC_INTERVAL_MS = defaultSyncConfig.fallbackSyncIntervalMs;
+const ACTIVE_SYNC_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
+
+// Sync frequency tracking
+interface SyncStats {
+  lastSyncTime: number;
+  syncCount: number;
+  syncType: 'periodic' | 'fallback' | 'manual';
+  syncIntervals: number[]; // Time between syncs in ms
+}
+
+const MAX_SYNC_INTERVALS_TO_TRACK = 10;
+const syncStats: SyncStats = {
+  lastSyncTime: 0,
+  syncCount: 0,
+  syncType: 'fallback',
+  syncIntervals: [],
+};
 
 // Service Worker event types
 interface SyncEvent extends Event {
@@ -24,125 +48,132 @@ interface NotificationEvent extends Event {
 // Note: In a real implementation, you'd need to ensure WASM modules work in SW context
 // For now, we'll use a simplified version that only fetches encrypted messages
 
-interface EncryptedMessage {
-  id: string;
-  ciphertext: Uint8Array;
-  ct: Uint8Array;
-  rand: Uint8Array;
-  nonce: Uint8Array;
-  messageType: 'initiation' | 'response' | 'regular';
-  direction: 'incoming' | 'outgoing';
-  timestamp: Date;
-  metadata?: Record<string, unknown>;
-}
-
-interface Discussion {
-  id: number;
-  contactUserId: string;
-  discussionKey: string;
-  lastSyncTimestamp?: Date;
-}
-
-// Mock protocol API for Service Worker context
-class ServiceWorkerMessageProtocol {
-  private baseUrl = protocolConfig.baseUrl;
-
-  async fetchMessages(discussionKey: string): Promise<EncryptedMessage[]> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/messages/${encodeURIComponent(discussionKey)}`,
-        {
-          headers: {
-            'ngrok-skip-browser-warning': '69420',
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const data = await response.json();
-      return data.map(
-        (msg: {
-          ciphertext: number[];
-          ct: number[];
-          rand: number[];
-          nonce: number[];
-          timestamp: string;
-          [key: string]: unknown;
-        }) => ({
-          ...msg,
-          ciphertext: new Uint8Array(msg.ciphertext),
-          ct: new Uint8Array(msg.ct),
-          rand: new Uint8Array(msg.rand),
-          nonce: new Uint8Array(msg.nonce),
-          timestamp: new Date(msg.timestamp),
-        })
-      );
-    } catch (error) {
-      console.error('Failed to fetch messages in Service Worker:', error);
-      return [];
-    }
-  }
-
-  async fetchAnnouncements(): Promise<Uint8Array[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/announcements`, {
-        headers: {
-          'ngrok-skip-browser-warning': '69420',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      const data = await response.json();
-      // Handle both { announcements: number[][] } and number[][] formats
-      const announcementsArray = data.announcements
-        ? data.announcements
-        : Array.isArray(data)
-          ? data
-          : [];
-      return announcementsArray.map((arr: number[]) => new Uint8Array(arr));
-    } catch (error) {
-      console.error('Failed to fetch announcements in Service Worker:', error);
-      return [];
-    }
-  }
-}
-
 // Service Worker message reception logic
 class ServiceWorkerMessageReception {
-  private protocol = new ServiceWorkerMessageProtocol();
+  private protocol: RestMessageProtocol;
+
+  constructor() {
+    // Use the shared RestMessageProtocol with the same config as the main app
+    // Note: Service workers can't access import.meta.env, so we use the protocolConfig
+    // which should be set at build time
+    this.protocol = new RestMessageProtocol(
+      protocolConfig.baseUrl,
+      protocolConfig.timeout,
+      protocolConfig.retryAttempts
+    );
+  }
+
+  /**
+   * Request active seekers from the main app
+   * The main app will respond with all active seekers via postMessage
+   */
+  private async requestSeekersFromMainApp(): Promise<Uint8Array[]> {
+    return new Promise(resolve => {
+      // Try to get seekers from main app
+      const clients = self.clients.matchAll({ type: 'window' });
+      let resolved = false;
+
+      clients
+        .then(clientList => {
+          if (clientList.length === 0) {
+            // No clients available, return empty array
+            if (!resolved) {
+              resolved = true;
+              resolve([]);
+            }
+            return;
+          }
+
+          // Request seekers from the first available client
+          const client = Array.from(clientList)[0];
+          const messageChannel = new MessageChannel();
+
+          // Set timeout in case main app doesn't respond
+          const timeoutId = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              resolve([]);
+            }
+          }, 2000);
+
+          messageChannel.port1.onmessage = event => {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeoutId);
+              const seekers = event.data?.seekers || [];
+              // Convert array of arrays to Uint8Array[]
+              const typedSeekers = seekers.map(
+                (seeker: number[]) => new Uint8Array(seeker)
+              );
+              resolve(typedSeekers);
+            }
+          };
+
+          // Send request to main app with the message channel port
+          try {
+            client.postMessage(
+              {
+                type: 'REQUEST_SEEKERS',
+              },
+              [messageChannel.port2]
+            );
+          } catch (_error) {
+            // If postMessage fails, resolve with empty array
+            if (!resolved) {
+              resolved = true;
+              resolve([]);
+            }
+          }
+        })
+        .catch(() => {
+          // If matchAll fails, resolve with empty array
+          if (!resolved) {
+            resolved = true;
+            resolve([]);
+          }
+        });
+    });
+  }
 
   async fetchAllDiscussions(): Promise<{
     success: boolean;
     newMessagesCount: number;
   }> {
     try {
-      // In a real implementation, you'd access IndexedDB here
-      // For now, we'll simulate fetching discussions
-      const discussions: Discussion[] = await this.getActiveDiscussions();
+      // Request all active seekers from the main app
+      // The main app has access to WASM session and can provide all seekers
+      const seekers = await this.requestSeekersFromMainApp();
 
-      let totalNewMessages = 0;
-
-      for (const discussion of discussions) {
-        try {
-          const messages = await this.protocol.fetchMessages(
-            discussion.discussionKey
-          );
-          // Store encrypted messages in IndexedDB
-          await this.storeEncryptedMessages(discussion.id, messages);
-          totalNewMessages += messages.length;
-        } catch (error) {
-          console.error(
-            `Failed to fetch messages for discussion ${discussion.id}:`,
-            error
-          );
-        }
+      if (!seekers || seekers.length === 0) {
+        return {
+          success: true,
+          newMessagesCount: 0,
+        };
       }
 
+      // Fetch messages for all seekers at once using the message protocol
+      // Note: We only check if messages exist, we don't store them
+      // The main app will fetch and decrypt messages directly from the API when it loads
+      let encryptedMessages: EncryptedMessage[] = [];
+      try {
+        encryptedMessages = await this.protocol.fetchMessages(seekers);
+      } catch (error) {
+        console.error(
+          'Service Worker: Failed to fetch messages via protocol:',
+          error
+        );
+        // Return success: false if fetch fails
+        return {
+          success: false,
+          newMessagesCount: 0,
+        };
+      }
+
+      // Return count of new messages found
+      // The main app will fetch and decrypt them when it loads
       return {
         success: true,
-        newMessagesCount: totalNewMessages,
+        newMessagesCount: encryptedMessages.length,
       };
     } catch (error) {
       console.error('Failed to fetch messages for all discussions:', error);
@@ -158,183 +189,23 @@ class ServiceWorkerMessageReception {
     newAnnouncementsCount: number;
   }> {
     try {
+      // Fetch announcements to check if new ones exist
+      // Note: We only check if announcements exist, we don't store them
+      // The main app will fetch and process announcements directly from the API when it loads
       const announcements = await this.protocol.fetchAnnouncements();
-      if (announcements.length > 0) {
-        // Store announcements in IndexedDB for the main app to process
-        // The main app will need to process them using WASM and user keys
-        await this.storePendingAnnouncements(announcements);
-      }
       return {
         success: true,
         newAnnouncementsCount: announcements.length,
       };
     } catch (error) {
-      console.error('Failed to fetch announcements:', error);
+      console.error(
+        'Service Worker: Failed to fetch announcements via protocol:',
+        error
+      );
       return {
         success: false,
         newAnnouncementsCount: 0,
       };
-    }
-  }
-
-  private async getActiveDiscussions(): Promise<Discussion[]> {
-    try {
-      const db = await this.openGossipDB();
-      const tx = db.transaction('discussions', 'readonly');
-      const store = tx.objectStore('discussions');
-      const index = store.index('status');
-      const request = index.getAll('active');
-
-      const discussions = await new Promise<Discussion[]>((resolve, reject) => {
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => reject(request.error);
-      });
-
-      // Note: discussions in DB do not currently store discussionKey.
-      // For SW fetching, we require it; if absent, skip fetching for that discussion.
-      return discussions
-        .map(
-          (d: {
-            id: number;
-            contactUserId: string;
-            discussionKey?: string;
-            lastSyncTimestamp?: Date | string;
-          }) => ({
-            id: d.id as number,
-            contactUserId: d.contactUserId as string,
-            discussionKey: d.discussionKey || '',
-            lastSyncTimestamp: d.lastSyncTimestamp
-              ? new Date(d.lastSyncTimestamp)
-              : undefined,
-          })
-        )
-        .filter(d => !!d.discussionKey);
-    } catch (error) {
-      console.error(
-        'Service Worker: Failed to read active discussions from IndexedDB',
-        error
-      );
-      return [];
-    }
-  }
-
-  private async openGossipDB(): Promise<IDBDatabase> {
-    return await new Promise((resolve, reject) => {
-      const request = self.indexedDB.open('GossipDatabase', 1);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      request.onblocked = () =>
-        console.warn('Service Worker: IndexedDB open is blocked');
-      request.onupgradeneeded = () => {
-        // DB is created by app with Dexie; SW should not define schema here.
-        // If we ever land here, just proceed; stores may be missing.
-        resolve(request.result);
-      };
-    });
-  }
-
-  private async storeEncryptedMessages(
-    discussionId: number,
-    messages: EncryptedMessage[]
-  ): Promise<void> {
-    if (!messages.length) return;
-    try {
-      const db = await this.openGossipDB();
-      const tx = db.transaction('discussionMessages', 'readwrite');
-      const store = tx.objectStore('discussionMessages');
-
-      await Promise.all(
-        messages.map(
-          msg =>
-            new Promise<void>((resolve, reject) => {
-              const addReq = store.add({
-                discussionId,
-                messageType: msg.messageType,
-                direction: 'incoming',
-                ciphertext: msg.ciphertext,
-                ct: msg.ct,
-                rand: msg.rand,
-                nonce: msg.nonce,
-                status: 'delivered',
-                timestamp: msg.timestamp,
-                metadata: msg.metadata || undefined,
-              });
-              addReq.onsuccess = () => resolve();
-              addReq.onerror = () => reject(addReq.error);
-            })
-        )
-      );
-
-      await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
-      });
-    } catch (error) {
-      console.error(
-        'Service Worker: Failed to store encrypted messages',
-        error
-      );
-    }
-  }
-
-  private async storePendingAnnouncements(
-    announcements: Uint8Array[]
-  ): Promise<void> {
-    if (!announcements.length) return;
-    try {
-      const db = await this.openGossipDB();
-      const tx = db.transaction('discussionMessages', 'readwrite');
-      const store = tx.objectStore('discussionMessages');
-
-      // Store announcements as pending initiation messages
-      // They'll be processed by the main app when it loads
-      // The main app will handle duplicate detection during processing
-      await Promise.all(
-        announcements.map(
-          announcement =>
-            new Promise<void>(resolve => {
-              // Store as a pending announcement (discussionId will be set when processed)
-              const addReq = store.add({
-                // discussionId omitted; will be set when processed by main app
-                messageType: 'initiation',
-                direction: 'incoming',
-                ciphertext: announcement,
-                ct: new Uint8Array(0),
-                rand: new Uint8Array(0),
-                nonce: new Uint8Array(12),
-                status: 'pending', // Mark as pending for main app processing
-                timestamp: new Date(),
-                metadata: { pendingAnnouncement: true },
-              });
-              addReq.onsuccess = () => resolve();
-              addReq.onerror = () => {
-                // Ignore duplicate key errors (some duplicates may slip through)
-                // The main app will handle proper duplicate detection
-                if (addReq.error?.name === 'ConstraintError') {
-                  resolve();
-                } else {
-                  console.warn(
-                    'Failed to store announcement (may be duplicate):',
-                    addReq.error
-                  );
-                  resolve(); // Continue even if one fails
-                }
-              };
-            })
-        )
-      );
-
-      await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
-      });
-    } catch (error) {
-      console.error(
-        'Service Worker: Failed to store pending announcements',
-        error
-      );
     }
   }
 }
@@ -344,49 +215,50 @@ const messageReception = new ServiceWorkerMessageReception();
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 
+  // Handle request for seekers from main app
+  if (event.data && event.data.type === 'REQUEST_SEEKERS') {
+    // This is handled by requesting from main app in fetchAllDiscussions
+    // The main app should respond via the message channel port
+    return;
+  }
+
+  // Handle request to start/restart sync scheduler
+  if (event.data && event.data.type === 'START_SYNC_SCHEDULER') {
+    startFallbackSync();
+    return;
+  }
+
   // Handle manual sync requests
   if (event.data && event.data.type === 'SYNC_MESSAGES') {
-    event.waitUntil(
-      Promise.all([
-        messageReception.fetchAllDiscussions(),
-        messageReception.fetchAnnouncements(),
-      ]).then(([messageResult, announcementResult]) => {
-        const hasNewMessages =
-          messageResult.success && messageResult.newMessagesCount > 0;
-        const hasNewAnnouncements =
-          announcementResult.success &&
-          announcementResult.newAnnouncementsCount > 0;
-
-        if (hasNewMessages || hasNewAnnouncements) {
-          let body = '';
-          if (hasNewMessages && hasNewAnnouncements) {
-            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
-          } else if (hasNewMessages) {
-            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
-          } else if (hasNewAnnouncements) {
-            body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
-          }
-
-          // Show notification for new messages/announcements
-          self.registration.showNotification('Gossip Messenger', {
-            body,
-            icon: '/favicon-64.png',
-            badge: '/favicon-64.png',
-            tag: 'gossip-new-messages',
-            requireInteraction: false,
-          });
-        }
-      })
-    );
+    trackSync('manual');
+    event.waitUntil(performSync());
   }
 });
 
+/**
+ * Track sync frequency for monitoring and debugging
+ */
+function trackSync(syncType: 'periodic' | 'fallback' | 'manual'): void {
+  const now = Date.now();
+  const timeSinceLastSync =
+    syncStats.lastSyncTime > 0 ? now - syncStats.lastSyncTime : 0;
+
+  syncStats.syncCount++;
+  syncStats.syncType = syncType;
+
+  if (timeSinceLastSync > 0) {
+    syncStats.syncIntervals.push(timeSinceLastSync);
+    // Keep only the last N intervals
+    if (syncStats.syncIntervals.length > MAX_SYNC_INTERVALS_TO_TRACK) {
+      syncStats.syncIntervals.shift();
+    }
+  }
+
+  syncStats.lastSyncTime = now;
+}
+
 // Register periodic background sync
 self.addEventListener('sync', (event: Event) => {
-  console.log(
-    'Service Worker: Periodic sync event triggered',
-    (event as SyncEvent).tag
-  );
   if ((event as SyncEvent).tag === 'gossip-message-sync') {
     (event as SyncEvent).waitUntil(
       Promise.all([
@@ -394,11 +266,6 @@ self.addEventListener('sync', (event: Event) => {
         messageReception.fetchAnnouncements(),
       ])
         .then(([messageResult, announcementResult]) => {
-          console.log('Service Worker: Periodic sync completed', {
-            messages: messageResult,
-            announcements: announcementResult,
-          });
-
           const hasNewMessages =
             messageResult.success && messageResult.newMessagesCount > 0;
           const hasNewAnnouncements =
@@ -432,74 +299,195 @@ self.addEventListener('sync', (event: Event) => {
   }
 });
 
-// Fallback timer-based sync (runs every 5 minutes - reduced frequency since we sync on login)
+/**
+ * Check if the app has active window clients (app is open)
+ */
+async function hasActiveClients(): Promise<boolean> {
+  try {
+    // Try with controlled clients first
+    let clients = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: false,
+    });
+
+    // If no controlled clients, try with uncontrolled (in case service worker just registered)
+    if (clients.length === 0) {
+      clients = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+    }
+
+    if (clients.length === 0) {
+      return false;
+    }
+
+    // Check if any client is focused or visible
+    return clients.some(client => {
+      const windowClient = client as WindowClient;
+      return (
+        windowClient.focused === true ||
+        windowClient.visibilityState === 'visible'
+      );
+    });
+  } catch (error) {
+    console.error('Service Worker: Error checking active clients', error);
+    return false;
+  }
+}
+
+/**
+ * Show notification if permission is granted
+ * Catches permission errors gracefully
+ */
+async function showNotificationIfAllowed(
+  title: string,
+  options: NotificationOptions
+): Promise<void> {
+  try {
+    await self.registration.showNotification(title, options);
+  } catch (error) {
+    // Silently handle permission errors
+    if (
+      !(
+        error instanceof TypeError &&
+        error.message.includes('notification permission')
+      )
+    ) {
+      console.error('Service Worker: Failed to show notification:', error);
+    }
+  }
+}
+
+/**
+ * Perform sync operation
+ */
+async function performSync(): Promise<void> {
+  try {
+    console.log('Service Worker: Syncing messages...');
+
+    const [messageResult, announcementResult] = await Promise.all([
+      messageReception.fetchAllDiscussions(),
+      messageReception.fetchAnnouncements(),
+    ]);
+
+    const hasNewMessages =
+      messageResult.success && messageResult.newMessagesCount > 0;
+    const hasNewAnnouncements =
+      announcementResult.success &&
+      announcementResult.newAnnouncementsCount > 0;
+
+    if (hasNewMessages || hasNewAnnouncements) {
+      let body = '';
+      if (hasNewMessages && hasNewAnnouncements) {
+        body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+      } else if (hasNewMessages) {
+        body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
+      } else if (hasNewAnnouncements) {
+        body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+      }
+
+      // Show notification for new messages/discussions
+      // Only show notification if app is in background (when active, UI updates directly)
+      const isActive = await hasActiveClients();
+      if (!isActive) {
+        await showNotificationIfAllowed('Echo Messenger', {
+          body,
+          icon: '/favicon-64.png',
+          badge: '/favicon-64.png',
+          tag: 'echo-new-messages',
+          requireInteraction: false,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Service Worker: Sync failed', error);
+  }
+}
+
+/**
+ * Dynamic sync scheduler that adjusts interval based on app state
+ * Uses shorter interval (10s) when app is open, longer (5min) when backgrounded
+ */
+function scheduleNextSync(): void {
+  // Clear any existing timer
+  const existingTimer = (
+    self as ServiceWorkerGlobalScope & {
+      echoSyncTimer?: ReturnType<typeof setTimeout>;
+    }
+  ).echoSyncTimer;
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  hasActiveClients()
+    .then(isActive => {
+      const interval = isActive
+        ? ACTIVE_SYNC_INTERVAL_MS
+        : FALLBACK_SYNC_INTERVAL_MS;
+
+      const timeoutId = setTimeout(async () => {
+        trackSync('fallback');
+        await performSync();
+        // Schedule next sync (will re-check app state)
+        scheduleNextSync();
+      }, interval);
+
+      // Store timeout reference for potential cleanup
+      (
+        self as ServiceWorkerGlobalScope & {
+          echoSyncTimer?: ReturnType<typeof setTimeout>;
+        }
+      ).echoSyncTimer = timeoutId;
+    })
+    .catch(error => {
+      console.error('Service Worker: Error scheduling sync', error);
+      // Fallback to default interval on error
+      const timeoutId = setTimeout(async () => {
+        trackSync('fallback');
+        await performSync();
+        scheduleNextSync();
+      }, FALLBACK_SYNC_INTERVAL_MS);
+      (
+        self as ServiceWorkerGlobalScope & {
+          echoSyncTimer?: ReturnType<typeof setTimeout>;
+        }
+      ).echoSyncTimer = timeoutId;
+    });
+}
+
+// Fallback timer-based sync with dynamic intervals
+// Note: On mobile devices, service workers may be terminated, making this less reliable
 function startFallbackSync() {
   // Check if we're in service worker context
   if (typeof self === 'undefined' || !self.registration) {
-    console.log('Not in service worker context, skipping fallback sync setup');
+    console.error(
+      'Service Worker: Not in service worker context, skipping fallback sync setup'
+    );
     return;
   }
 
-  console.log('Service Worker: Starting fallback sync timer (5 minutes)');
-  const syncTimer = setInterval(
-    async () => {
-      console.log('Service Worker: Fallback sync timer triggered');
-      try {
-        const [messageResult, announcementResult] = await Promise.all([
-          messageReception.fetchAllDiscussions(),
-          messageReception.fetchAnnouncements(),
-        ]);
-
-        console.log('Service Worker: Fallback sync completed', {
-          messages: messageResult,
-          announcements: announcementResult,
-        });
-
-        const hasNewMessages =
-          messageResult.success && messageResult.newMessagesCount > 0;
-        const hasNewAnnouncements =
-          announcementResult.success &&
-          announcementResult.newAnnouncementsCount > 0;
-
-        if (hasNewMessages || hasNewAnnouncements) {
-          let body = '';
-          if (hasNewMessages && hasNewAnnouncements) {
-            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
-          } else if (hasNewMessages) {
-            body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
-          } else if (hasNewAnnouncements) {
-            body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
-          }
-
-          // Show generic notification for new messages/discussions
-          self.registration.showNotification('Gossip Messenger', {
-            body,
-            icon: '/favicon-64.png',
-            badge: '/favicon-64.png',
-            tag: 'gossip-new-messages',
-            requireInteraction: false,
-          });
-        }
-      } catch (error) {
-        console.error('Service Worker: Fallback sync failed', error);
-      }
-    },
-    5 * 60 * 1000
-  ); // 5 minutes
-
-  // Store timer reference for potential cleanup
-  (
-    self as ServiceWorkerGlobalScope & {
-      gossipSyncTimer?: ReturnType<typeof setInterval>;
-    }
-  ).gossipSyncTimer = syncTimer;
+  // Start the dynamic sync scheduler
+  scheduleNextSync();
 }
 
 // Start fallback sync when service worker activates
-self.addEventListener('activate', () => {
-  console.log('Service Worker: Activated, starting fallback sync');
-  startFallbackSync();
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    Promise.resolve().then(() => {
+      startFallbackSync();
+    })
+  );
 });
+
+// Start sync immediately when service worker loads (if already activated)
+// This handles the case where the service worker is already active when the page loads
+// Use a small delay to ensure registration is ready
+setTimeout(() => {
+  if (self.registration.active) {
+    startFallbackSync();
+  }
+}, 100);
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event: NotificationEvent) => {

@@ -8,6 +8,7 @@
 import { notificationService } from './notifications';
 import { messageService } from './message';
 import { announcementService } from './announcement';
+import { defaultSyncConfig } from '../config/sync';
 
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
@@ -53,36 +54,57 @@ export class BackgroundSyncService {
 
   /**
    * Register periodic background sync
+   * Note: On mobile devices, browsers may throttle or delay syncs significantly
+   * Requesting 5 minutes, but actual syncs may be much less frequent
    */
   private async registerPeriodicSync(): Promise<void> {
     if (
       !('serviceWorker' in navigator) ||
       !('sync' in window.ServiceWorkerRegistration.prototype)
     ) {
-      console.log(
-        'Periodic background sync not supported - using fallback timer'
-      );
       return;
     }
 
     try {
       const registration = await navigator.serviceWorker.ready;
 
-      // Register periodic sync (cast to access experimental API)
-      await (
+      // Use centralized sync config
+      const PERIODIC_SYNC_MIN_INTERVAL_MS =
+        defaultSyncConfig.periodicSyncMinIntervalMs;
+
+      // Register periodic sync with minInterval parameter
+      // Type assertion needed for experimental API
+      const periodicSync = (
         registration as ServiceWorkerRegistration & {
-          sync: { register: (tag: string) => Promise<void> };
+          periodicSync?: {
+            register: (
+              tag: string,
+              options?: { minInterval?: number }
+            ) => Promise<void>;
+          };
         }
-      ).sync.register('gossip-message-sync');
-      console.log(
-        'Periodic background sync registered - browser will control timing'
-      );
-      console.log(
-        'Note: Browser periodic sync is unreliable and may not run frequently'
-      );
+      ).periodicSync;
+
+      if (periodicSync) {
+        await periodicSync.register('gossip-message-sync', {
+          minInterval: PERIODIC_SYNC_MIN_INTERVAL_MS,
+        });
+      } else {
+        // Fallback for browsers that don't support periodicSync but support sync
+        await (
+          registration as ServiceWorkerRegistration & {
+            sync: { register: (tag: string) => Promise<void> };
+          }
+        ).sync.register('gossip-message-sync');
+      }
     } catch (error) {
-      console.error('Failed to register periodic background sync:', error);
-      console.log('Falling back to Service Worker timer-based sync');
+      // Silently handle permission errors (expected in many browsers)
+      // Only log unexpected errors
+      if (
+        !(error instanceof DOMException && error.name === 'NotAllowedError')
+      ) {
+        console.error('Failed to register periodic background sync:', error);
+      }
     }
   }
 
@@ -104,8 +126,6 @@ export class BackgroundSyncService {
           type: 'REGISTER_MANUAL_SYNC',
         });
       }
-
-      console.log('Manual sync trigger registered');
     } catch (error) {
       console.error('Failed to register manual sync trigger:', error);
     }
