@@ -1,8 +1,9 @@
-import React, { useEffect, useCallback } from 'react';
+// TODO: use virtual list to render messages
+import React, { useEffect, useCallback, useRef } from 'react';
 import { Contact, db } from '../../db';
-import { useMessages } from '../../hooks/useMessages';
 import { useDiscussion } from '../../hooks/useDiscussion';
 import { useAccountStore } from '../../stores/accountStore';
+import { useMessageStore } from '../../stores/messageStore';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import DiscussionHeader from './DiscussionHeader';
@@ -16,7 +17,6 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
   const onBack = () => navigate(-1);
 
   // Provide a fallback contact to prevent hook errors
-  // The hooks will handle the undefined case internally
   const safeContact =
     contact ||
     ({
@@ -35,25 +35,31 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
 
   const { userProfile } = useAccountStore();
 
-  const {
-    messages,
-    isLoading,
-    isSending,
-    isSyncing,
-    loadMessages,
-    sendMessage,
-    resendMessage,
-    syncMessages,
-  } = useMessages({
-    contact: contact || undefined,
-    discussionId: discussion?.id,
-  });
+  // Use message store instead of hook
+  const setCurrentContact = useMessageStore(s => s.setCurrentContact);
+  const messages = useMessageStore(s =>
+    contact ? s.getMessagesForContact(contact.userId) : []
+  );
 
+  const isLoading = useMessageStore(s => s.isLoading);
+  const isSending = useMessageStore(s => s.isSending);
+  const isSyncing = useMessageStore(s => s.isSyncing);
+  const sendMessage = useMessageStore(s => s.sendMessage);
+  const resendMessage = useMessageStore(s => s.resendMessage);
+  const syncMessages = useMessageStore(s => s.syncMessages);
+  const loadMessages = useMessageStore(s => s.loadMessages);
+
+  // Track previous contact userId to prevent unnecessary updates
+  const prevContactUserIdRef = useRef<string | null>(null);
+
+  // Set current contact when it changes (only if different)
   useEffect(() => {
-    if (contact) {
-      loadMessages();
+    const contactUserId = contact?.userId || null;
+    if (prevContactUserIdRef.current !== contactUserId) {
+      prevContactUserIdRef.current = contactUserId;
+      setCurrentContact(contactUserId);
     }
-  }, [loadMessages, contact]);
+  }, [contact?.userId, setCurrentContact]);
 
   // Mark messages as read when viewing the discussion
   useEffect(() => {
@@ -66,19 +72,37 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
       db.markMessagesAsRead(userProfile.userId, contact.userId).catch(error =>
         console.error('Failed to mark messages as read:', error)
       );
+      loadMessages(contact.userId);
     }
-  }, [messages.length, isLoading, userProfile?.userId, contact?.userId]);
+  }, [
+    messages.length,
+    isLoading,
+    userProfile?.userId,
+    contact?.userId,
+    loadMessages,
+  ]);
+
+  // loadMessage every 10 seconds
+  useEffect(() => {
+    if (!contact?.userId) return;
+
+    const interval = setInterval(() => {
+      loadMessages(contact.userId);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [contact?.userId, loadMessages]);
 
   const handleSendMessage = useCallback(
     async (text: string) => {
+      if (!contact?.userId) return;
       try {
-        await sendMessage(text);
+        await sendMessage(contact.userId, text);
       } catch (error) {
         toast.error('Failed to send message');
         console.error('Failed to send message:', error);
       }
     },
-    [sendMessage]
+    [sendMessage, contact?.userId]
   );
 
   // Guard against undefined contact - after all hooks
@@ -98,7 +122,7 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
           discussion={discussion}
           isSyncing={isSyncing}
           onBack={onBack}
-          onSync={syncMessages}
+          onSync={() => syncMessages(contact?.userId)}
         />
 
         <MessageList
