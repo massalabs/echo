@@ -1,32 +1,25 @@
 import React from 'react';
-import { Message, Contact } from '../../db';
+import { Message } from '../../db';
 import { formatTime } from '../../utils/timeUtils';
-import ContactAvatar from '../avatar/ContactAvatar';
 
 interface MessageItemProps {
   message: Message;
-  contact: Contact;
-  showAvatar: boolean;
   onResend: (message: Message) => void;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({
-  message,
-  contact,
-  showAvatar,
-  onResend,
-}) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, onResend }) => {
   const isOutgoing = message.direction === 'outgoing';
 
   return (
     <div
       className={`flex items-end gap-2 ${isOutgoing ? 'justify-end' : 'justify-start'} group`}
     >
-      {!isOutgoing && (
-        <div className="w-8 h-8 shrink-0 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {showAvatar && <ContactAvatar contact={contact} size={8} />}
-        </div>
-      )}
+      {/* TODO: Add on group chat */}
+      {/* {!isOutgoing && (
+          <div className="w-6 h-8 shrink-0 mb-1 opacity-0 opacity-100 transition-opacity">
+            {showAvatar && <ContactAvatar contact={contact} size={8} />}
+          </div>
+        )} */}
       <div
         className={`relative max-w-[78%] sm:max-w-[70%] md:max-w-[65%] lg:max-w-[60%] px-4 py-3 rounded-2xl font-medium text-[15px] leading-tight animate-bubble-in ${
           isOutgoing
@@ -162,7 +155,6 @@ const MessageItem: React.FC<MessageItemProps> = ({
           </>
         )}
       </div>
-      {isOutgoing && <div className="w-8 h-8 shrink-0 mb-1"></div>}
     </div>
   );
 };
