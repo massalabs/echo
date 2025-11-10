@@ -17,12 +17,20 @@ enum SettingsView {
 }
 
 const Settings = (): React.ReactElement => {
-  const { userProfile, getMnemonicBackupInfo, resetAccount } =
+  const { userProfile, getMnemonicBackupInfo, logout, resetAccount } =
     useAccountStore();
   const { showDebugPanel, setShowDebugPanel } = useAppStore();
   const { setTheme, resolvedTheme } = useTheme();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
 
   const handleResetAccount = async () => {
     setIsResetModalOpen(true);
@@ -316,8 +324,8 @@ const Settings = (): React.ReactElement => {
           <Button
             variant="outline"
             size="custom"
-            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
-            onClick={handleResetAccount}
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-foreground border-border hover:bg-muted"
+            onClick={handleLogout}
           >
             <svg
               fill="none"
@@ -334,6 +342,31 @@ const Settings = (): React.ReactElement => {
             </svg>
             <span className="text-base font-semibold flex-1 text-left">
               Logout
+            </span>
+          </Button>
+
+          {/* Reset Account Button */}
+          <Button
+            variant="outline"
+            size="custom"
+            className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
+            onClick={handleResetAccount}
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              className="w-5 h-5 mr-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            <span className="text-base font-semibold flex-1 text-left">
+              Reset Account
             </span>
           </Button>
         </div>
