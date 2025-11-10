@@ -112,7 +112,9 @@ export class SessionModule {
       ourSk
     );
 
-    this.persistIfNeeded();
+    if (result) {
+      this.persistIfNeeded();
+    }
     return result;
   }
 

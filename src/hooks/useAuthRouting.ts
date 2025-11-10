@@ -6,18 +6,25 @@ import { useAccountStore } from '../stores/accountStore';
  * Hook to handle authentication-based routing
  * Redirects to /welcome if hash is empty when unauthenticated
  * Uses a ref to prevent redirect flicker during logout transitions
+ *
+ * Optimized to use specific selectors to prevent unnecessary rerenders
  */
 export function useAuthRouting() {
   const navigate = useNavigate();
-  const { isInitialized, userProfile, isLoading } = useAccountStore();
+  // Use specific selectors to only subscribe to what we need
+  // This prevents rerenders when other account store values change
+  const isInitialized = useAccountStore(s => s.isInitialized);
+  const userProfile = useAccountStore(s => s.userProfile);
+  const isLoading = useAccountStore(s => s.isLoading);
   const wasAuthenticatedRef = useRef(false);
 
   // Track if user was ever authenticated to prevent redirect during logout
+  const userId = userProfile?.userId;
   useEffect(() => {
-    if (userProfile?.userId) {
+    if (userId) {
       wasAuthenticatedRef.current = true;
     }
-  }, [userProfile?.userId]);
+  }, [userId]);
 
   // Ensure we default to /welcome if hash is empty when unauthenticated
   // Also handle logout: navigate to /welcome when user logs out
@@ -48,5 +55,6 @@ export function useAuthRouting() {
     if (!isInitialized && !userProfile) {
       wasAuthenticatedRef.current = false;
     }
-  }, [isInitialized, userProfile, isLoading, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInitialized, userProfile, isLoading]); // Removed navigate from deps - it's stable
 }
