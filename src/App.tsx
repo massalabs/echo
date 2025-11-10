@@ -31,7 +31,7 @@ const AppContent: React.FC = () => {
   useBackgroundSync();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
-  const { hasAuthenticatedRef } = useAuthRouting();
+  useAuthRouting();
 
   addDebugLog(
     `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
@@ -49,8 +49,8 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If authenticated (current or latched), show main app routes
-  if (userProfile || hasAuthenticatedRef.current) {
+  // If authenticated, show main app routes
+  if (userProfile) {
     return <AuthenticatedRoutes />;
   }
 
