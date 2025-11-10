@@ -12,15 +12,12 @@ export interface ProtocolConfig {
 }
 
 export const protocolConfig: ProtocolConfig = {
-  baseUrl: `${import.meta.env.VITE_PROTOCOL_API_URL}/api`,
+  baseUrl: import.meta.env.VITE_PROTOCOL_API_URL
+    ? `${import.meta.env.VITE_PROTOCOL_API_URL}/api`
+    : 'http://145.239.66.206:3001/api',
   timeout: 10000,
   retryAttempts: 3,
 };
-
-export const endpoints = {
-  messages: '/messages',
-  sessions: '/sessions',
-} as const;
 
 export type MessageProtocolType = 'rest' | 'mock';
 

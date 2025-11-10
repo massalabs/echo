@@ -16,6 +16,7 @@ import DebugOverlay from './components/ui/DebugOverlay.tsx';
 import { addDebugLog } from './components/ui/debugLogs';
 import AccountImport from './components/account/AccountImport.tsx';
 import { backgroundSyncService } from './services/backgroundSync';
+import { setupServiceWorker } from './services/serviceWorkerSetup';
 import { Toaster } from 'react-hot-toast';
 import { PrivacyGraphic } from './components/ui/PrivacyGraphic';
 import './App.css';
@@ -80,6 +81,11 @@ const AppContent: React.FC = () => {
     // Initialize background sync service
     backgroundSyncService.initialize().catch(error => {
       console.error('Failed to initialize background sync:', error);
+    });
+
+    // Setup service worker: register, listen for messages, and start sync scheduler
+    setupServiceWorker().catch(error => {
+      console.error('Failed to setup service worker:', error);
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
