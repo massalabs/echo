@@ -1,5 +1,5 @@
 import React, { useRef, useLayoutEffect, useCallback, useMemo } from 'react';
-import { Message, Contact } from '../../db';
+import { Message, Contact, Discussion } from '../../db';
 import MessageItem from './MessageItem';
 import LoadingState from './LoadingState';
 import EmptyState from './EmptyState';
@@ -7,6 +7,7 @@ import EmptyState from './EmptyState';
 interface MessageListProps {
   messages: Message[];
   contact: Contact;
+  discussion?: Discussion | null;
   isLoading: boolean;
   onResend: (message: Message) => void;
 }
@@ -14,6 +15,7 @@ interface MessageListProps {
 const MessageList: React.FC<MessageListProps> = ({
   messages,
   contact,
+  discussion,
   isLoading,
   onResend,
 }) => {
@@ -116,31 +118,45 @@ const MessageList: React.FC<MessageListProps> = ({
     return <LoadingState />;
   }
 
-  if (messages.length === 0) {
-    return <EmptyState />;
-  }
-
   return (
     <div
       ref={containerRef}
       className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 py-6 space-y-4 relative bg-transparent"
     >
-      {messages.map((message, index) => {
-        const isOutgoing = message.direction === 'outgoing';
-        const showAvatar =
-          !isOutgoing &&
-          (index === 0 || messages[index - 1]?.direction === 'outgoing');
+      {/* Display announcement message if it exists */}
+      {discussion?.announcementMessage && (
+        <div className="flex justify-center mb-4">
+          <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] px-4 py-3 bg-muted/50 border border-border rounded-xl">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">
+              Contact request message:
+            </p>
+            <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+              {discussion.announcementMessage}
+            </p>
+          </div>
+        </div>
+      )}
 
-        return (
-          <MessageItem
-            key={message.id}
-            message={message}
-            contact={contact}
-            showAvatar={showAvatar}
-            onResend={onResend}
-          />
-        );
-      })}
+      {messages.length === 0 && !discussion?.announcementMessage ? (
+        <EmptyState />
+      ) : (
+        messages.map((message, index) => {
+          const isOutgoing = message.direction === 'outgoing';
+          const showAvatar =
+            !isOutgoing &&
+            (index === 0 || messages[index - 1]?.direction === 'outgoing');
+
+          return (
+            <MessageItem
+              key={message.id}
+              message={message}
+              contact={contact}
+              showAvatar={showAvatar}
+              onResend={onResend}
+            />
+          );
+        })
+      )}
       <div ref={messagesEndRef} />
     </div>
   );

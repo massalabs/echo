@@ -21,9 +21,9 @@ export const useDiscussionList = () => {
   }, [userProfile?.userId, loadContacts, loadDiscussions]);
 
   const handleCreatedNewContact = useCallback(
-    async (contact: Contact): Promise<void> => {
+    async (contact: Contact, message?: string): Promise<void> => {
       try {
-        await ensureDiscussionExists(contact);
+        await ensureDiscussionExists(contact, undefined, message);
       } catch (e) {
         console.error(
           'Failed to ensure discussion exists after contact creation:',
