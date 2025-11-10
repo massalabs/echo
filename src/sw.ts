@@ -54,8 +54,6 @@ class ServiceWorkerMessageReception {
 
   constructor() {
     // Use the shared RestMessageProtocol with the same config as the main app
-    // Note: Service workers can't access import.meta.env, so we use the protocolConfig
-    // which should be set at build time
     this.protocol = new RestMessageProtocol(
       protocolConfig.baseUrl,
       protocolConfig.timeout,

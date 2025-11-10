@@ -14,7 +14,7 @@ export interface ProtocolConfig {
 export const protocolConfig: ProtocolConfig = {
   baseUrl: import.meta.env.VITE_PROTOCOL_API_URL
     ? `${import.meta.env.VITE_PROTOCOL_API_URL}/api`
-    : 'http://145.239.66.206:3001/api',
+    : 'https://yearningly-environmental-jamila.ngrok-free.dev/api',
   timeout: 10000,
   retryAttempts: 3,
 };
