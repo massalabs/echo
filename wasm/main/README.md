@@ -74,7 +74,11 @@ const announcement = manager.establish_outgoing_session(
 // Publish announcement to blockchain...
 
 // Feed incoming announcement from peer
-const result = manager.feed_incoming_announcement(announcementBytes, publicKeys, secretKeys);
+const result = manager.feed_incoming_announcement(
+  announcementBytes,
+  publicKeys,
+  secretKeys
+);
 if (result) {
   console.log('Announcer public keys:', result.announcer_public_keys);
   console.log('Timestamp:', result.timestamp);
@@ -208,6 +212,7 @@ Result from processing an incoming announcement:
 - `user_data(): Uint8Array`: Arbitrary user data embedded in the announcement (can be empty)
 
 **Use Cases for User Data:**
+
 - Contact requests with metadata
 - Version information
 - Application-specific handshake data
@@ -217,6 +222,7 @@ Result from processing an incoming announcement:
 **⚠️ Security Warning:**
 
 The user_data in announcements has **reduced security compared to regular messages**:
+
 - ✅ **Plausible deniability preserved**: The user_data is not cryptographically signed, so the sender can deny specific content
 - ❌ **No post-compromise secrecy**: If long-term keys are compromised, past announcements can be decrypted
 
