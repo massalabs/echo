@@ -234,461 +234,459 @@ interface AccountState {
   persistSession: () => Promise<void>;
 }
 
-const useAccountStoreBase = create<AccountState>((set, get) => ({
-  // Initial state
-  userProfile: null,
-  encryptionKey: null,
-  isInitialized: false,
-  isLoading: true,
-  webauthnSupported: isWebAuthnSupported(),
-  platformAuthenticatorAvailable: false,
-  account: null,
-  provider: null,
-  ourPk: null,
-  ourSk: null,
-  session: null,
-  // Actions
-  initializeAccount: async (username: string, password: string) => {
-    try {
-      set({ isLoading: true });
-
-      const mnemonic = generateMnemonic(256);
-      const keys = await generateUserKeys(mnemonic);
-      const userPublicKeys = keys.public_keys();
-      const userSecretKeys = keys.secret_keys();
-      const userId = userPublicKeys.derive_id();
-
-      const account = await Account.fromPrivateKey(
-        PrivateKey.fromBytes(userSecretKeys.massa_secret_key)
-      );
-
-      // Initialize WASM and create session
-      await ensureWasmInitialized();
-      const session = new SessionModule(() => {
-        get().persistSession();
-      });
-
-      const { profile, encryptionKey } = await provisionAccount(
-        username,
-        userId,
-        mnemonic,
-        {
-          useBiometrics: false,
-          password,
-        },
-        session
-      );
-
-      set({
-        userProfile: profile,
-        encryptionKey,
-        account,
-        ourPk: userPublicKeys,
-        ourSk: userSecretKeys,
-        session,
-        isInitialized: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error('Error creating user profile:', error);
-      set({ isLoading: false });
-      throw error;
+const useAccountStoreBase = create<AccountState>((set, get) => {
+  // Helper function to cleanup session
+  const cleanupSession = () => {
+    const state = get();
+    if (state.session) {
+      state.session.cleanup();
     }
-  },
+  };
 
-  restoreAccountFromMnemonic: async (
-    username: string,
-    mnemonic: string,
-    opts: { useBiometrics: boolean; password?: string }
-  ) => {
-    try {
-      set({ isLoading: true });
+  // Helper function to clear account state
+  const clearAccountState = (isInitialized: boolean) => ({
+    account: null,
+    userProfile: null,
+    encryptionKey: null,
+    ourPk: null,
+    ourSk: null,
+    session: null,
+    isLoading: false,
+    isInitialized,
+  });
 
-      // Validate mnemonic
-      if (!validateMnemonic(mnemonic)) {
-        throw new Error('Invalid mnemonic phrase');
-      }
-
-      const keys = await generateUserKeys(mnemonic);
-      const userPublicKeys = keys.public_keys();
-      const userSecretKeys = keys.secret_keys();
-      const userId = userPublicKeys.derive_id();
-
-      const massaSecretKey = keys.secret_keys().massa_secret_key;
-      const account = await Account.fromPrivateKey(
-        PrivateKey.fromBytes(massaSecretKey)
-      );
-
-      // Initialize WASM and create session
-      await ensureWasmInitialized();
-      const session = new SessionModule(() => {
-        get().persistSession();
-      });
-
-      const { profile, encryptionKey } = await provisionAccount(
-        username,
-        userId,
-        mnemonic,
-        opts,
-        session
-      );
-
-      set({
-        account,
-        userProfile: profile,
-        encryptionKey,
-        ourPk: userPublicKeys,
-        ourSk: userSecretKeys,
-        session,
-        isInitialized: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error('Error restoring account from mnemonic:', error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  loadAccount: async (password?: string, userId?: string) => {
-    try {
-      set({ isLoading: true });
-
-      // If userId is provided, load that specific account, otherwise use active or first
-      let profile: UserProfile | null;
-      if (userId) {
-        profile = (await db.userProfile.get(userId)) || null;
-      } else {
-        profile = await getActiveOrFirstProfile();
-      }
-
-      if (!profile) {
-        throw new Error('No user profile found');
-      }
-
-      const { mnemonic, encryptionKey } = await auth(profile, password);
-
-      const keys = await generateUserKeys(mnemonic);
-      const ourPk = keys.public_keys();
-      const ourSk = keys.secret_keys();
-      const account = await Account.fromPrivateKey(
-        PrivateKey.fromBytes(ourSk.massa_secret_key)
-      );
-
-      // Initialize WASM and load session from profile
-      await ensureWasmInitialized();
-      const session = new SessionModule(() => {
-        get().persistSession();
-      });
-
-      session.load(profile, encryptionKey);
-
-      set({
-        userProfile: profile,
-        account,
-        encryptionKey,
-        ourPk,
-        ourSk,
-        session,
-        isInitialized: true,
-        isLoading: false,
-      });
-
+  return {
+    // Initial state
+    userProfile: null,
+    encryptionKey: null,
+    isInitialized: false,
+    isLoading: true,
+    webauthnSupported: isWebAuthnSupported(),
+    platformAuthenticatorAvailable: false,
+    account: null,
+    provider: null,
+    ourPk: null,
+    ourSk: null,
+    session: null,
+    // Actions
+    initializeAccount: async (username: string, password: string) => {
       try {
-        session.refresh();
-      } catch (e) {
-        console.error('Session refresh after login failed:', e);
-      }
-    } catch (error) {
-      console.error('Error loading account:', error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
+        set({ isLoading: true });
 
-  resetAccount: async () => {
-    try {
-      set({ isLoading: true });
+        const mnemonic = generateMnemonic(256);
+        const keys = await generateUserKeys(mnemonic);
+        const userPublicKeys = keys.public_keys();
+        const userSecretKeys = keys.secret_keys();
+        const userId = userPublicKeys.derive_id();
 
-      // Cleanup session
-      const state = get();
-      if (state.session) {
-        state.session.cleanup();
-      }
-
-      // Delete only the current account, not all accounts
-      const currentProfile = await getActiveOrFirstProfile();
-      if (currentProfile?.userId != null) {
-        await db.userProfile.delete(currentProfile.userId);
-      }
-
-      // Determine if any accounts remain after deletion
-      let hasAnyAccount = false;
-      try {
-        const remaining = await db.userProfile.count();
-        hasAnyAccount = remaining > 0;
-      } catch (_countErr) {
-        hasAnyAccount = false;
-      }
-
-      set({
-        account: null,
-        userProfile: null,
-        encryptionKey: null,
-        ourPk: null,
-        ourSk: null,
-        session: null,
-        isLoading: false,
-        isInitialized: hasAnyAccount,
-      });
-    } catch (error) {
-      console.error('Error resetting account:', error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  logout: async () => {
-    try {
-      set({ isLoading: true });
-
-      // Cleanup session
-      const state = get();
-      if (state.session) {
-        state.session.cleanup();
-      }
-
-      // Clear in-memory state but keep data in database
-      set({
-        account: null,
-        userProfile: null,
-        encryptionKey: null,
-        ourPk: null,
-        ourSk: null,
-        session: null,
-        isLoading: false,
-        // Keep isInitialized true so user goes to login screen
-        isInitialized: true,
-      });
-    } catch (error) {
-      console.error('Error logging out:', error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  setLoading: (loading: boolean) => {
-    set({ isLoading: loading });
-  },
-
-  checkPlatformAvailability: async () => {
-    try {
-      const available = await isPlatformAuthenticatorAvailable();
-      set({ platformAuthenticatorAvailable: available });
-    } catch (error) {
-      console.error('Error checking platform availability:', error);
-      set({ platformAuthenticatorAvailable: false });
-    }
-  },
-
-  // WebAuthn-based account initialization
-  initializeAccountWithBiometrics: async (username: string) => {
-    try {
-      set({ isLoading: true });
-
-      // Check WebAuthn support
-      if (!isWebAuthnSupported()) {
-        throw new Error('WebAuthn is not supported in this browser');
-      }
-
-      const platformAvailable = await isPlatformAuthenticatorAvailable();
-      if (!platformAvailable) {
-        throw new Error(
-          'Biometric authentication is not available on this device'
+        const account = await Account.fromPrivateKey(
+          PrivateKey.fromBytes(userSecretKeys.massa_secret_key)
         );
-      }
 
-      // Generate a BIP39 mnemonic and create account from it
-      const mnemonic = generateMnemonic(256);
-      const keys = await generateUserKeys(mnemonic);
-      const userPublicKeys = keys.public_keys();
-      const userId = userPublicKeys.derive_id();
+        // Initialize WASM and create session
+        await ensureWasmInitialized();
+        const session = new SessionModule(() => {
+          get().persistSession();
+        });
 
-      const account = await Account.fromPrivateKey(
-        PrivateKey.fromBytes(keys.secret_keys().massa_secret_key)
-      );
-
-      // Initialize WASM and create session
-      await ensureWasmInitialized();
-      const session = new SessionModule(() => {
-        get().persistSession();
-      });
-
-      const { profile, encryptionKey } = await provisionAccount(
-        username,
-        userId,
-        mnemonic,
-        {
-          useBiometrics: true,
-        },
-        session
-      );
-
-      set({
-        userProfile: profile,
-        encryptionKey,
-        account,
-        ourPk: userPublicKeys,
-        ourSk: keys.secret_keys(),
-        session,
-        isInitialized: true,
-        isLoading: false,
-        platformAuthenticatorAvailable: platformAvailable,
-      });
-    } catch (error) {
-      console.error('Error creating user profile with biometrics:', error);
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  showBackup: async (
-    password?: string
-  ): Promise<{
-    mnemonic: string;
-    account: Account;
-  }> => {
-    try {
-      const state = get();
-      const profile = state.userProfile;
-      const ourSk = state.ourSk;
-      if (!profile || !ourSk) {
-        throw new Error('No authenticated user');
-      }
-
-      const { mnemonic } = await auth(profile, password);
-
-      const massaSecretKey = ourSk.massa_secret_key;
-      const account = await Account.fromPrivateKey(
-        PrivateKey.fromBytes(massaSecretKey)
-      );
-
-      const backupInfo = {
-        mnemonic,
-        account,
-      };
-
-      return backupInfo;
-    } catch (error) {
-      console.error('Error showing mnemonic backup:', error);
-      throw error;
-    }
-  },
-
-  getMnemonicBackupInfo: () => {
-    const state = get();
-    const mnemonicBackup = state.userProfile?.security.mnemonicBackup;
-    if (!mnemonicBackup) return null;
-
-    return {
-      createdAt: mnemonicBackup.createdAt,
-      backedUp: mnemonicBackup.backedUp,
-    };
-  },
-
-  markMnemonicBackupComplete: async () => {
-    try {
-      const state = get();
-      const profile = state.userProfile;
-      if (!profile) {
-        throw new Error('No user profile found');
-      }
-
-      const updatedProfile = {
-        ...profile,
-        security: {
-          ...profile.security,
-          mnemonicBackup: {
-            ...profile.security.mnemonicBackup,
-            backedUp: true,
+        const { profile, encryptionKey } = await provisionAccount(
+          username,
+          userId,
+          mnemonic,
+          {
+            useBiometrics: false,
+            password,
           },
-        },
+          session
+        );
+
+        set({
+          userProfile: profile,
+          encryptionKey,
+          account,
+          ourPk: userPublicKeys,
+          ourSk: userSecretKeys,
+          session,
+          isInitialized: true,
+          isLoading: false,
+        });
+      } catch (error) {
+        console.error('Error creating user profile:', error);
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    restoreAccountFromMnemonic: async (
+      username: string,
+      mnemonic: string,
+      opts: { useBiometrics: boolean; password?: string }
+    ) => {
+      try {
+        set({ isLoading: true });
+
+        // Validate mnemonic
+        if (!validateMnemonic(mnemonic)) {
+          throw new Error('Invalid mnemonic phrase');
+        }
+
+        const keys = await generateUserKeys(mnemonic);
+        const userPublicKeys = keys.public_keys();
+        const userSecretKeys = keys.secret_keys();
+        const userId = userPublicKeys.derive_id();
+
+        const massaSecretKey = keys.secret_keys().massa_secret_key;
+        const account = await Account.fromPrivateKey(
+          PrivateKey.fromBytes(massaSecretKey)
+        );
+
+        // Initialize WASM and create session
+        await ensureWasmInitialized();
+        const session = new SessionModule(() => {
+          get().persistSession();
+        });
+
+        const { profile, encryptionKey } = await provisionAccount(
+          username,
+          userId,
+          mnemonic,
+          opts,
+          session
+        );
+
+        set({
+          account,
+          userProfile: profile,
+          encryptionKey,
+          ourPk: userPublicKeys,
+          ourSk: userSecretKeys,
+          session,
+          isInitialized: true,
+          isLoading: false,
+        });
+      } catch (error) {
+        console.error('Error restoring account from mnemonic:', error);
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    loadAccount: async (password?: string, userId?: string) => {
+      try {
+        set({ isLoading: true });
+
+        // If userId is provided, load that specific account, otherwise use active or first
+        let profile: UserProfile | null;
+        if (userId) {
+          profile = (await db.userProfile.get(userId)) || null;
+        } else {
+          profile = await getActiveOrFirstProfile();
+        }
+
+        if (!profile) {
+          throw new Error('No user profile found');
+        }
+
+        const { mnemonic, encryptionKey } = await auth(profile, password);
+
+        const keys = await generateUserKeys(mnemonic);
+        const ourPk = keys.public_keys();
+        const ourSk = keys.secret_keys();
+        const account = await Account.fromPrivateKey(
+          PrivateKey.fromBytes(ourSk.massa_secret_key)
+        );
+
+        // Initialize WASM and load session from profile
+        await ensureWasmInitialized();
+        const session = new SessionModule(() => {
+          get().persistSession();
+        });
+
+        session.load(profile, encryptionKey);
+
+        set({
+          userProfile: profile,
+          account,
+          encryptionKey,
+          ourPk,
+          ourSk,
+          session,
+          isInitialized: true,
+          isLoading: false,
+        });
+
+        try {
+          session.refresh();
+        } catch (e) {
+          console.error('Session refresh after login failed:', e);
+        }
+      } catch (error) {
+        console.error('Error loading account:', error);
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    resetAccount: async () => {
+      try {
+        set({ isLoading: true });
+
+        // Cleanup session
+        cleanupSession();
+
+        // Delete only the current account, not all accounts
+        const currentProfile = await getActiveOrFirstProfile();
+        if (currentProfile?.userId != null) {
+          await db.userProfile.delete(currentProfile.userId);
+        }
+
+        // Determine if any accounts remain after deletion
+        let hasAnyAccount = false;
+        try {
+          const remaining = await db.userProfile.count();
+          hasAnyAccount = remaining > 0;
+        } catch (_countErr) {
+          hasAnyAccount = false;
+        }
+
+        set(clearAccountState(hasAnyAccount));
+      } catch (error) {
+        console.error('Error resetting account:', error);
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    logout: async () => {
+      try {
+        set({ isLoading: true });
+
+        // Cleanup session
+        cleanupSession();
+
+        // Clear in-memory state but keep data in database
+        // Keep isInitialized true so user goes to login screen
+        set(clearAccountState(true));
+      } catch (error) {
+        console.error('Error logging out:', error);
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    setLoading: (loading: boolean) => {
+      set({ isLoading: loading });
+    },
+
+    checkPlatformAvailability: async () => {
+      try {
+        const available = await isPlatformAuthenticatorAvailable();
+        set({ platformAuthenticatorAvailable: available });
+      } catch (error) {
+        console.error('Error checking platform availability:', error);
+        set({ platformAuthenticatorAvailable: false });
+      }
+    },
+
+    // WebAuthn-based account initialization
+    initializeAccountWithBiometrics: async (username: string) => {
+      try {
+        set({ isLoading: true });
+
+        // Check WebAuthn support
+        if (!isWebAuthnSupported()) {
+          throw new Error('WebAuthn is not supported in this browser');
+        }
+
+        const platformAvailable = await isPlatformAuthenticatorAvailable();
+        if (!platformAvailable) {
+          throw new Error(
+            'Biometric authentication is not available on this device'
+          );
+        }
+
+        // Generate a BIP39 mnemonic and create account from it
+        const mnemonic = generateMnemonic(256);
+        const keys = await generateUserKeys(mnemonic);
+        const userPublicKeys = keys.public_keys();
+        const userId = userPublicKeys.derive_id();
+
+        const account = await Account.fromPrivateKey(
+          PrivateKey.fromBytes(keys.secret_keys().massa_secret_key)
+        );
+
+        // Initialize WASM and create session
+        await ensureWasmInitialized();
+        const session = new SessionModule(() => {
+          get().persistSession();
+        });
+
+        const { profile, encryptionKey } = await provisionAccount(
+          username,
+          userId,
+          mnemonic,
+          {
+            useBiometrics: true,
+          },
+          session
+        );
+
+        set({
+          userProfile: profile,
+          encryptionKey,
+          account,
+          ourPk: userPublicKeys,
+          ourSk: keys.secret_keys(),
+          session,
+          isInitialized: true,
+          isLoading: false,
+          platformAuthenticatorAvailable: platformAvailable,
+        });
+      } catch (error) {
+        console.error('Error creating user profile with biometrics:', error);
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    showBackup: async (
+      password?: string
+    ): Promise<{
+      mnemonic: string;
+      account: Account;
+    }> => {
+      try {
+        const state = get();
+        const profile = state.userProfile;
+        const ourSk = state.ourSk;
+        if (!profile || !ourSk) {
+          throw new Error('No authenticated user');
+        }
+
+        const { mnemonic } = await auth(profile, password);
+
+        const massaSecretKey = ourSk.massa_secret_key;
+        const account = await Account.fromPrivateKey(
+          PrivateKey.fromBytes(massaSecretKey)
+        );
+
+        const backupInfo = {
+          mnemonic,
+          account,
+        };
+
+        return backupInfo;
+      } catch (error) {
+        console.error('Error showing mnemonic backup:', error);
+        throw error;
+      }
+    },
+
+    getMnemonicBackupInfo: () => {
+      const state = get();
+      const mnemonicBackup = state.userProfile?.security.mnemonicBackup;
+      if (!mnemonicBackup) return null;
+
+      return {
+        createdAt: mnemonicBackup.createdAt,
+        backedUp: mnemonicBackup.backedUp,
       };
+    },
 
-      await db.userProfile.update(profile.userId, updatedProfile);
-      set({ userProfile: updatedProfile });
-    } catch (error) {
-      console.error('Error marking mnemonic backup as complete:', error);
-      throw error;
-    }
-  },
+    markMnemonicBackupComplete: async () => {
+      try {
+        const state = get();
+        const profile = state.userProfile;
+        if (!profile) {
+          throw new Error('No user profile found');
+        }
 
-  // Account detection methods
-  hasExistingAccount: async () => {
-    try {
-      // Ensure database is ready
-      await db.open();
-      const count = await db.userProfile.count();
-      return count > 0;
-    } catch (error) {
-      console.error('Error checking for existing account:', error);
-      return false;
-    }
-  },
+        const updatedProfile = {
+          ...profile,
+          security: {
+            ...profile.security,
+            mnemonicBackup: {
+              ...profile.security.mnemonicBackup,
+              backedUp: true,
+            },
+          },
+        };
 
-  getExistingAccountInfo: async () => {
-    try {
-      return await getActiveOrFirstProfile();
-    } catch (error) {
-      console.error('Error getting existing account info:', error);
-      return null;
-    }
-  },
+        await db.userProfile.update(profile.userId, updatedProfile);
+        set({ userProfile: updatedProfile });
+      } catch (error) {
+        console.error('Error marking mnemonic backup as complete:', error);
+        throw error;
+      }
+    },
 
-  getAllAccounts: async () => {
-    try {
-      // Ensure database is ready
-      await db.open();
-      const profiles = await db.userProfile.toCollection().toArray();
-      return profiles;
-    } catch (error) {
-      console.error('Error getting all accounts:', error);
-      return [];
-    }
-  },
+    // Account detection methods
+    hasExistingAccount: async () => {
+      try {
+        // Ensure database is ready
+        await db.open();
+        const count = await db.userProfile.count();
+        return count > 0;
+      } catch (error) {
+        console.error('Error checking for existing account:', error);
+        return false;
+      }
+    },
 
-  persistSession: async () => {
-    const state = get();
-    const { session, userProfile, encryptionKey } = state;
+    getExistingAccountInfo: async () => {
+      try {
+        return await getActiveOrFirstProfile();
+      } catch (error) {
+        console.error('Error getting existing account info:', error);
+        return null;
+      }
+    },
 
-    if (!session || !userProfile || !encryptionKey) {
-      console.warn(
-        'No session, user profile, or encryption key to persist, skipping persistence'
-      );
-      return; // Nothing to persist
-    }
+    getAllAccounts: async () => {
+      try {
+        // Ensure database is ready
+        await db.open();
+        const profiles = await db.userProfile.toCollection().toArray();
+        return profiles;
+      } catch (error) {
+        console.error('Error getting all accounts:', error);
+        return [];
+      }
+    },
 
-    try {
-      // Serialize the session
-      const sessionBlob = session.toEncryptedBlob(encryptionKey);
+    persistSession: async () => {
+      const state = get();
+      const { session, userProfile, encryptionKey } = state;
 
-      // Update the profile with the new session blob
-      const updatedProfile = {
-        ...userProfile,
-        session: sessionBlob,
-        updatedAt: new Date(),
-      };
+      if (!session || !userProfile || !encryptionKey) {
+        console.warn(
+          'No session, user profile, or encryption key to persist, skipping persistence'
+        );
+        return; // Nothing to persist
+      }
 
-      await db.userProfile.update(userProfile.userId, updatedProfile);
+      try {
+        // Serialize the session
+        const sessionBlob = session.toEncryptedBlob(encryptionKey);
 
-      // Update the store with the new profile
-      set({ userProfile: updatedProfile });
-    } catch (error) {
-      console.error('Error persisting session:', error);
-      // Don't throw - persistence failures shouldn't break the app
-    }
-  },
-}));
+        // Update the profile with the new session blob
+        const updatedProfile = {
+          ...userProfile,
+          session: sessionBlob,
+          updatedAt: new Date(),
+        };
+
+        await db.userProfile.update(userProfile.userId, updatedProfile);
+
+        // Update the store with the new profile
+        set({ userProfile: updatedProfile });
+      } catch (error) {
+        console.error('Error persisting session:', error);
+        // Don't throw - persistence failures shouldn't break the app
+      }
+    },
+  };
+});
 
 // TODO: Investigate potential race conditions when rapidly switching accounts
 // - Multiple async operations (provider creation, token initialization, balance refresh) may overlap

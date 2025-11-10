@@ -18,6 +18,9 @@ export function useAccountInfo() {
             .getState()
             .getExistingAccountInfo();
           setExistingAccountInfo(info);
+        } else if (userProfile) {
+          // Clear stale data when user is authenticated
+          setExistingAccountInfo(null);
         }
       } catch (_e) {
         setExistingAccountInfo(null);
