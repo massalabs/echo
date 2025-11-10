@@ -71,6 +71,7 @@ export interface Discussion {
   status: 'pending' | 'active' | 'closed';
   nextSeeker?: Uint8Array; // The next seeker for sending messages (from SendMessageOutput)
   initiationAnnouncement?: Uint8Array; // Outgoing announcement bytes when we initiate
+  announcementMessage?: string; // Optional message from incoming announcement (user_data)
   lastSyncTimestamp?: Date; // Last time messages were synced from protocol
 
   // UI/Display fields

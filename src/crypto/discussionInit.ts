@@ -16,9 +16,13 @@ import { announcementService } from '../services/announcement';
 /**
  * Initialize a discussion with a contact using SessionManager
  * @param contact - The contact to start a discussion with
+ * @param message - Optional message to include in the announcement
  * @returns The discussion ID and session information
  */
-export async function initializeDiscussion(contact: Contact): Promise<{
+export async function initializeDiscussion(
+  contact: Contact,
+  message?: string
+): Promise<{
   discussionId: number;
   announcement: Uint8Array;
 }> {
@@ -28,10 +32,16 @@ export async function initializeDiscussion(contact: Contact): Promise<{
     if (!userProfile?.userId) throw new Error('No authenticated user');
     if (!session) throw new Error('Session module not initialized');
 
+    // Encode message as UTF-8 if provided
+    const userData = message
+      ? new TextEncoder().encode(message)
+      : new Uint8Array(0);
+
     const announcement = session.establishOutgoingSession(
       UserPublicKeys.from_bytes(contact.publicKeys),
       ourPk,
-      ourSk
+      ourSk,
+      userData
     );
 
     // Persist discussion immediately with the announcement for reliable retry
@@ -109,13 +119,15 @@ export async function acceptDiscussionRequest(
 
 /**
  * Process an incoming discussion initiation using SessionManager
- * @param contactId - The ID of the contact who initiated the discussion
+ * @param contact - The contact who initiated the discussion
  * @param announcementData - The announcement data from the blockchain
+ * @param announcementMessage - Optional message from the announcement (user_data)
  * @returns The discussion ID and session information
  */
 export async function processIncomingAnnouncement(
   contact: Contact,
-  announcementData: Uint8Array
+  announcementData: Uint8Array,
+  announcementMessage?: string
 ): Promise<{
   discussionId: number;
 }> {
@@ -155,6 +167,7 @@ export async function processIncomingAnnouncement(
       direction: 'received',
       status: 'pending',
       nextSeeker: undefined,
+      announcementMessage: announcementMessage, // Store the announcement message if provided
       unreadCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -216,11 +229,13 @@ export async function updateDiscussionStatus(
  * Ensure a discussion exists for a contact, creating one if it doesn't exist
  * @param contact - The contact to ensure a discussion exists for
  * @param existingDiscussion - Optional existing discussion (if already loaded)
+ * @param message - Optional message to include in the announcement
  * @returns true if a discussion exists (or was created), false otherwise
  */
 export async function ensureDiscussionExists(
   contact: Contact,
-  existingDiscussion?: Discussion | null
+  existingDiscussion?: Discussion | null,
+  message?: string
 ): Promise<boolean> {
   try {
     const { userProfile } = useAccountStore.getState();
@@ -254,7 +269,7 @@ export async function ensureDiscussionExists(
     }
 
     // Initialize a new discussion
-    await initializeDiscussion(contact);
+    await initializeDiscussion(contact, message);
     return true;
   } catch (error) {
     console.error('Failed to ensure discussion exists:', error);
