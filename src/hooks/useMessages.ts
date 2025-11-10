@@ -115,7 +115,6 @@ export const useMessages = ({
           direction: 'outgoing',
           status: 'sending',
           timestamp: new Date(),
-          encrypted: true,
         };
 
         // Persist to DB, keep the generated id for later status updates

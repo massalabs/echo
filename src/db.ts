@@ -21,7 +21,6 @@ export interface Message {
   direction: 'incoming' | 'outgoing';
   status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
   timestamp: Date;
-  encrypted: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -85,6 +84,19 @@ export interface Discussion {
   updatedAt: Date;
 }
 
+export interface PendingEncryptedMessage {
+  id?: number;
+  seeker: Uint8Array;
+  ciphertext: Uint8Array;
+  fetchedAt: Date;
+}
+
+export interface PendingAnnouncement {
+  id?: number;
+  announcement: Uint8Array;
+  fetchedAt: Date;
+}
+
 // Define the database class
 export class GossipDatabase extends Dexie {
   // Define tables
@@ -93,19 +105,23 @@ export class GossipDatabase extends Dexie {
   userProfile!: Table<UserProfile>;
   settings!: Table<Settings>;
   discussions!: Table<Discussion>;
+  pendingEncryptedMessages!: Table<PendingEncryptedMessage>;
+  pendingAnnouncements!: Table<PendingAnnouncement>;
 
   constructor() {
     super('GossipDatabase');
 
-    this.version(10).stores({
+    this.version(11).stores({
       contacts:
         '++id, ownerUserId, userId, name, isOnline, lastSeen, createdAt, [ownerUserId+userId] , [ownerUserId+name]',
       messages:
-        '++id, ownerUserId, contactUserId, type, direction, status, timestamp, encrypted, [ownerUserId+contactUserId], [ownerUserId+contactUserId+status]',
+        '++id, ownerUserId, contactUserId, type, direction, status, timestamp, [ownerUserId+contactUserId], [ownerUserId+contactUserId+status]',
       userProfile: 'userId, username, status, lastSeen',
       settings: '++id, key, updatedAt',
       discussions:
         '++id, ownerUserId, &[ownerUserId+contactUserId], status, [ownerUserId+status], lastSyncTimestamp, unreadCount, lastMessageTimestamp, createdAt, updatedAt',
+      pendingEncryptedMessages: '++id, fetchedAt, seeker',
+      pendingAnnouncements: '++id, fetchedAt, &announcement',
     });
 
     // Add hooks for automatic timestamps

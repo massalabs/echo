@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Discussion, Contact } from '../../db';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { formatRelativeTime } from '../../utils/timeUtils';
@@ -6,6 +6,7 @@ import { formatUserId } from '../../utils/userId';
 import BaseModal from '../ui/BaseModal';
 import ContactNameModal from '../ui/ContactNameModal';
 import Button from '../ui/Button';
+import { useDiscussionStore } from '../../stores/discussionStore';
 
 export type LastMessageInfo = { content: string; timestamp: Date } | undefined;
 
@@ -27,13 +28,20 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   onRefuse,
 }) => {
   const containerClass = 'w-full px-3 py-2 text-left';
-  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [proposedName, setProposedName] = useState(contact.name || '');
   const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
   // Re-render trigger to update relative time display every minute
   const [_updateKey, setUpdateKey] = useState(0);
-  // Use ref to preserve modal state across re-renders caused by periodic sync
-  const modalWasOpenedRef = useRef(false);
+
+  // Use store to persist modal state across component remounts
+  const openNameModals = useDiscussionStore(s => s.openNameModals);
+  const setModalOpen = useDiscussionStore(s => s.setModalOpen);
+  const isModalOpenInStore = discussion.id
+    ? openNameModals.has(discussion.id)
+    : false;
+
+  // Sync local state with store state
+  const [isNameModalOpen, setIsNameModalOpen] = useState(isModalOpenInStore);
 
   // Update every minute to refresh relative time display
   useEffect(() => {
@@ -44,26 +52,53 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Preserve modal state across re-renders caused by periodic sync
-  // If modal was opened, keep it open even if component re-renders and state is lost
+  // Effect 1: Close the modal if the discussion is no longer pending
   useEffect(() => {
     const isPendingIncomingCheck =
       discussion.status === 'pending' && discussion.direction === 'received';
 
-    // If discussion is no longer pending, reset the ref
     if (!isPendingIncomingCheck) {
-      modalWasOpenedRef.current = false;
+      // Use functional update to avoid dependency on isNameModalOpen
+      setIsNameModalOpen(prev => {
+        if (prev) {
+          if (discussion.id) {
+            setModalOpen(discussion.id, false);
+          }
+          return false;
+        }
+        return prev;
+      });
+    }
+  }, [discussion.status, discussion.direction, discussion.id, setModalOpen]);
+
+  // Effect 2: Open the modal if the store says it should be open and discussion is pending
+  useEffect(() => {
+    const isPendingIncomingCheck =
+      discussion.status === 'pending' && discussion.direction === 'received';
+
+    if (!isPendingIncomingCheck) {
       return;
     }
 
-    // Only restore if ref indicates modal should be open but state says it's closed
-    if (modalWasOpenedRef.current && !isNameModalOpen) {
-      // Use setTimeout to avoid state updates during render
-      setTimeout(() => {
-        setIsNameModalOpen(true);
-      }, 0);
-    }
-  }, [isNameModalOpen, discussion.id, discussion.status, discussion.direction]);
+    const shouldBeOpen = discussion.id
+      ? openNameModals.has(discussion.id)
+      : false;
+
+    // Use functional update to avoid dependency on isNameModalOpen
+    setIsNameModalOpen(prev => {
+      if (shouldBeOpen && !prev) {
+        setProposedName(contact.name || '');
+        return true;
+      }
+      return prev;
+    });
+  }, [
+    discussion.status,
+    discussion.direction,
+    discussion.id,
+    openNameModals,
+    contact.name,
+  ]);
 
   const isPendingIncoming =
     discussion.status === 'pending' && discussion.direction === 'received';
@@ -133,8 +168,10 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   <Button
                     onClick={() => {
                       setProposedName(contact.name || '');
-                      modalWasOpenedRef.current = true;
                       setIsNameModalOpen(true);
+                      if (discussion.id) {
+                        setModalOpen(discussion.id, true);
+                      }
                     }}
                     variant="primary"
                     size="custom"
@@ -162,8 +199,10 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                 <ContactNameModal
                   isOpen={isNameModalOpen}
                   onClose={() => {
-                    modalWasOpenedRef.current = false;
                     setIsNameModalOpen(false);
+                    if (discussion.id) {
+                      setModalOpen(discussion.id, false);
+                    }
                   }}
                   title="Set contact name"
                   initialName={proposedName}
@@ -171,8 +210,10 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                   allowEmpty
                   showSkip
                   onConfirm={name => {
-                    modalWasOpenedRef.current = false;
                     setIsNameModalOpen(false);
+                    if (discussion.id) {
+                      setModalOpen(discussion.id, false);
+                    }
                     if (name && name.trim()) {
                       onAccept(discussion, name.trim());
                     } else {
@@ -180,8 +221,10 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
                     }
                   }}
                   onSkip={() => {
-                    modalWasOpenedRef.current = false;
                     setIsNameModalOpen(false);
+                    if (discussion.id) {
+                      setModalOpen(discussion.id, false);
+                    }
                     onAccept(discussion);
                   }}
                 />

@@ -43,7 +43,25 @@ export class AnnouncementService {
 
   async fetchAndProcessAnnouncements(): Promise<AnnouncementReceptionResult> {
     try {
-      const announcements = await this._fetchAnnouncements();
+      // First, check if service worker has already fetched announcements
+      let announcements: Uint8Array[];
+      const pendingAnnouncements = await db.pendingAnnouncements.toArray();
+
+      if (pendingAnnouncements.length > 0) {
+        // Use announcements from IndexedDB
+        announcements = pendingAnnouncements.map(p => p.announcement);
+        // Delete only the announcements we just read (by their IDs) to avoid race condition
+        // If service worker adds new announcements between read and delete, they won't be lost
+        const announcementIds = pendingAnnouncements
+          .map(p => p.id)
+          .filter((id): id is number => id !== undefined);
+        if (announcementIds.length > 0) {
+          await db.pendingAnnouncements.bulkDelete(announcementIds);
+        }
+      } else {
+        // If no pending announcements, fetch from API
+        announcements = await this._fetchAnnouncements();
+      }
 
       let newAnnouncementsCount = 0;
       let hasErrors = false;

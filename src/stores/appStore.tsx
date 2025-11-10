@@ -33,12 +33,13 @@ const useAppStoreBase = create<AppStoreState>(set => ({
     const { userProfile } = useAccountStore.getState();
     if (!userProfile?.userId) return;
 
-    const { loadDiscussions, loadContacts } = useDiscussionStore.getState();
+    const { refreshDiscussions, refreshContacts } =
+      useDiscussionStore.getState();
 
     await announcementService.fetchAndProcessAnnouncements();
     await messageService.fetchMessages();
-    await loadDiscussions(userProfile.userId);
-    await loadContacts(userProfile.userId);
+    await refreshDiscussions(userProfile.userId);
+    await refreshContacts(userProfile.userId);
   },
 }));
 

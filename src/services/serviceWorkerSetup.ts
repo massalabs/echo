@@ -14,7 +14,7 @@ export async function setupServiceWorker(): Promise<void> {
     return;
   }
 
-  // Setup message listener for service worker (e.g., REQUEST_SEEKERS)
+  // Setup message listener for service worker messages (e.g., REQUEST_SEEKERS from service worker)
   setupMessageListener();
 
   // Register service worker and setup sync scheduler
@@ -52,6 +52,18 @@ function setupMessageListener(): void {
         if (event.ports && event.ports[0]) {
           event.ports[0].postMessage({ seekers: [] });
         }
+      }
+    }
+
+    // Handle notification from service worker when new messages are detected
+    if (event.data && event.data.type === 'NEW_MESSAGES_DETECTED') {
+      try {
+        // Dynamically import to avoid circular dependency
+        const { useAppStore } = await import('../stores/appStore');
+        const { refreshAppState } = useAppStore.getState();
+        await refreshAppState();
+      } catch (error) {
+        console.error('Failed to refresh app state on new messages:', error);
       }
     }
   });
@@ -105,6 +117,16 @@ async function registerServiceWorker(): Promise<void> {
       // Wait for service worker to be ready
       if (registration.installing) {
         registration.installing.addEventListener('statechange', event => {
+          const sw = event.target as ServiceWorker;
+          if (sw.state === 'activated') {
+            if (registration.active) {
+              registration.active.postMessage({ type: 'START_SYNC_SCHEDULER' });
+            }
+          }
+        });
+      } else if (registration.waiting) {
+        // Also handle the case where the service worker is waiting to activate
+        registration.waiting.addEventListener('statechange', event => {
           const sw = event.target as ServiceWorker;
           if (sw.state === 'activated') {
             if (registration.active) {
