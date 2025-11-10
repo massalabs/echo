@@ -69,10 +69,6 @@ export const useDiscussionList = () => {
   const handleRefuseDiscussionRequest = useCallback(
     async (discussion: Discussion) => {
       try {
-        const confirmed = window.confirm(
-          'Refuse connection request? This will close the discussion.'
-        );
-        if (!confirmed) return;
         if (discussion.id == null) return;
         await db.discussions.update(discussion.id, {
           status: 'closed',

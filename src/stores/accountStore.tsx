@@ -212,6 +212,7 @@ interface AccountState {
     mnemonic: string,
     opts: { useBiometrics: boolean; password?: string }
   ) => Promise<void>;
+  logout: () => Promise<void>;
   resetAccount: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   checkPlatformAvailability: () => Promise<void>;
@@ -442,6 +443,35 @@ const useAccountStoreBase = create<AccountState>((set, get) => ({
       });
     } catch (error) {
       console.error('Error resetting account:', error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  logout: async () => {
+    try {
+      set({ isLoading: true });
+
+      // Cleanup session
+      const state = get();
+      if (state.session) {
+        state.session.cleanup();
+      }
+
+      // Clear in-memory state but keep data in database
+      set({
+        account: null,
+        userProfile: null,
+        encryptionKey: null,
+        ourPk: null,
+        ourSk: null,
+        session: null,
+        isLoading: false,
+        // Keep isInitialized true so user goes to login screen
+        isInitialized: true,
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
       set({ isLoading: false });
       throw error;
     }

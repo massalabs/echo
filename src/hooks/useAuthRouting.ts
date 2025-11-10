@@ -20,8 +20,18 @@ export function useAuthRouting() {
   }, [userProfile?.userId]);
 
   // Ensure we default to /welcome if hash is empty when unauthenticated
-  // Skip redirect if user was authenticated (prevents flicker during logout)
+  // Also handle logout: navigate to /welcome when user logs out
   useEffect(() => {
+    // If user was authenticated but now isn't (logout happened)
+    if (wasAuthenticatedRef.current && !userProfile && !isLoading) {
+      // Navigate to /welcome after logout
+      navigate('/welcome', { replace: true });
+      // Reset the ref after navigation
+      wasAuthenticatedRef.current = false;
+      return;
+    }
+
+    // Default redirect to /welcome for unauthenticated users (first time users)
     if (
       isInitialized &&
       !userProfile &&
