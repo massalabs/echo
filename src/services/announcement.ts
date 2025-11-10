@@ -178,18 +178,30 @@ export class AnnouncementService {
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
     if (!session) throw new Error('Session module not initialized');
     try {
-      const announcerPkeys = session.feedIncomingAnnouncement(
+      const announcementResult = session.feedIncomingAnnouncement(
         announcementData,
         ourPk,
         ourSk
       );
 
       // if we can't decrypt the announcement, it means we are not the intended recipient. It's not an error.
-      if (!announcerPkeys) {
+      if (!announcementResult) {
         return {
           success: true,
         };
       }
+
+      // Extract user data from the announcement (optional message)
+      const userData = announcementResult.user_data;
+      if (userData && userData.length > 0) {
+        // TODO: Handle user_data (e.g., display as initial message, store for later use)
+        console.log(
+          'Received announcement with user data:',
+          new TextDecoder().decode(userData)
+        );
+      }
+
+      const announcerPkeys = announcementResult.announcer_public_keys;
       const contactUserId = announcerPkeys.derive_id();
       const contactUserIdString = encodeUserId(contactUserId);
 

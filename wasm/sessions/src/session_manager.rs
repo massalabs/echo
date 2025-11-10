@@ -648,7 +648,7 @@ impl SessionManager {
             && let Some(peer_info) = self.peers.get_mut(&peer_id)
         {
             peer_info.active_session = None;
-        };
+        }
 
         // return the message
         msg

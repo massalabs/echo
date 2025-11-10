@@ -117,8 +117,11 @@ function isLikeNone(x) {
     return x === undefined || x === null;
 }
 
-export function start() {
-    wasm.start();
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function takeFromExternrefTable0(idx) {
@@ -127,25 +130,8 @@ function takeFromExternrefTable0(idx) {
     return value;
 }
 
-function passArray8ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 1, 1) >>> 0;
-    getUint8ArrayMemory0().set(arg, ptr / 1);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
-}
-/**
- * Generates user keys from a passphrase using password-based key derivation.
- * @param {string} passphrase
- * @returns {UserKeys}
- */
-export function generate_user_keys(passphrase) {
-    const ptr0 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.generate_user_keys(ptr0, len0);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return UserKeys.__wrap(ret[0]);
+export function start() {
+    wasm.start();
 }
 
 function _assertClass(instance, klass) {
@@ -153,56 +139,6 @@ function _assertClass(instance, klass) {
         throw new Error(`expected instance of ${klass.name}`);
     }
 }
-/**
- * Encrypts data using AES-256-SIV authenticated encryption.
- *
- * # Parameters
- *
- * - `key`: The encryption key (64 bytes)
- * - `nonce`: The nonce (16 bytes, should be unique per encryption)
- * - `plaintext`: The data to encrypt
- * - `aad`: Additional authenticated data (not encrypted, but authenticated)
- *
- * # Returns
- *
- * The ciphertext with authentication tag appended.
- *
- * # Security Notes
- *
- * - The nonce should be unique for each encryption operation
- * - AES-SIV is nonce-misuse resistant: reusing nonces only leaks if plaintexts are identical
- * - AAD is authenticated but not encrypted; it must be transmitted separately
- * - The same AAD must be provided during decryption
- *
- * # Example
- *
- * ```javascript
- * const key = EncryptionKey.generate();
- * const nonce = Nonce.generate();
- * const plaintext = new TextEncoder().encode("Secret message");
- * const aad = new TextEncoder().encode("context info");
- *
- * const ciphertext = aead_encrypt(key, nonce, plaintext, aad);
- * ```
- * @param {EncryptionKey} key
- * @param {Nonce} nonce
- * @param {Uint8Array} plaintext
- * @param {Uint8Array} aad
- * @returns {Uint8Array}
- */
-export function aead_encrypt(key, nonce, plaintext, aad) {
-    _assertClass(key, EncryptionKey);
-    _assertClass(nonce, Nonce);
-    const ptr0 = passArray8ToWasm0(plaintext, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ptr1 = passArray8ToWasm0(aad, wasm.__wbindgen_malloc);
-    const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.aead_encrypt(key.__wbg_ptr, nonce.__wbg_ptr, ptr0, len0, ptr1, len1);
-    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v3;
-}
-
 /**
  * Decrypts data using AES-256-SIV authenticated encryption.
  *
@@ -258,6 +194,71 @@ export function aead_decrypt(key, nonce, ciphertext, aad) {
 }
 
 /**
+ * Encrypts data using AES-256-SIV authenticated encryption.
+ *
+ * # Parameters
+ *
+ * - `key`: The encryption key (64 bytes)
+ * - `nonce`: The nonce (16 bytes, should be unique per encryption)
+ * - `plaintext`: The data to encrypt
+ * - `aad`: Additional authenticated data (not encrypted, but authenticated)
+ *
+ * # Returns
+ *
+ * The ciphertext with authentication tag appended.
+ *
+ * # Security Notes
+ *
+ * - The nonce should be unique for each encryption operation
+ * - AES-SIV is nonce-misuse resistant: reusing nonces only leaks if plaintexts are identical
+ * - AAD is authenticated but not encrypted; it must be transmitted separately
+ * - The same AAD must be provided during decryption
+ *
+ * # Example
+ *
+ * ```javascript
+ * const key = EncryptionKey.generate();
+ * const nonce = Nonce.generate();
+ * const plaintext = new TextEncoder().encode("Secret message");
+ * const aad = new TextEncoder().encode("context info");
+ *
+ * const ciphertext = aead_encrypt(key, nonce, plaintext, aad);
+ * ```
+ * @param {EncryptionKey} key
+ * @param {Nonce} nonce
+ * @param {Uint8Array} plaintext
+ * @param {Uint8Array} aad
+ * @returns {Uint8Array}
+ */
+export function aead_encrypt(key, nonce, plaintext, aad) {
+    _assertClass(key, EncryptionKey);
+    _assertClass(nonce, Nonce);
+    const ptr0 = passArray8ToWasm0(plaintext, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(aad, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.aead_encrypt(key.__wbg_ptr, nonce.__wbg_ptr, ptr0, len0, ptr1, len1);
+    var v3 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v3;
+}
+
+/**
+ * Generates user keys from a passphrase using password-based key derivation.
+ * @param {string} passphrase
+ * @returns {UserKeys}
+ */
+export function generate_user_keys(passphrase) {
+    const ptr0 = passStringToWasm0(passphrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.generate_user_keys(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return UserKeys.__wrap(ret[0]);
+}
+
+/**
  * Session status indicating the state of a peer session.
  * @enum {0 | 1 | 2 | 3 | 4 | 5 | 6}
  */
@@ -270,6 +271,62 @@ export const SessionStatus = Object.freeze({
     Killed: 5, "5": "Killed",
     Saturated: 6, "6": "Saturated",
 });
+
+const AnnouncementResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_announcementresult_free(ptr >>> 0, 1));
+/**
+ * Result from feeding an incoming announcement.
+ */
+export class AnnouncementResult {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(AnnouncementResult.prototype);
+        obj.__wbg_ptr = ptr;
+        AnnouncementResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        AnnouncementResultFinalization.unregister(this);
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_announcementresult_free(ptr, 0);
+    }
+    /**
+     * Gets the announcer's public keys.
+     * @returns {UserPublicKeys}
+     */
+    get announcer_public_keys() {
+        const ret = wasm.announcementresult_announcer_public_keys(this.__wbg_ptr);
+        return UserPublicKeys.__wrap(ret);
+    }
+    /**
+     * Gets the announcement timestamp in milliseconds since Unix epoch.
+     * @returns {number}
+     */
+    get timestamp() {
+        const ret = wasm.announcementresult_timestamp(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Gets the user data embedded in the announcement.
+     * @returns {Uint8Array}
+     */
+    get user_data() {
+        const ret = wasm.announcementresult_user_data(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+}
+if (Symbol.dispose) AnnouncementResult.prototype[Symbol.dispose] = AnnouncementResult.prototype.free;
 
 const EncryptionKeyFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
@@ -301,12 +358,36 @@ export class EncryptionKey {
         wasm.__wbg_encryptionkey_free(ptr, 0);
     }
     /**
+     * Creates an encryption key from raw bytes (must be 64 bytes).
+     * @param {Uint8Array} bytes
+     * @returns {EncryptionKey}
+     */
+    static from_bytes(bytes) {
+        const ptr0 = passArray8ToWasm0(bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.encryptionkey_from_bytes(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return EncryptionKey.__wrap(ret[0]);
+    }
+    /**
      * Generates a new random encryption key (64 bytes).
      * @returns {EncryptionKey}
      */
     static generate() {
         const ret = wasm.encryptionkey_generate();
         return EncryptionKey.__wrap(ret);
+    }
+    /**
+     * Gets the raw bytes of the encryption key.
+     * @returns {Uint8Array}
+     */
+    to_bytes() {
+        const ret = wasm.encryptionkey_to_bytes(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
     }
     /**
      * Generates a deterministic encryption key (64 bytes) from a seed and salt.
@@ -330,30 +411,6 @@ export class EncryptionKey {
             throw takeFromExternrefTable0(ret[1]);
         }
         return EncryptionKey.__wrap(ret[0]);
-    }
-    /**
-     * Creates an encryption key from raw bytes (must be 64 bytes).
-     * @param {Uint8Array} bytes
-     * @returns {EncryptionKey}
-     */
-    static from_bytes(bytes) {
-        const ptr0 = passArray8ToWasm0(bytes, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.encryptionkey_from_bytes(ptr0, len0);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return EncryptionKey.__wrap(ret[0]);
-    }
-    /**
-     * Gets the raw bytes of the encryption key.
-     * @returns {Uint8Array}
-     */
-    to_bytes() {
-        const ret = wasm.encryptionkey_to_bytes(this.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
     }
 }
 if (Symbol.dispose) EncryptionKey.prototype[Symbol.dispose] = EncryptionKey.prototype.free;
@@ -389,14 +446,6 @@ export class Nonce {
         wasm.__wbg_nonce_free(ptr, 0);
     }
     /**
-     * Generates a new random nonce (16 bytes).
-     * @returns {Nonce}
-     */
-    static generate() {
-        const ret = wasm.nonce_generate();
-        return Nonce.__wrap(ret);
-    }
-    /**
      * Creates a nonce from raw bytes (must be 16 bytes).
      * @param {Uint8Array} bytes
      * @returns {Nonce}
@@ -409,6 +458,14 @@ export class Nonce {
             throw takeFromExternrefTable0(ret[1]);
         }
         return Nonce.__wrap(ret[0]);
+    }
+    /**
+     * Generates a new random nonce (16 bytes).
+     * @returns {Nonce}
+     */
+    static generate() {
+        const ret = wasm.nonce_generate();
+        return Nonce.__wrap(ret);
     }
     /**
      * Gets the raw bytes of the nonce.
@@ -451,11 +508,29 @@ export class ReceiveMessageOutput {
         wasm.__wbg_receivemessageoutput_free(ptr, 0);
     }
     /**
+     * Gets the list of newly acknowledged seekers.
+     * @returns {Array<any>}
+     */
+    get acknowledged_seekers() {
+        const ret = wasm.receivemessageoutput_acknowledged_seekers(this.__wbg_ptr);
+        return ret;
+    }
+    /**
      * Gets the received message contents.
      * @returns {Uint8Array}
      */
     get message() {
         const ret = wasm.receivemessageoutput_message(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Gets the sender's user id (32 bytes).
+     * @returns {Uint8Array}
+     */
+    get user_id() {
+        const ret = wasm.receivemessageoutput_user_id(this.__wbg_ptr);
         var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v1;
@@ -467,24 +542,6 @@ export class ReceiveMessageOutput {
     get timestamp() {
         const ret = wasm.receivemessageoutput_timestamp(this.__wbg_ptr);
         return ret;
-    }
-    /**
-     * Gets the list of newly acknowledged seekers.
-     * @returns {Array<any>}
-     */
-    get acknowledged_seekers() {
-        const ret = wasm.receivemessageoutput_acknowledged_seekers(this.__wbg_ptr);
-        return ret;
-    }
-    /**
-     * Gets the sender's user id (32 bytes).
-     * @returns {Uint8Array}
-     */
-    get user_id() {
-        const ret = wasm.receivemessageoutput_user_id(this.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
     }
 }
 if (Symbol.dispose) ReceiveMessageOutput.prototype[Symbol.dispose] = ReceiveMessageOutput.prototype.free;
@@ -517,21 +574,21 @@ export class SendMessageOutput {
         wasm.__wbg_sendmessageoutput_free(ptr, 0);
     }
     /**
-     * Gets the seeker (identifier for message board lookup).
-     * @returns {Uint8Array}
-     */
-    get seeker() {
-        const ret = wasm.sendmessageoutput_seeker(this.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
-    }
-    /**
      * Gets the encrypted message data.
      * @returns {Uint8Array}
      */
     get data() {
         const ret = wasm.sendmessageoutput_data(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Gets the seeker (identifier for message board lookup).
+     * @returns {Uint8Array}
+     */
+    get seeker() {
+        const ret = wasm.sendmessageoutput_seeker(this.__wbg_ptr);
         var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v1;
@@ -567,6 +624,21 @@ export class SessionConfig {
         wasm.__wbg_sessionconfig_free(ptr, 0);
     }
     /**
+     * Creates a default configuration with sensible defaults:
+     * - Announcement age: 1 week
+     * - Announcement future: 1 minute
+     * - Message age: 1 week
+     * - Message future: 1 minute
+     * - Session inactivity: 1 week
+     * - Keep-alive interval: 1 day
+     * - Max lag: 10000 messages
+     * @returns {SessionConfig}
+     */
+    static new_default() {
+        const ret = wasm.sessionconfig_new_default();
+        return SessionConfig.__wrap(ret);
+    }
+    /**
      * Creates a new session configuration with the given parameters.
      * @param {number} max_incoming_announcement_age_millis
      * @param {number} max_incoming_announcement_future_millis
@@ -581,21 +653,6 @@ export class SessionConfig {
         this.__wbg_ptr = ret >>> 0;
         SessionConfigFinalization.register(this, this.__wbg_ptr, this);
         return this;
-    }
-    /**
-     * Creates a default configuration with sensible defaults:
-     * - Announcement age: 1 week
-     * - Announcement future: 1 minute
-     * - Message age: 1 week
-     * - Message future: 1 minute
-     * - Session inactivity: 1 week
-     * - Keep-alive interval: 1 day
-     * - Max lag: 10000 messages
-     * @returns {SessionConfig}
-     */
-    static new_default() {
-        const ret = wasm.sessionconfig_new_default();
-        return SessionConfig.__wrap(ret);
     }
 }
 if (Symbol.dispose) SessionConfig.prototype[Symbol.dispose] = SessionConfig.prototype.free;
@@ -628,86 +685,16 @@ export class SessionManagerWrapper {
         wasm.__wbg_sessionmanagerwrapper_free(ptr, 0);
     }
     /**
-     * Creates a new session manager with the given configuration.
-     * @param {SessionConfig} config
+     * Discards a peer and all associated session state.
+     * @param {Uint8Array} peer_id
      */
-    constructor(config) {
-        _assertClass(config, SessionConfig);
-        var ptr0 = config.__destroy_into_raw();
-        const ret = wasm.sessionmanagerwrapper_new(ptr0);
-        this.__wbg_ptr = ret >>> 0;
-        SessionManagerWrapperFinalization.register(this, this.__wbg_ptr, this);
-        return this;
-    }
-    /**
-     * Deserializes a session manager from an encrypted blob.
-     * @param {Uint8Array} encrypted_blob
-     * @param {EncryptionKey} key
-     * @returns {SessionManagerWrapper}
-     */
-    static from_encrypted_blob(encrypted_blob, key) {
-        const ptr0 = passArray8ToWasm0(encrypted_blob, wasm.__wbindgen_malloc);
+    peer_discard(peer_id) {
+        const ptr0 = passArray8ToWasm0(peer_id, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        _assertClass(key, EncryptionKey);
-        const ret = wasm.sessionmanagerwrapper_from_encrypted_blob(ptr0, len0, key.__wbg_ptr);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
+        const ret = wasm.sessionmanagerwrapper_peer_discard(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
         }
-        return SessionManagerWrapper.__wrap(ret[0]);
-    }
-    /**
-     * Serializes and encrypts the session manager into a blob.
-     * @param {EncryptionKey} key
-     * @returns {Uint8Array}
-     */
-    to_encrypted_blob(key) {
-        _assertClass(key, EncryptionKey);
-        const ret = wasm.sessionmanagerwrapper_to_encrypted_blob(this.__wbg_ptr, key.__wbg_ptr);
-        if (ret[3]) {
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
-    }
-    /**
-     * Establishes an outgoing session with a peer.
-     * @param {UserPublicKeys} peer_pk
-     * @param {UserPublicKeys} our_pk
-     * @param {UserSecretKeys} our_sk
-     * @returns {Uint8Array}
-     */
-    establish_outgoing_session(peer_pk, our_pk, our_sk) {
-        _assertClass(peer_pk, UserPublicKeys);
-        _assertClass(our_pk, UserPublicKeys);
-        _assertClass(our_sk, UserSecretKeys);
-        const ret = wasm.sessionmanagerwrapper_establish_outgoing_session(this.__wbg_ptr, peer_pk.__wbg_ptr, our_pk.__wbg_ptr, our_sk.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
-    }
-    /**
-     * Feeds an incoming announcement from the blockchain.
-     * @param {Uint8Array} announcement_bytes
-     * @param {UserPublicKeys} our_pk
-     * @param {UserSecretKeys} our_sk
-     * @returns {UserPublicKeys | undefined}
-     */
-    feed_incoming_announcement(announcement_bytes, our_pk, our_sk) {
-        const ptr0 = passArray8ToWasm0(announcement_bytes, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        _assertClass(our_pk, UserPublicKeys);
-        _assertClass(our_sk, UserSecretKeys);
-        const ret = wasm.sessionmanagerwrapper_feed_incoming_announcement(this.__wbg_ptr, ptr0, len0, our_pk.__wbg_ptr, our_sk.__wbg_ptr);
-        return ret === 0 ? undefined : UserPublicKeys.__wrap(ret);
-    }
-    /**
-     * Gets the list of message board seekers to monitor.
-     * @returns {Array<any>}
-     */
-    get_message_board_read_keys() {
-        const ret = wasm.sessionmanagerwrapper_get_message_board_read_keys(this.__wbg_ptr);
-        return ret;
     }
     /**
      * Sends a message to a peer.
@@ -727,28 +714,35 @@ export class SessionManagerWrapper {
         return ret[0] === 0 ? undefined : SendMessageOutput.__wrap(ret[0]);
     }
     /**
-     * Processes an incoming message from the message board.
-     * @param {Uint8Array} seeker
-     * @param {Uint8Array} ciphertext
-     * @param {UserSecretKeys} our_sk
-     * @returns {ReceiveMessageOutput | undefined}
+     * Serializes and encrypts the session manager into a blob.
+     * @param {EncryptionKey} key
+     * @returns {Uint8Array}
      */
-    feed_incoming_message_board_read(seeker, ciphertext, our_sk) {
-        const ptr0 = passArray8ToWasm0(seeker, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArray8ToWasm0(ciphertext, wasm.__wbindgen_malloc);
-        const len1 = WASM_VECTOR_LEN;
-        _assertClass(our_sk, UserSecretKeys);
-        const ret = wasm.sessionmanagerwrapper_feed_incoming_message_board_read(this.__wbg_ptr, ptr0, len0, ptr1, len1, our_sk.__wbg_ptr);
-        return ret === 0 ? undefined : ReceiveMessageOutput.__wrap(ret);
+    to_encrypted_blob(key) {
+        _assertClass(key, EncryptionKey);
+        const ret = wasm.sessionmanagerwrapper_to_encrypted_blob(this.__wbg_ptr, key.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
     }
     /**
-     * Gets the list of all peer IDs.
-     * @returns {Array<any>}
+     * Deserializes a session manager from an encrypted blob.
+     * @param {Uint8Array} encrypted_blob
+     * @param {EncryptionKey} key
+     * @returns {SessionManagerWrapper}
      */
-    peer_list() {
-        const ret = wasm.sessionmanagerwrapper_peer_list(this.__wbg_ptr);
-        return ret;
+    static from_encrypted_blob(encrypted_blob, key) {
+        const ptr0 = passArray8ToWasm0(encrypted_blob, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(key, EncryptionKey);
+        const ret = wasm.sessionmanagerwrapper_from_encrypted_blob(ptr0, len0, key.__wbg_ptr);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return SessionManagerWrapper.__wrap(ret[0]);
     }
     /**
      * Gets the session status for a peer.
@@ -765,16 +759,126 @@ export class SessionManagerWrapper {
         return ret[0];
     }
     /**
-     * Discards a peer and all associated session state.
-     * @param {Uint8Array} peer_id
+     * Establishes an outgoing session with a peer.
+     *
+     * # Parameters
+     *
+     * - `peer_pk`: The peer's public keys
+     * - `our_pk`: Our public keys
+     * - `our_sk`: Our secret keys
+     * - `user_data`: Arbitrary user data to include in the announcement (can be empty)
+     *
+     * # Security Warning
+     *
+     * **The user_data in announcements has reduced security compared to regular messages:**
+     * - ✅ **Plausible deniability preserved**: The user_data is not cryptographically signed,
+     *   so you can deny having sent specific user_data content (though you cannot deny the
+     *   announcement itself).
+     * - ❌ **No post-compromise secrecy**: If your long-term keys are compromised in the
+     *   future, past announcements (including their user_data) can be decrypted.
+     *
+     * **Recommendation**: Avoid including highly sensitive information in user_data. Use it for
+     * metadata like protocol version, public display names, or capability flags. Send truly
+     * sensitive data through regular messages after the session is established.
+     *
+     * # Returns
+     *
+     * The announcement bytes to publish to the blockchain.
+     * @param {UserPublicKeys} peer_pk
+     * @param {UserPublicKeys} our_pk
+     * @param {UserSecretKeys} our_sk
+     * @param {Uint8Array} user_data
+     * @returns {Uint8Array}
      */
-    peer_discard(peer_id) {
-        const ptr0 = passArray8ToWasm0(peer_id, wasm.__wbindgen_malloc);
+    establish_outgoing_session(peer_pk, our_pk, our_sk, user_data) {
+        _assertClass(peer_pk, UserPublicKeys);
+        _assertClass(our_pk, UserPublicKeys);
+        _assertClass(our_sk, UserSecretKeys);
+        const ptr0 = passArray8ToWasm0(user_data, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.sessionmanagerwrapper_peer_discard(this.__wbg_ptr, ptr0, len0);
-        if (ret[1]) {
-            throw takeFromExternrefTable0(ret[0]);
-        }
+        const ret = wasm.sessionmanagerwrapper_establish_outgoing_session(this.__wbg_ptr, peer_pk.__wbg_ptr, our_pk.__wbg_ptr, our_sk.__wbg_ptr, ptr0, len0);
+        var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v2;
+    }
+    /**
+     * Feeds an incoming announcement from the blockchain.
+     *
+     * # Parameters
+     *
+     * - `announcement_bytes`: The raw announcement bytes received from the blockchain
+     * - `our_pk`: Our public keys
+     * - `our_sk`: Our secret keys
+     *
+     * # Returns
+     *
+     * If the announcement is valid, returns an `AnnouncementResult` containing:
+     * - The announcer's public keys
+     * - The timestamp when the announcement was created (milliseconds since Unix epoch)
+     * - The user data embedded in the announcement
+     *
+     * Returns `None` if the announcement is invalid or too old.
+     *
+     * # Security Warning
+     *
+     * **The user_data in announcements has reduced security compared to regular messages:**
+     * - ✅ **Plausible deniability preserved**: The user_data is not cryptographically signed,
+     *   so the sender can deny having sent specific user_data content (though they cannot deny
+     *   the announcement itself).
+     * - ❌ **No post-compromise secrecy**: If the sender's long-term keys are compromised
+     *   in the future, all past announcements (including their user_data) can be decrypted.
+     *
+     * **Recommendation**: Treat user_data as having limited confidentiality. Use it for
+     * metadata that is not highly sensitive. Send truly sensitive information through regular
+     * messages after the session is established.
+     * @param {Uint8Array} announcement_bytes
+     * @param {UserPublicKeys} our_pk
+     * @param {UserSecretKeys} our_sk
+     * @returns {AnnouncementResult | undefined}
+     */
+    feed_incoming_announcement(announcement_bytes, our_pk, our_sk) {
+        const ptr0 = passArray8ToWasm0(announcement_bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        _assertClass(our_pk, UserPublicKeys);
+        _assertClass(our_sk, UserSecretKeys);
+        const ret = wasm.sessionmanagerwrapper_feed_incoming_announcement(this.__wbg_ptr, ptr0, len0, our_pk.__wbg_ptr, our_sk.__wbg_ptr);
+        return ret === 0 ? undefined : AnnouncementResult.__wrap(ret);
+    }
+    /**
+     * Gets the list of message board seekers to monitor.
+     * @returns {Array<any>}
+     */
+    get_message_board_read_keys() {
+        const ret = wasm.sessionmanagerwrapper_get_message_board_read_keys(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Processes an incoming message from the message board.
+     * @param {Uint8Array} seeker
+     * @param {Uint8Array} ciphertext
+     * @param {UserSecretKeys} our_sk
+     * @returns {ReceiveMessageOutput | undefined}
+     */
+    feed_incoming_message_board_read(seeker, ciphertext, our_sk) {
+        const ptr0 = passArray8ToWasm0(seeker, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray8ToWasm0(ciphertext, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        _assertClass(our_sk, UserSecretKeys);
+        const ret = wasm.sessionmanagerwrapper_feed_incoming_message_board_read(this.__wbg_ptr, ptr0, len0, ptr1, len1, our_sk.__wbg_ptr);
+        return ret === 0 ? undefined : ReceiveMessageOutput.__wrap(ret);
+    }
+    /**
+     * Creates a new session manager with the given configuration.
+     * @param {SessionConfig} config
+     */
+    constructor(config) {
+        _assertClass(config, SessionConfig);
+        var ptr0 = config.__destroy_into_raw();
+        const ret = wasm.sessionmanagerwrapper_new(ptr0);
+        this.__wbg_ptr = ret >>> 0;
+        SessionManagerWrapperFinalization.register(this, this.__wbg_ptr, this);
+        return this;
     }
     /**
      * Refreshes sessions and returns peer IDs that need keep-alive messages.
@@ -782,6 +886,14 @@ export class SessionManagerWrapper {
      */
     refresh() {
         const ret = wasm.sessionmanagerwrapper_refresh(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Gets the list of all peer IDs.
+     * @returns {Array<any>}
+     */
+    peer_list() {
+        const ret = wasm.sessionmanagerwrapper_peer_list(this.__wbg_ptr);
         return ret;
     }
 }
@@ -867,24 +979,18 @@ export class UserPublicKeys {
         wasm.__wbg_userpublickeys_free(ptr, 0);
     }
     /**
-     * Derives a unique user ID from the public keys.
-     * @returns {Uint8Array}
+     * Deserializes public keys from bytes.
+     * @param {Uint8Array} bytes
+     * @returns {UserPublicKeys}
      */
-    derive_id() {
-        const ret = wasm.userpublickeys_derive_id(this.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
-    }
-    /**
-     * Gets the DSA verification key bytes.
-     * @returns {Uint8Array}
-     */
-    get dsa_verification_key() {
-        const ret = wasm.userpublickeys_dsa_verification_key(this.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
+    static from_bytes(bytes) {
+        const ptr0 = passArray8ToWasm0(bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.userpublickeys_from_bytes(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return UserPublicKeys.__wrap(ret[0]);
     }
     /**
      * Gets the KEM public key bytes.
@@ -907,6 +1013,16 @@ export class UserPublicKeys {
         return v1;
     }
     /**
+     * Gets the DSA verification key bytes.
+     * @returns {Uint8Array}
+     */
+    get dsa_verification_key() {
+        const ret = wasm.userpublickeys_dsa_verification_key(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
      * Serializes the public keys to bytes.
      * @returns {Uint8Array}
      */
@@ -920,18 +1036,14 @@ export class UserPublicKeys {
         return v1;
     }
     /**
-     * Deserializes public keys from bytes.
-     * @param {Uint8Array} bytes
-     * @returns {UserPublicKeys}
+     * Derives a unique user ID from the public keys.
+     * @returns {Uint8Array}
      */
-    static from_bytes(bytes) {
-        const ptr0 = passArray8ToWasm0(bytes, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.userpublickeys_from_bytes(ptr0, len0);
-        if (ret[2]) {
-            throw takeFromExternrefTable0(ret[1]);
-        }
-        return UserPublicKeys.__wrap(ret[0]);
+    derive_id() {
+        const ret = wasm.userpublickeys_derive_id(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
     }
 }
 if (Symbol.dispose) UserPublicKeys.prototype[Symbol.dispose] = UserPublicKeys.prototype.free;
@@ -964,19 +1076,6 @@ export class UserSecretKeys {
         wasm.__wbg_usersecretkeys_free(ptr, 0);
     }
     /**
-     * Serializes the secret keys to bytes for secure storage.
-     * @returns {Uint8Array}
-     */
-    to_bytes() {
-        const ret = wasm.usersecretkeys_to_bytes(this.__wbg_ptr);
-        if (ret[3]) {
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
-    }
-    /**
      * Deserializes secret keys from bytes.
      * @param {Uint8Array} bytes
      * @returns {UserSecretKeys}
@@ -991,16 +1090,6 @@ export class UserSecretKeys {
         return UserSecretKeys.__wrap(ret[0]);
     }
     /**
-     * Gets the DSA signing key bytes.
-     * @returns {Uint8Array}
-     */
-    get dsa_signing_key() {
-        const ret = wasm.usersecretkeys_dsa_signing_key(this.__wbg_ptr);
-        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-        return v1;
-    }
-    /**
      * Gets the KEM secret key bytes.
      * @returns {Uint8Array}
      */
@@ -1011,11 +1100,34 @@ export class UserSecretKeys {
         return v1;
     }
     /**
+     * Gets the DSA signing key bytes.
+     * @returns {Uint8Array}
+     */
+    get dsa_signing_key() {
+        const ret = wasm.usersecretkeys_dsa_signing_key(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
      * Gets only the Massa secret key bytes
      * @returns {Uint8Array}
      */
     get massa_secret_key() {
         const ret = wasm.usersecretkeys_massa_secret_key(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Serializes the secret keys to bytes for secure storage.
+     * @returns {Uint8Array}
+     */
+    to_bytes() {
+        const ret = wasm.usersecretkeys_to_bytes(this.__wbg_ptr);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
         var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v1;
