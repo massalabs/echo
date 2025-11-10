@@ -157,6 +157,13 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
             </div>
             {isPendingIncoming ? (
               <>
+                {discussion.announcementMessage && (
+                  <div className="mt-2 p-2.5 bg-muted/50 border border-border rounded-lg">
+                    <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                      {discussion.announcementMessage}
+                    </p>
+                  </div>
+                )}
                 <p className="mt-2 text-[11px] text-muted-foreground">
                   <span className="whitespace-nowrap">User ID:</span>{' '}
                   <span className="break-all">
