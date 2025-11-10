@@ -13,15 +13,15 @@ import { validateUsername, isValidUserId, encodeUserId } from '../utils';
 import { useFileShareContact } from '../hooks/useFileShareContact';
 import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import BaseModal from '../components/ui/BaseModal';
-import { useDiscussionList } from '../hooks/useDiscussionList';
 import Button from '../components/ui/Button';
+import { ensureDiscussionExists } from '../crypto/discussionInit';
 
 const NewContact: React.FC = () => {
   const navigate = useNavigate();
-  const { handleCreatedNewContact } = useDiscussionList();
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
   const [publicKeys, setPublicKeys] = useState<UserPublicKeys | null>(null);
+  const [message, setMessage] = useState('');
   const { userProfile } = useAccountStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,12 +68,12 @@ const NewContact: React.FC = () => {
 
   const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
   const handleBack = useCallback(() => {
-    if (name || userId) {
+    if (name || userId || message) {
       setIsDiscardModalOpen(true);
       return;
     }
     navigate('/');
-  }, [name, userId, navigate]);
+  }, [name, userId, message, navigate]);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,22 +105,6 @@ const NewContact: React.FC = () => {
       );
     }
   }, [fileContact, validateName, validateUserId]);
-
-  // TODO: Remove, test purpose
-  // const handleGenerate = useCallback(async () => {
-  //   const nameIsValid = validateUsername(name).valid;
-  //   if (!nameIsValid || userId || isSubmitting) return;
-  //   try {
-  //     const newUserKeys = await generateUserKeys(`test_user_${name.trim()}`);
-  //     const pub = newUserKeys.public_keys();
-  //     setPublicKeys(pub);
-  //     setUserId(encodeUserId(pub.derive_id()));
-  //     setUserIdError(null);
-  //   } catch (e) {
-  //     console.error(e);
-  //     setUserIdError('Failed to generate user ID. Please try again.');
-  //   }
-  // }, [name, userId, isSubmitting]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid || !publicKeys) return;
@@ -165,7 +149,16 @@ const NewContact: React.FC = () => {
 
       await db.contacts.add(contact);
 
-      await handleCreatedNewContact(contact);
+      // Pass the message (trimmed, or undefined if empty) to the announcement
+      const announcementMessage = message.trim() || undefined;
+      try {
+        await ensureDiscussionExists(contact, undefined, announcementMessage);
+      } catch (e) {
+        console.error(
+          'Failed to ensure discussion exists after contact creation:',
+          e
+        );
+      }
       navigate(`/`);
     } catch (e) {
       console.error(e);
@@ -179,8 +172,8 @@ const NewContact: React.FC = () => {
     userProfile?.userId,
     name,
     userId,
-    handleCreatedNewContact,
     navigate,
+    message,
   ]);
 
   return (
@@ -353,6 +346,56 @@ const NewContact: React.FC = () => {
               <p className="mt-1 text-xs text-muted-foreground">
                 User ID is a unique 32-byte identifier
               </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Contact request message{' '}
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Introduce yourself or add context to your contact request..."
+                rows={3}
+                maxLength={500}
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-input text-foreground placeholder-muted-foreground resize-none border-border"
+              />
+              <div className="mt-2 p-3 bg-muted/30 border border-border rounded-lg">
+                <div className="flex items-start gap-2">
+                  <svg
+                    className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-foreground mb-1">
+                      Privacy notice
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      This message is sent with your contact request
+                      announcement and has{' '}
+                      <span className="font-medium text-foreground">
+                        reduced privacy
+                      </span>{' '}
+                      compared to regular Gossip messages. Unlike regular
+                      messages, if your keys are compromised in the future, this
+                      message could be decrypted. Use it for introductions or
+                      context, but avoid sharing sensitive information. Send
+                      private details through regular messages after the contact
+                      accepts your request.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {(error || importFileContactError) && (

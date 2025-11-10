@@ -120,7 +120,7 @@ const Discussion: React.FC = () => {
 
       <MessageList
         messages={messages}
-        contact={contact}
+        discussion={discussion}
         isLoading={isLoading || isDiscussionLoading}
         onResend={resendMessage}
       />
