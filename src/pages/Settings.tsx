@@ -333,7 +333,7 @@ const Settings = (): React.ReactElement => {
               />
             </svg>
             <span className="text-base font-semibold flex-1 text-left">
-              Logout
+              Reset Account
             </span>
           </Button>
         </div>
