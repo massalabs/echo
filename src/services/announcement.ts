@@ -193,12 +193,17 @@ export class AnnouncementService {
 
       // Extract user data from the announcement (optional message)
       const userData = announcementResult.user_data;
+      let announcementMessage: string | undefined;
       if (userData && userData.length > 0) {
-        // TODO: Handle user_data (e.g., display as initial message, store for later use)
-        console.log(
-          'Received announcement with user data:',
-          new TextDecoder().decode(userData)
-        );
+        try {
+          announcementMessage = new TextDecoder().decode(userData);
+          console.log(
+            'Received announcement with user data:',
+            announcementMessage
+          );
+        } catch (error) {
+          console.error('Failed to decode announcement user data:', error);
+        }
       }
 
       const announcerPkeys = announcementResult.announcer_public_keys;
@@ -239,7 +244,8 @@ export class AnnouncementService {
 
       const { discussionId } = await processIncomingAnnouncement(
         contact,
-        announcementData
+        announcementData,
+        announcementMessage
       );
 
       try {

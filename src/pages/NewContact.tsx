@@ -22,6 +22,7 @@ const NewContact: React.FC = () => {
   const [name, setName] = useState('');
   const [userId, setUserId] = useState('');
   const [publicKeys, setPublicKeys] = useState<UserPublicKeys | null>(null);
+  const [message, setMessage] = useState('');
   const { userProfile } = useAccountStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,12 +69,12 @@ const NewContact: React.FC = () => {
 
   const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
   const handleBack = useCallback(() => {
-    if (name || userId) {
+    if (name || userId || message) {
       setIsDiscardModalOpen(true);
       return;
     }
     navigate('/');
-  }, [name, userId, navigate]);
+  }, [name, userId, message, navigate]);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,7 +166,9 @@ const NewContact: React.FC = () => {
 
       await db.contacts.add(contact);
 
-      await handleCreatedNewContact(contact);
+      // Pass the message (trimmed, or undefined if empty) to the announcement
+      const announcementMessage = message.trim() || undefined;
+      await handleCreatedNewContact(contact, announcementMessage);
       navigate(`/`);
     } catch (e) {
       console.error(e);
@@ -181,6 +184,7 @@ const NewContact: React.FC = () => {
     userId,
     handleCreatedNewContact,
     navigate,
+    message,
   ]);
 
   return (
@@ -352,6 +356,25 @@ const NewContact: React.FC = () => {
               )}
               <p className="mt-1 text-xs text-muted-foreground">
                 User ID is a unique 32-byte identifier
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Message{' '}
+                <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Send a message with your contact request..."
+                rows={3}
+                maxLength={500}
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-input text-foreground placeholder-muted-foreground resize-none border-border"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                This message will be included in your contact request
+                announcement
               </p>
             </div>
 

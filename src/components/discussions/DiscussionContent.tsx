@@ -104,6 +104,7 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
         <MessageList
           messages={messages}
           contact={contact}
+          discussion={discussion}
           isLoading={isLoading || isDiscussionLoading}
           onResend={resendMessage}
         />
