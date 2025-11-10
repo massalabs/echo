@@ -10,6 +10,7 @@ import { decodeUserId, encodeUserId } from '../utils/userId';
 import {
   IMessageProtocol,
   createMessageProtocol,
+  EncryptedMessage,
 } from '../api/messageProtocol';
 import { useAccountStore } from '../stores/accountStore';
 import { strToBytes } from '@massalabs/massa-web3';
@@ -53,8 +54,29 @@ export class MessageService {
         return { success: true, newMessagesCount: 0 };
       }
 
-      // Fetch encrypted messages for all seekers
-      const encrypted = await this.messageProtocol.fetchMessages(seekers);
+      // First, check if service worker has already fetched messages
+      let encrypted: EncryptedMessage[];
+      const pendingMessages = await db.pendingEncryptedMessages.toArray();
+
+      if (pendingMessages.length > 0) {
+        // Use messages from IndexedDB
+        encrypted = pendingMessages.map(p => ({
+          seeker: p.seeker,
+          ciphertext: p.ciphertext,
+        }));
+        // Delete only the messages we just read (by their IDs) to avoid race condition
+        // If service worker adds new messages between read and delete, they won't be lost
+        const messageIds = pendingMessages
+          .map(p => p.id)
+          .filter((id): id is number => id !== undefined);
+        if (messageIds.length > 0) {
+          await db.pendingEncryptedMessages.bulkDelete(messageIds);
+        }
+      } else {
+        // If no pending messages, fetch from API
+        encrypted = await this.messageProtocol.fetchMessages(seekers);
+      }
+
       if (!encrypted.length) {
         return { success: true, newMessagesCount: 0 };
       }
@@ -142,7 +164,6 @@ export class MessageService {
               direction: 'incoming' as const,
               status: 'delivered' as const,
               timestamp: sentAt,
-              encrypted: true,
               metadata: {},
             });
             return { id, senderId, content, sentAt };

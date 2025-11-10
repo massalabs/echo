@@ -9,6 +9,7 @@ import { protocolConfig } from './config/protocol';
 import { defaultSyncConfig } from './config/sync';
 import { RestMessageProtocol } from './api/messageProtocol/rest';
 import type { EncryptedMessage } from './api/messageProtocol/types';
+import { db } from './db';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -94,6 +95,8 @@ class ServiceWorkerMessageReception {
             }
           }, 2000);
 
+          // Set up message listener BEFORE sending postMessage to avoid race condition
+          // If the main app responds very quickly, we need the listener to be ready
           messageChannel.port1.onmessage = event => {
             if (!resolved) {
               resolved = true;
@@ -119,6 +122,7 @@ class ServiceWorkerMessageReception {
             // If postMessage fails, resolve with empty array
             if (!resolved) {
               resolved = true;
+              clearTimeout(timeoutId);
               resolve([]);
             }
           }
@@ -150,8 +154,6 @@ class ServiceWorkerMessageReception {
       }
 
       // Fetch messages for all seekers at once using the message protocol
-      // Note: We only check if messages exist, we don't store them
-      // The main app will fetch and decrypt messages directly from the API when it loads
       let encryptedMessages: EncryptedMessage[] = [];
       try {
         encryptedMessages = await this.protocol.fetchMessages(seekers);
@@ -167,11 +169,57 @@ class ServiceWorkerMessageReception {
         };
       }
 
-      // Return count of new messages found
-      // The main app will fetch and decrypt them when it loads
+      // Store encrypted messages in IndexedDB for the main app to process
+      let actuallyAddedCount = 0;
+      if (encryptedMessages.length > 0) {
+        try {
+          const now = new Date();
+          await db.pendingEncryptedMessages.bulkAdd(
+            encryptedMessages.map(msg => ({
+              seeker: msg.seeker,
+              ciphertext: msg.ciphertext,
+              fetchedAt: now,
+            }))
+          );
+          // All messages were added successfully
+          actuallyAddedCount = encryptedMessages.length;
+        } catch (error) {
+          // Handle BulkError: some items may have been added successfully
+          if (error instanceof Error && error.name === 'BulkError') {
+            // Dexie BulkError has failures array and we can calculate success count
+            const bulkError = error as unknown as {
+              failures: Array<{ index: number }>;
+              successCount?: number;
+            };
+            // Calculate how many were actually added
+            // If successCount is available, use it; otherwise calculate from failures
+            if (typeof bulkError.successCount === 'number') {
+              actuallyAddedCount = bulkError.successCount;
+            } else {
+              // Calculate: total - failures = successes
+              actuallyAddedCount =
+                encryptedMessages.length - bulkError.failures.length;
+            }
+          } else if (
+            error instanceof Error &&
+            error.message.includes('ConstraintError')
+          ) {
+            // Single ConstraintError means none were added
+            actuallyAddedCount = 0;
+          } else {
+            // Other errors - log them
+            console.error(
+              'Service Worker: Failed to store encrypted messages:',
+              error
+            );
+            actuallyAddedCount = 0;
+          }
+        }
+      }
+
       return {
         success: true,
-        newMessagesCount: encryptedMessages.length,
+        newMessagesCount: actuallyAddedCount,
       };
     } catch (error) {
       console.error('Failed to fetch messages for all discussions:', error);
@@ -187,13 +235,59 @@ class ServiceWorkerMessageReception {
     newAnnouncementsCount: number;
   }> {
     try {
-      // Fetch announcements to check if new ones exist
-      // Note: We only check if announcements exist, we don't store them
-      // The main app will fetch and process announcements directly from the API when it loads
+      // Fetch announcements from the API
       const announcements = await this.protocol.fetchAnnouncements();
+
+      // Store announcements in IndexedDB for the main app to process
+      let actuallyAddedCount = 0;
+      if (announcements.length > 0) {
+        try {
+          const now = new Date();
+          await db.pendingAnnouncements.bulkAdd(
+            announcements.map(announcement => ({
+              announcement,
+              fetchedAt: now,
+            }))
+          );
+          // All announcements were added successfully
+          actuallyAddedCount = announcements.length;
+        } catch (error) {
+          // Handle BulkError: some items may have been added successfully
+          if (error instanceof Error && error.name === 'BulkError') {
+            // Dexie BulkError has failures array and we can calculate success count
+            const bulkError = error as unknown as {
+              failures: Array<{ index: number }>;
+              successCount?: number;
+            };
+            // Calculate how many were actually added
+            // If successCount is available, use it; otherwise calculate from failures
+            if (typeof bulkError.successCount === 'number') {
+              actuallyAddedCount = bulkError.successCount;
+            } else {
+              // Calculate: total - failures = successes
+              actuallyAddedCount =
+                announcements.length - bulkError.failures.length;
+            }
+          } else if (
+            error instanceof Error &&
+            error.message.includes('ConstraintError')
+          ) {
+            // Single ConstraintError means none were added
+            actuallyAddedCount = 0;
+          } else {
+            // Other errors - log them
+            console.error(
+              'Service Worker: Failed to store announcements:',
+              error
+            );
+            actuallyAddedCount = 0;
+          }
+        }
+      }
+
       return {
         success: true,
-        newAnnouncementsCount: announcements.length,
+        newAnnouncementsCount: actuallyAddedCount,
       };
     } catch (error) {
       console.error(
@@ -212,13 +306,6 @@ const messageReception = new ServiceWorkerMessageReception();
 
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-
-  // Handle request for seekers from main app
-  if (event.data && event.data.type === 'REQUEST_SEEKERS') {
-    // This is handled by requesting from main app in fetchAllDiscussions
-    // The main app should respond via the message channel port
-    return;
-  }
 
   // Handle request to start/restart sync scheduler
   if (event.data && event.data.type === 'START_SYNC_SCHEDULER') {
@@ -258,6 +345,7 @@ function trackSync(syncType: 'periodic' | 'fallback' | 'manual'): void {
 // Register periodic background sync
 self.addEventListener('sync', (event: Event) => {
   if ((event as SyncEvent).tag === 'gossip-message-sync') {
+    trackSync('periodic');
     (event as SyncEvent).waitUntil(
       Promise.all([
         messageReception.fetchAllDiscussions(),
@@ -386,9 +474,9 @@ async function performSync(): Promise<void> {
       }
 
       // Show notification for new messages/discussions
-      // Only show notification if app is in background (when active, UI updates directly)
       const isActive = await hasActiveClients();
       if (!isActive) {
+        // App is in background - show notification
         await showNotificationIfAllowed('Echo Messenger', {
           body,
           icon: '/favicon-64.png',
@@ -396,6 +484,19 @@ async function performSync(): Promise<void> {
           tag: 'echo-new-messages',
           requireInteraction: false,
         });
+      } else {
+        // App is active - notify main app to refresh immediately
+        const clients = await self.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: false,
+        });
+        for (const client of clients) {
+          client.postMessage({
+            type: 'NEW_MESSAGES_DETECTED',
+            messageCount: messageResult.newMessagesCount,
+            announcementCount: announcementResult.newAnnouncementsCount,
+          });
+        }
       }
     }
   } catch (error) {
@@ -409,11 +510,11 @@ async function performSync(): Promise<void> {
  */
 function scheduleNextSync(): void {
   // Clear any existing timer
-  const existingTimer = (
-    self as ServiceWorkerGlobalScope & {
-      echoSyncTimer?: ReturnType<typeof setTimeout>;
-    }
-  ).echoSyncTimer;
+  const sw = self as ServiceWorkerGlobalScope & {
+    echoSyncTimer?: ReturnType<typeof setTimeout>;
+    echoSyncStarting?: boolean;
+  };
+  const existingTimer = sw.echoSyncTimer;
   if (existingTimer) {
     clearTimeout(existingTimer);
   }
@@ -432,11 +533,9 @@ function scheduleNextSync(): void {
       }, interval);
 
       // Store timeout reference for potential cleanup
-      (
-        self as ServiceWorkerGlobalScope & {
-          echoSyncTimer?: ReturnType<typeof setTimeout>;
-        }
-      ).echoSyncTimer = timeoutId;
+      sw.echoSyncTimer = timeoutId;
+      // Clear the starting flag now that timer is set
+      sw.echoSyncStarting = false;
     })
     .catch(error => {
       console.error('Service Worker: Error scheduling sync', error);
@@ -446,11 +545,9 @@ function scheduleNextSync(): void {
         await performSync();
         scheduleNextSync();
       }, FALLBACK_SYNC_INTERVAL_MS);
-      (
-        self as ServiceWorkerGlobalScope & {
-          echoSyncTimer?: ReturnType<typeof setTimeout>;
-        }
-      ).echoSyncTimer = timeoutId;
+      sw.echoSyncTimer = timeoutId;
+      // Clear the starting flag now that timer is set
+      sw.echoSyncStarting = false;
     });
 }
 
@@ -465,7 +562,29 @@ function startFallbackSync() {
     return;
   }
 
+  // Use a flag to prevent race conditions when called multiple times in quick succession
+  const sw = self as ServiceWorkerGlobalScope & {
+    echoSyncTimer?: ReturnType<typeof setTimeout>;
+    echoSyncStarting?: boolean;
+  };
+
+  // Check if scheduler is already starting or active
+  if (sw.echoSyncStarting) {
+    // Already starting, skip
+    return;
+  }
+
+  const existingTimer = sw.echoSyncTimer;
+  if (existingTimer) {
+    // Timer already active, skip starting a new one
+    return;
+  }
+
+  // Set flag synchronously before async operations
+  sw.echoSyncStarting = true;
+
   // Start the dynamic sync scheduler
+  // The flag will be cleared in scheduleNextSync once the timer is actually set
   scheduleNextSync();
 }
 
