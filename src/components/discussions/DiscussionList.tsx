@@ -26,8 +26,6 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
   const { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest } =
     useDiscussionList();
 
-  const d = [...discussions, ...discussions];
-
   return (
     <div className="bg-card rounded-lg">
       <div className="divide-y divide-border">
@@ -36,7 +34,7 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
           ).length === 0 ? (
           <EmptyDiscussions />
         ) : (
-          d
+          discussions
             .filter(d => d.status !== 'closed')
             .map(discussion => {
               const contact = getContactByUserId(discussion.contactUserId);
