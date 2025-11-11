@@ -5,15 +5,14 @@ import { useDiscussionStore } from '../../stores/discussionStore';
 import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 
-interface DiscussionListPanelProps {
+interface DiscussionListProps {
   onRefresh: () => void;
   onSelect: (contactUserId: string) => void;
   activeUserId?: string;
   headerVariant?: 'button' | 'link';
 }
 
-const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
-  onRefresh,
+const DiscussionList: React.FC<DiscussionListProps> = ({
   onSelect,
   activeUserId,
 }) => {
@@ -27,25 +26,17 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
   const { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest } =
     useDiscussionList();
 
+  const d = [...discussions, ...discussions];
+
   return (
     <div className="bg-card rounded-lg">
-      <div className="px-6 py-4 border-b border-border flex justify-between items-center">
-        <h2 className="text-lg font-medium text-foreground">Discussions</h2>
-        <button
-          onClick={onRefresh}
-          className="text-xs text-primary hover:text-primary/80 underline"
-        >
-          Refresh
-        </button>
-      </div>
-
       <div className="divide-y divide-border">
         {!areDiscussionsLoaded ? null : discussions.filter(
             d => d.status !== 'closed'
           ).length === 0 ? (
           <EmptyDiscussions />
         ) : (
-          discussions
+          d
             .filter(d => d.status !== 'closed')
             .map(discussion => {
               const contact = getContactByUserId(discussion.contactUserId);
@@ -79,4 +70,4 @@ const DiscussionListPanel: React.FC<DiscussionListPanelProps> = ({
   );
 };
 
-export default DiscussionListPanel;
+export default DiscussionList;
