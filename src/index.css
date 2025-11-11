@@ -499,3 +499,9 @@
     }
   }
 }
+
+/* Hide server-injected Massa banner */
+#massaBox,
+.massa-box {
+  display: none !important;
+}
