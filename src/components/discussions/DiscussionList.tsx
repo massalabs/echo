@@ -19,8 +19,7 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
   // Use the store directly instead of receiving props
   const discussions = useDiscussionStore(s => s.discussions);
   const lastMessages = useDiscussionStore(s => s.lastMessages);
-  const areDiscussionsLoaded = useDiscussionStore(s => s.areDiscussionsLoaded);
-  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
+  const contacts = useDiscussionStore(s => s.contacts);
   const navigate = useNavigate();
 
   const { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest } =
@@ -29,16 +28,17 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
   return (
     <div className="bg-card rounded-lg">
       <div className="divide-y divide-border">
-        {!areDiscussionsLoaded ? null : discussions.filter(
-            d => d.status !== 'closed'
-          ).length === 0 ? (
+        {discussions.filter(d => d.status !== 'closed').length === 0 ? (
           <EmptyDiscussions />
         ) : (
           discussions
             .filter(d => d.status !== 'closed')
             .map(discussion => {
-              const contact = getContactByUserId(discussion.contactUserId);
+              const contact = contacts.find(
+                c => c.userId === discussion.contactUserId
+              );
               if (!contact) return null;
+
               const lastMessage = lastMessages.get(discussion.contactUserId);
 
               const isSelected = discussion.contactUserId === activeUserId;

@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { NetworkName } from '@massalabs/massa-web3';
 import { createSelectors } from './utils/createSelectors';
-import { useAccountStore } from './accountStore';
-import { useDiscussionStore } from './discussionStore';
 import { announcementService } from '../services/announcement';
 import { messageService } from '../services/message';
 
@@ -30,16 +28,8 @@ const useAppStoreBase = create<AppStoreState>(set => ({
   },
   // Refresh app state
   refreshAppState: async () => {
-    const { userProfile } = useAccountStore.getState();
-    if (!userProfile?.userId) return;
-
-    const { refreshDiscussions, refreshContacts } =
-      useDiscussionStore.getState();
-
     await announcementService.fetchAndProcessAnnouncements();
     await messageService.fetchMessages();
-    await refreshDiscussions(userProfile.userId);
-    await refreshContacts(userProfile.userId);
   },
 }));
 

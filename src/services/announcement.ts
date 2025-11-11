@@ -13,6 +13,7 @@ import {
   createMessageProtocol,
   IMessageProtocol,
 } from '../api/messageProtocol';
+import { useDiscussionStore } from '../stores/discussionStore';
 
 export interface AnnouncementReceptionResult {
   success: boolean;
@@ -43,6 +44,11 @@ export class AnnouncementService {
 
   async fetchAndProcessAnnouncements(): Promise<AnnouncementReceptionResult> {
     try {
+      const { userProfile } = useAccountStore.getState();
+      if (!userProfile?.userId) throw new Error('No authenticated user');
+
+      const ownerUserId = userProfile.userId;
+
       // First, check if service worker has already fetched announcements
       let announcements: Uint8Array[];
       const pendingAnnouncements = await db.pendingAnnouncements.toArray();
@@ -80,6 +86,8 @@ export class AnnouncementService {
         }
       }
 
+      await useDiscussionStore.getState().loadDiscussionStoreData(ownerUserId);
+
       return {
         success: !hasErrors || newAnnouncementsCount > 0,
         newAnnouncementsCount,
@@ -100,23 +108,19 @@ export class AnnouncementService {
     newMessagesCount: number;
     error?: string;
   }> {
+    const { userProfile } = useAccountStore.getState();
+    if (!userProfile?.userId) throw new Error('No authenticated user');
+
     try {
       console.log('Simulating incoming discussion announcement...');
       const mockAnnouncement = new Uint8Array(64);
       crypto.getRandomValues(mockAnnouncement);
       const result = await this._processIncomingAnnouncement(mockAnnouncement);
-      if (result.success) {
-        console.log(
-          'Successfully simulated incoming discussion:',
-          result.discussionId
-        );
-        return { success: true, newMessagesCount: 1 };
-      } else if (result.error) {
-        console.error('Failed to simulate incoming discussion:', result.error);
-        return { success: false, newMessagesCount: 0, error: result.error };
-      } else {
-        return { success: false, newMessagesCount: 0 };
-      }
+      return {
+        success: result.success,
+        newMessagesCount: result.discussionId ? 1 : 0,
+        error: result.error,
+      };
     } catch (error) {
       console.error('Failed to simulate incoming discussion:', error);
       return {
@@ -174,7 +178,11 @@ export class AnnouncementService {
     contactUserId?: string;
     error?: string;
   }> {
-    const { ourPk, ourSk, session } = useAccountStore.getState();
+    const { ourPk, ourSk, session, userProfile } = useAccountStore.getState();
+    if (!userProfile?.userId) throw new Error('No authenticated user');
+
+    const ownerUserId = userProfile.userId;
+
     if (!ourPk || !ourSk) throw new Error('WASM keys unavailable');
     if (!session) throw new Error('Session module not initialized');
     try {
@@ -193,8 +201,6 @@ export class AnnouncementService {
       const contactUserId = announcerPkeys.derive_id();
       const contactUserIdString = encodeUserId(contactUserId);
 
-      const ownerUserId = useAccountStore.getState().userProfile?.userId;
-      if (!ownerUserId) throw new Error('No authenticated user');
       let contact = await db.getContactByOwnerAndUserId(
         ownerUserId,
         contactUserIdString
@@ -205,7 +211,7 @@ export class AnnouncementService {
           await this._generateTemporaryContactName(ownerUserId);
 
         await db.contacts.add({
-          ownerUserId,
+          ownerUserId: ownerUserId,
           userId: contactUserIdString,
           name: contactName,
           publicKeys: announcerPkeys.to_bytes(),

@@ -212,6 +212,9 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
 
   // Sync messages (fetch new ones from server)
   syncMessages: async (contactUserId?: string) => {
+    const { userProfile } = useAccountStore.getState();
+    if (!userProfile?.userId) return;
+
     if (get().isSyncing) return;
     set({ isSyncing: true });
 
@@ -226,10 +229,7 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
           // Show notification if app is in background
           if (document.hidden) {
             const contact = await db
-              .getContactByOwnerAndUserId(
-                useAccountStore.getState().userProfile?.userId || '',
-                contactUserId
-              )
+              .getContactByOwnerAndUserId(userProfile.userId, contactUserId)
               .catch(() => null);
             if (contact) {
               await notificationService.showDiscussionNotification(
@@ -240,8 +240,8 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
           }
         } else {
           // Reload all contacts' messages
-          const { userProfile } = useAccountStore.getState();
-          if (userProfile?.userId) {
+
+          if (userProfile.userId) {
             const contacts = await db.getContactsByOwner(userProfile.userId);
             await Promise.all(
               contacts.map(contact => get().loadMessages(contact.userId))

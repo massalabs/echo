@@ -12,11 +12,12 @@ import CopyClipboard from '../components/ui/CopyClipboard';
 
 const Contact: React.FC = () => {
   const { userId } = useParams();
-  const getContactByUserId = useDiscussionStore(s => s.getContactByUserId);
-  const getDiscussionByContactUserId = useDiscussionStore(
-    s => s.getDiscussionByContactUserId
+  const contact = useDiscussionStore(s =>
+    s.contacts.find(c => c.userId === userId)
   );
-  const contact = userId ? getContactByUserId(userId) : undefined;
+  const discussion = useDiscussionStore(s =>
+    s.discussions.find(d => d.contactUserId === userId)
+  );
 
   // All hooks must be called before early return
   const { exportFileContact, isLoading, error } = useFileShareContact();
@@ -81,8 +82,7 @@ const Contact: React.FC = () => {
     );
   }
 
-  const disc = getDiscussionByContactUserId(contact.userId);
-  const canStart = disc ? disc.status === 'active' : true;
+  const canStart = discussion ? discussion.status === 'active' : true;
 
   return (
     <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
@@ -169,9 +169,10 @@ const Contact: React.FC = () => {
               </Button>
               {!canStart && (
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {disc?.status === 'pending' &&
+                  {discussion?.status === 'pending' &&
                     'Connection pending. You cannot chat yet.'}
-                  {disc?.status === 'closed' && 'This discussion is closed.'}
+                  {discussion?.status === 'closed' &&
+                    'This discussion is closed.'}
                 </p>
               )}
               {error && (
