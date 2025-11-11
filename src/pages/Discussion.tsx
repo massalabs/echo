@@ -1,5 +1,5 @@
 // TODO: use virtual list to render messages
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../db';
 import { useDiscussion } from '../hooks/useDiscussion';
@@ -44,12 +44,12 @@ const Discussion: React.FC = () => {
 
   const isLoading = useMessageStore(s => s.isLoading);
   const isSending = useMessageStore(s => s.isSending);
-  const isSyncing = useMessageStore(s => s.isSyncing);
   const sendMessage = useMessageStore(s => s.sendMessage);
   const resendMessage = useMessageStore(s => s.resendMessage);
   const syncMessages = useMessageStore(s => s.syncMessages);
   const loadMessages = useMessageStore(s => s.loadMessages);
 
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
   // Track previous contact userId to prevent unnecessary updates
   const prevContactUserIdRef = useRef<string | null>(null);
 
@@ -88,10 +88,11 @@ const Discussion: React.FC = () => {
     if (!contact?.userId) return;
 
     const interval = setInterval(() => {
-      loadMessages(contact.userId);
-    }, 10000);
+      syncMessages(contact?.userId);
+      // TODO: Improve fetch message logic to avoid fetching messages too often
+    }, 5000);
     return () => clearInterval(interval);
-  }, [contact?.userId, loadMessages]);
+  }, [contact?.userId, syncMessages]);
 
   const handleSendMessage = useCallback(
     async (text: string) => {
@@ -106,6 +107,13 @@ const Discussion: React.FC = () => {
     [sendMessage, contact?.userId]
   );
 
+  const handleManualSync = useCallback(async () => {
+    if (!contact?.userId) return;
+    setIsManualSyncing(true);
+    await syncMessages(contact.userId);
+    setIsManualSyncing(false);
+  }, [contact?.userId, syncMessages]);
+
   if (!contact) return null;
 
   // Mobile-first: show only discussion page when selected
@@ -117,9 +125,9 @@ const Discussion: React.FC = () => {
             <DiscussionHeader
               contact={contact}
               discussion={discussion}
-              isSyncing={isSyncing}
+              isSyncing={isManualSyncing}
               onBack={onBack}
-              onSync={() => syncMessages(contact?.userId)}
+              onSync={handleManualSync}
             />
 
             <MessageList
