@@ -22,7 +22,7 @@ const ACTIVE_SYNC_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
 interface SyncStats {
   lastSyncTime: number;
   syncCount: number;
-  syncType: 'periodic' | 'fallback' | 'manual';
+  syncType: 'periodic' | 'fallback';
   syncIntervals: number[]; // Time between syncs in ms
 }
 
@@ -312,18 +312,12 @@ self.addEventListener('message', event => {
     startFallbackSync();
     return;
   }
-
-  // Handle manual sync requests
-  if (event.data && event.data.type === 'SYNC_MESSAGES') {
-    trackSync('manual');
-    event.waitUntil(performSync());
-  }
 });
 
 /**
  * Track sync frequency for monitoring and debugging
  */
-function trackSync(syncType: 'periodic' | 'fallback' | 'manual'): void {
+function trackSync(syncType: 'periodic' | 'fallback'): void {
   const now = Date.now();
   const timeSinceLastSync =
     syncStats.lastSyncTime > 0 ? now - syncStats.lastSyncTime : 0;
