@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { useAppStore } from '../stores/appStore';
-
-const REFRESH_INTERVAL_MS = 10000; // 10 seconds
+import { defaultSyncConfig } from '../config/sync';
 
 /**
  * Hook to refresh app state periodically when user is logged in
@@ -20,9 +19,11 @@ export function useAppStateRefresh() {
         console.error('Failed to refresh app state on login:', error);
       });
 
-      // Set up periodic refresh every 10 seconds
+      const REFRESH_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
       const refreshInterval = setInterval(() => {
-        console.log('Periodic app state refresh triggered (every 10s)');
+        console.log(
+          `Periodic app state refresh triggered (every ${REFRESH_INTERVAL_MS / 1000}s)`
+        );
         refreshAppState().catch(error => {
           console.error('Failed to refresh app state periodically:', error);
         });
