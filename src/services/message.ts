@@ -58,15 +58,16 @@ export class MessageService {
       let encrypted: EncryptedMessage[];
       const pendingMessages = await db.pendingEncryptedMessages.toArray();
 
-      if (pendingMessages.length > 0) {
+      const pendingMessagesForUser = pendingMessages.filter(p => seekers.includes(p.seeker));
+      if (pendingMessagesForUser.length > 0) {
         // Use messages from IndexedDB
-        encrypted = pendingMessages.map(p => ({
+        encrypted = pendingMessagesForUser.map(p => ({
           seeker: p.seeker,
           ciphertext: p.ciphertext,
         }));
         // Delete only the messages we just read (by their IDs) to avoid race condition
         // If service worker adds new messages between read and delete, they won't be lost
-        const messageIds = pendingMessages
+        const messageIds = pendingMessagesForUser
           .map(p => p.id)
           .filter((id): id is number => id !== undefined);
         if (messageIds.length > 0) {
