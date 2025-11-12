@@ -42,5 +42,5 @@ export const defaultSyncConfig: SyncConfig = {
 
   // Aggressive sync interval when app is open and active (10 seconds)
   // Much more responsive when user is actively using the app
-  activeSyncIntervalMs: 10 * 1000, // 10 seconds
+  activeSyncIntervalMs: 2 * 1000, // 2 seconds
 };
