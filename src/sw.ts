@@ -16,7 +16,6 @@ declare let self: ServiceWorkerGlobalScope;
 // Service Worker configuration constants
 // Import from centralized config for easy adjustment
 const FALLBACK_SYNC_INTERVAL_MS = defaultSyncConfig.fallbackSyncIntervalMs;
-const ACTIVE_SYNC_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
 
 // Sync frequency tracking
 interface SyncStats {
@@ -339,42 +338,52 @@ function trackSync(syncType: 'periodic' | 'fallback'): void {
 // Register periodic background sync
 self.addEventListener('sync', (event: Event) => {
   if ((event as SyncEvent).tag === 'gossip-message-sync') {
-    trackSync('periodic');
+    // Check if app is active - if so, skip sync (main app handles it)
     (event as SyncEvent).waitUntil(
-      Promise.all([
-        messageReception.fetchAllDiscussions(),
-        messageReception.fetchAnnouncements(),
-      ])
-        .then(([messageResult, announcementResult]) => {
-          const hasNewMessages =
-            messageResult.success && messageResult.newMessagesCount > 0;
-          const hasNewAnnouncements =
-            announcementResult.success &&
-            announcementResult.newAnnouncementsCount > 0;
+      hasActiveClients().then(isActive => {
+        if (isActive) {
+          // App is active - main app handles sync, skip this one
+          console.log('Service Worker: Skipping periodic sync - app is active');
+          return;
+        }
 
-          if (hasNewMessages || hasNewAnnouncements) {
-            let body = '';
-            if (hasNewMessages && hasNewAnnouncements) {
-              body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
-            } else if (hasNewMessages) {
-              body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
-            } else if (hasNewAnnouncements) {
-              body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+        // App is in background - perform sync
+        trackSync('periodic');
+        return Promise.all([
+          messageReception.fetchAllDiscussions(),
+          messageReception.fetchAnnouncements(),
+        ])
+          .then(([messageResult, announcementResult]) => {
+            const hasNewMessages =
+              messageResult.success && messageResult.newMessagesCount > 0;
+            const hasNewAnnouncements =
+              announcementResult.success &&
+              announcementResult.newAnnouncementsCount > 0;
+
+            if (hasNewMessages || hasNewAnnouncements) {
+              let body = '';
+              if (hasNewMessages && hasNewAnnouncements) {
+                body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''} and ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+              } else if (hasNewMessages) {
+                body = `You have ${messageResult.newMessagesCount} new message${messageResult.newMessagesCount > 1 ? 's' : ''}`;
+              } else if (hasNewAnnouncements) {
+                body = `You have ${announcementResult.newAnnouncementsCount} new discussion${announcementResult.newAnnouncementsCount > 1 ? 's' : ''}`;
+              }
+
+              // Show notification for new messages/announcements
+              self.registration.showNotification('Gossip Messenger', {
+                body,
+                icon: '/favicon-64.png',
+                badge: '/favicon-64.png',
+                tag: 'gossip-new-messages',
+                requireInteraction: false,
+              });
             }
-
-            // Show notification for new messages/announcements
-            self.registration.showNotification('Gossip Messenger', {
-              body,
-              icon: '/favicon-64.png',
-              badge: '/favicon-64.png',
-              tag: 'gossip-new-messages',
-              requireInteraction: false,
-            });
-          }
-        })
-        .catch(error => {
-          console.error('Service Worker: Periodic sync failed', error);
-        })
+          })
+          .catch(error => {
+            console.error('Service Worker: Periodic sync failed', error);
+          });
+      })
     );
   }
 });
@@ -499,15 +508,55 @@ async function performSync(): Promise<void> {
 }
 
 /**
- * Dynamic sync scheduler that adjusts interval based on app state
- * Uses shorter interval (10s) when app is open, longer (5min) when backgrounded
+ * Get the service worker global scope with sync timer properties
  */
-function scheduleNextSync(): void {
-  // Clear any existing timer
-  const sw = self as ServiceWorkerGlobalScope & {
+function getServiceWorkerScope(): ServiceWorkerGlobalScope & {
+  echoSyncTimer?: ReturnType<typeof setTimeout>;
+  echoSyncStarting?: boolean;
+} {
+  return self as ServiceWorkerGlobalScope & {
     echoSyncTimer?: ReturnType<typeof setTimeout>;
     echoSyncStarting?: boolean;
   };
+}
+
+/**
+ * Reschedule the next check (when app is active, no sync needed)
+ * Main app handles sync via useAppStateRefresh
+ */
+function rescheduleNextCheck(): void {
+  const sw = getServiceWorkerScope();
+  const timeoutId = setTimeout(() => {
+    scheduleNextSync();
+  }, FALLBACK_SYNC_INTERVAL_MS);
+  sw.echoSyncTimer = timeoutId;
+  sw.echoSyncStarting = false;
+}
+
+/**
+ * Schedule background sync (when app is in background/closed)
+ */
+function scheduleBackgroundSync(): void {
+  const sw = getServiceWorkerScope();
+  const timeoutId = setTimeout(async () => {
+    trackSync('fallback');
+    await performSync();
+    // Schedule next sync (will re-check app state)
+    scheduleNextSync();
+  }, FALLBACK_SYNC_INTERVAL_MS);
+  sw.echoSyncTimer = timeoutId;
+  sw.echoSyncStarting = false;
+}
+
+/**
+ * Dynamic sync scheduler that adjusts interval based on app state
+ * When app is active: schedules a check at FALLBACK_SYNC_INTERVAL_MS to detect when app goes to background
+ *   (main app handles sync via useAppStateRefresh, so no sync is performed)
+ * When app is in background/closed: performs sync and schedules next check
+ */
+function scheduleNextSync(): void {
+  // Clear any existing timer
+  const sw = getServiceWorkerScope();
   const existingTimer = sw.echoSyncTimer;
   if (existingTimer) {
     clearTimeout(existingTimer);
@@ -515,33 +564,32 @@ function scheduleNextSync(): void {
 
   hasActiveClients()
     .then(isActive => {
-      const interval = isActive
-        ? ACTIVE_SYNC_INTERVAL_MS
-        : FALLBACK_SYNC_INTERVAL_MS;
+      if (isActive) {
+        // App is active - main app handles sync via useAppStateRefresh
+        // Just reschedule to check again later (in case app goes to background)
+        rescheduleNextCheck();
+        return;
+      }
 
-      const timeoutId = setTimeout(async () => {
-        trackSync('fallback');
-        await performSync();
-        // Schedule next sync (will re-check app state)
-        scheduleNextSync();
-      }, interval);
-
-      // Store timeout reference for potential cleanup
-      sw.echoSyncTimer = timeoutId;
-      // Clear the starting flag now that timer is set
-      sw.echoSyncStarting = false;
+      // App is in background - perform sync
+      scheduleBackgroundSync();
     })
     .catch(error => {
       console.error('Service Worker: Error scheduling sync', error);
-      // Fallback to default interval on error
-      const timeoutId = setTimeout(async () => {
-        trackSync('fallback');
-        await performSync();
-        scheduleNextSync();
-      }, FALLBACK_SYNC_INTERVAL_MS);
-      sw.echoSyncTimer = timeoutId;
-      // Clear the starting flag now that timer is set
-      sw.echoSyncStarting = false;
+      // Fallback to default interval on error (only sync if app is not active)
+      hasActiveClients()
+        .then(isActive => {
+          if (!isActive) {
+            scheduleBackgroundSync();
+          } else {
+            // App is active, just reschedule check
+            rescheduleNextCheck();
+          }
+        })
+        .catch(() => {
+          // If we can't check, assume app is not active and sync
+          scheduleBackgroundSync();
+        });
     });
 }
 
