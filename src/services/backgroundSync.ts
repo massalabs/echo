@@ -109,23 +109,13 @@ export class BackgroundSyncService {
    * Trigger manual message sync
    */
   async triggerManualSync(): Promise<void> {
-    if (!('serviceWorker' in navigator)) {
-      console.log('Service Worker not supported, falling back to direct sync');
-      await announcementService.fetchAndProcessAnnouncements();
-      await messageService.fetchMessages();
-      return;
-    }
-
     try {
-      const registration = await navigator.serviceWorker.ready;
-
-      if (registration.active) {
-        registration.active.postMessage({
-          type: 'SYNC_MESSAGES',
-        });
-      }
-
-      await announcementService.fetchAndProcessAnnouncements();
+      // Sync directly - faster and more efficient when app is open
+      // Manual sync is typically user-triggered, so app is likely active
+      await Promise.all([
+        announcementService.fetchAndProcessAnnouncements(),
+        messageService.fetchMessages(),
+      ]);
     } catch (error) {
       console.error('Failed to trigger manual sync:', error);
     }
