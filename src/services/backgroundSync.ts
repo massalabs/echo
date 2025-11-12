@@ -35,9 +35,6 @@ export class BackgroundSyncService {
       // Register periodic background sync
       await this.registerPeriodicSync();
 
-      // Register manual sync trigger
-      await this.registerManualSync();
-
       this.isRegistered = true;
       console.log('Background sync service initialized');
 
@@ -105,29 +102,6 @@ export class BackgroundSyncService {
       ) {
         console.error('Failed to register periodic background sync:', error);
       }
-    }
-  }
-
-  /**
-   * Register manual sync trigger
-   */
-  private async registerManualSync(): Promise<void> {
-    if (!('serviceWorker' in navigator)) {
-      console.log('Service Worker not supported');
-      return;
-    }
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-
-      // Send message to service worker to register manual sync
-      if (registration.active) {
-        registration.active.postMessage({
-          type: 'REGISTER_MANUAL_SYNC',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to register manual sync trigger:', error);
     }
   }
 
