@@ -373,8 +373,8 @@ self.addEventListener('sync', (event: Event) => {
               // Show notification for new messages/announcements
               self.registration.showNotification('Gossip Messenger', {
                 body,
-                icon: '/favicon-64.png',
-                badge: '/favicon-64.png',
+                icon: '/favicon/favicon-96x96.png',
+                badge: '/favicon/favicon-96x96.png',
                 tag: 'gossip-new-messages',
                 requireInteraction: false,
               });
@@ -482,8 +482,8 @@ async function performSync(): Promise<void> {
         // App is in background - show notification
         await showNotificationIfAllowed('Echo Messenger', {
           body,
-          icon: '/favicon-64.png',
-          badge: '/favicon-64.png',
+          icon: '/favicon/favicon-96x96.png',
+          badge: '/favicon/favicon-96x96.png',
           tag: 'echo-new-messages',
           requireInteraction: false,
         });

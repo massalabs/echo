@@ -68,8 +68,8 @@ export class NotificationService {
 
       const notification = new Notification(title, {
         body,
-        icon: '/favicon-64.png',
-        badge: '/favicon-64.png',
+        icon: '/favicon/favicon-96x96.png',
+        badge: '/favicon/favicon-96x96.png',
         tag: 'gossip-new-messages', // Replace previous notifications with same tag
         requireInteraction: false,
         silent: false,
@@ -110,8 +110,8 @@ export class NotificationService {
 
       const notification = new Notification(title, {
         body,
-        icon: '/favicon-64.png',
-        badge: '/favicon-64.png',
+        icon: '/favicon/favicon-96x96.png',
+        badge: '/favicon/favicon-96x96.png',
         tag: `gossip-discussion-${contactName}`,
         requireInteraction: false,
         silent: false,
@@ -148,8 +148,8 @@ export class NotificationService {
 
       const notification = new Notification(title, {
         body,
-        icon: '/favicon-64.png',
-        badge: '/favicon-64.png',
+        icon: '/favicon/favicon-96x96.png',
+        badge: '/favicon/favicon-96x96.png',
         tag: `gossip-new-discussion-${contactName}`,
         requireInteraction: true, // Require interaction for new discussions
         silent: false,

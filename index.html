@@ -3,16 +3,88 @@
   <head>
     <meta charset="UTF-8" />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
+    <meta name="apple-mobile-web-app-title" content="Gossip" />
     <title>Gossip</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" href="/favicon-64.png" />
+
+    <!-- Modern SVG favicon (preferred by modern browsers) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+
+    <!-- PNG favicons with sizes for different contexts -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="/favicon/favicon-96x96.png"
+    />
+
+    <!-- Classic ICO favicon for older browsers -->
+    <link rel="icon" type="image/x-icon" href="/favicon/favicon.ico" />
+
+    <!-- Apple Touch Icons for iOS home screen -->
+    <!-- iOS looks for apple-touch-icon in root first, then checks sizes -->
+    <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <!-- Additional sizes for different iOS devices -->
+    <link
+      rel="apple-touch-icon"
+      sizes="152x152"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="144x144"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="120x120"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="114x114"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="76x76"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="72x72"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="60x60"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="57x57"
+      href="/favicon/apple-touch-icon.png"
+    />
+
+    <!-- Web App Manifest for PWA -->
+    <link rel="manifest" href="/favicon/site.webmanifest" />
+
+    <!-- Theme color for mobile browsers -->
+    <meta name="theme-color" content="#0d9488" />
   </head>
   <body>
     <div id="root"></div>
