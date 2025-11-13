@@ -55,7 +55,7 @@ const Discussions: React.FC = () => {
           onClick={() => navigate('/new-discussion')}
           variant="primary"
           size="custom"
-          className="absolute bottom-24 right-4 px-5 h-14 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow z-50"
+          className="absolute bottom-nav-offset right-4 px-5 h-14 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow z-50"
           title="Start new discussion"
         >
           <svg
