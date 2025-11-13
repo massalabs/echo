@@ -153,7 +153,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                   options={[
                     {
                       value: 'biometrics',
-                      label: 'Biometrics (Recommended)',
+                      label: 'Biometrics',
                       icon: (
                         <svg
                           className="w-4 h-4"
