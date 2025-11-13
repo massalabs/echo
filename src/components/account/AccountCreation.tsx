@@ -24,75 +24,44 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [webauthnSupported, setWebauthnSupported] = useState(false);
-  const [platformAvailable, setPlatformAvailable] = useState(false);
+  const [biometricMethods, setBiometricMethods] = useState({
+    capacitor: false,
+    webauthn: false,
+    any: false,
+  });
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
   const [accountCreationStarted, setAccountCreationStarted] = useState(false);
 
-  const {
-    webauthnSupported: storeWebauthnSupported,
-    platformAuthenticatorAvailable,
-    initializeAccountWithBiometrics,
-    initializeAccount,
-    checkPlatformAvailability,
-  } = useAccountStore();
+  const { initializeAccountWithBiometrics, initializeAccount } =
+    useAccountStore();
 
   useEffect(() => {
-    setWebauthnSupported(storeWebauthnSupported);
-
-    // Check platform availability if WebAuthn is supported
-    if (storeWebauthnSupported) {
-      checkPlatformAvailability();
-    }
-  }, [storeWebauthnSupported, checkPlatformAvailability]);
-
-  // In create flow, we no longer check for existing accounts. This screen is only for creating new accounts.
-
-  useEffect(() => {
-    const checkBiometricAvailability = async () => {
+    const checkBiometricMethods = async () => {
       try {
-        // Use biometric service directly for more accurate detection
         const { biometricService } = await import(
           '../../crypto/biometricService'
         );
-        const availability = await biometricService.checkAvailability();
+        const methods = await biometricService.checkBiometricMethods();
+        setBiometricMethods(methods);
 
-        console.log('🔍 Account Creation - Biometric Service Check:', {
-          availability,
-          platformInfo: biometricService.getPlatformInfo(),
-        });
-
-        setPlatformAvailable(availability.available);
-
-        // Debug logging after state update
-        console.log('🔍 Account Creation - After Biometric Check:', {
-          webauthnSupported: storeWebauthnSupported,
-          platformAuthenticatorAvailable,
-          platformAvailable: availability.available,
-          usePassword,
-        });
-
-        // If biometrics are not available, force password mode
-        if (!availability.available) {
-          console.log('🔒 Forcing password mode - biometrics not available', {
-            reason: availability.reason || 'Unknown reason',
-          });
-          setUsePassword(true);
-        } else {
-          // If biometrics are available, default to biometrics but allow user to choose
-          console.log('👆 Defaulting to biometrics - available');
+        // Default to first available biometric method, but allow user to choose
+        if (methods.any) {
+          console.log('👆 Biometrics available, defaulting to biometric mode');
           setUsePassword(false);
+        } else {
+          console.log('🔒 No biometrics available, forcing password mode');
+          setUsePassword(true);
         }
       } catch (error) {
-        console.error('❌ Error checking biometric availability:', error);
-        // Fallback to password if check fails
+        console.error('❌ Error checking biometric methods:', error);
         setUsePassword(true);
-        setPlatformAvailable(false);
       }
     };
 
-    checkBiometricAvailability();
-  }, [storeWebauthnSupported, platformAuthenticatorAvailable, usePassword]);
+    checkBiometricMethods();
+  }, []);
+
+  // In create flow, we no longer check for existing accounts. This screen is only for creating new accounts.
 
   const validateUsernameField = (value: string) => {
     const result = validateUsername(value);
@@ -174,7 +143,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
           {/* Logo */}
 
           {/* Authentication Method Toggle */}
-          {webauthnSupported && platformAvailable && (
+          {biometricMethods.any && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4">
               <div className="mb-4">
                 <p className="text-sm font-medium text-black dark:text-white mb-3">
@@ -227,7 +196,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
           )}
 
           {/* WebAuthn Support Check */}
-          {(!webauthnSupported || !platformAvailable) && (
+          {!biometricMethods.any && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-800">
               <p className="text-blue-600 dark:text-blue-400 text-sm">
                 Biometric authentication is not supported on this device. Using
