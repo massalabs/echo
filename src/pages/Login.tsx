@@ -4,7 +4,7 @@ import { UserProfile } from '../db';
 import { biometricService } from '../crypto/biometricService';
 import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
-import AddBiometrics from '../components/account/AddBiometrics';
+import SetupBiometrics from '../components/account/SetupBiometrics';
 import Button from '../components/ui/Button';
 
 interface LoginProps {
@@ -37,7 +37,7 @@ const Login: React.FC<LoginProps> = React.memo(
     const [usePassword, setUsePassword] = useState(false);
     const [showAccountSelection, setShowAccountSelection] = useState(false);
     const [showAccountImport, setShowAccountImport] = useState(false);
-    const [showAddBiometrics, setShowAddBiometrics] = useState(false);
+    const [showSetupBiometrics, setShowSetupBiometrics] = useState(false);
     const [selectedAccountInfo, setSelectedAccountInfo] =
       useState<UserProfile | null>(null);
     const [autoAuthTriggered, setAutoAuthTriggered] = useState(false);
@@ -170,17 +170,17 @@ const Login: React.FC<LoginProps> = React.memo(
       setShowAccountImport(false);
     };
 
-    const handleAddBiometrics = () => {
-      setShowAddBiometrics(true);
+    const handleSetupBiometrics = () => {
+      setShowSetupBiometrics(true);
     };
 
-    const handleBackFromAddBiometrics = () => {
-      setShowAddBiometrics(false);
+    const handleBackFromSetupBiometrics = () => {
+      setShowSetupBiometrics(false);
     };
 
-    const handleAddBiometricsComplete = () => {
-      setShowAddBiometrics(false);
-      // Force a re-render to pick up the new biometric credentials
+    const handleSetupBiometricsComplete = () => {
+      setShowSetupBiometrics(false);
+      // Force a re-render to pick up new biometric credentials
       window.location.reload();
     };
 
@@ -192,8 +192,12 @@ const Login: React.FC<LoginProps> = React.memo(
     const accountSupportsBiometrics = !usePassword;
     const displayUsername = currentAccount?.username;
 
+    // Check if biometrics are available for this account/device
+    const biometricsAvailable =
+      webauthnSupported && platformAuthenticatorAvailable;
+
     // Debug logging
-    console.log('🔍 Login Debug:', {
+    console.log('🔍 Login Screen Debug:', {
       usePassword,
       accountSupportsBiometrics,
       webauthnSupported,
@@ -201,6 +205,9 @@ const Login: React.FC<LoginProps> = React.memo(
       platformResolved,
       currentAccount: currentAccount?.username,
       hasWebauthnCred: !!currentAccount?.security?.webauthn?.credentialId,
+      biometricsAvailable,
+      shouldShowBiometricOption: biometricsAvailable && !usePassword,
+      shouldShowPasswordOption: !biometricsAvailable || usePassword,
     });
 
     if (showAccountSelection) {
@@ -222,12 +229,12 @@ const Login: React.FC<LoginProps> = React.memo(
       );
     }
 
-    if (showAddBiometrics && currentAccount) {
+    if (showSetupBiometrics && currentAccount) {
       return (
-        <AddBiometrics
+        <SetupBiometrics
           account={currentAccount}
-          onBack={handleBackFromAddBiometrics}
-          onComplete={handleAddBiometricsComplete}
+          onBack={handleBackFromSetupBiometrics}
+          onComplete={handleSetupBiometricsComplete}
         />
       );
     }
@@ -259,20 +266,37 @@ const Login: React.FC<LoginProps> = React.memo(
           </div>
 
           <div className="space-y-5">
-            {accountSupportsBiometrics && (
+            {/* Biometric authentication - always show if available */}
+            {biometricsAvailable && (
               <div className="rounded-2xl bg-white/80 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-sm backdrop-blur">
                 <div className="space-y-3">
-                  <Button
-                    onClick={handleBiometricAuth}
-                    disabled={isLoading}
-                    loading={isLoading}
-                    variant="primary"
-                    size="custom"
-                    fullWidth
-                    className="h-11 rounded-xl text-sm font-medium"
-                  >
-                    {!isLoading && <span>Sign in with biometrics</span>}
-                  </Button>
+                  {accountSupportsBiometrics ? (
+                    // Existing biometric account - show login button
+                    <Button
+                      onClick={handleBiometricAuth}
+                      disabled={isLoading}
+                      loading={isLoading}
+                      variant="primary"
+                      size="custom"
+                      fullWidth
+                      className="h-11 rounded-xl text-sm font-medium"
+                    >
+                      {!isLoading && <span>Sign in with biometrics</span>}
+                    </Button>
+                  ) : (
+                    // Password account - show setup biometrics button
+                    <Button
+                      onClick={handleSetupBiometrics}
+                      disabled={isLoading}
+                      loading={isLoading}
+                      variant="primary"
+                      size="custom"
+                      fullWidth
+                      className="h-11 rounded-xl text-sm font-medium"
+                    >
+                      {!isLoading && <span>Enable biometric sign-in</span>}
+                    </Button>
+                  )}
                   {platformResolved &&
                     (!webauthnSupported || !platformAuthenticatorAvailable) && (
                       <p className="text-xs text-amber-700 dark:text-amber-400">
@@ -283,7 +307,8 @@ const Login: React.FC<LoginProps> = React.memo(
               </div>
             )}
 
-            {usePassword && (
+            {/* Password authentication - show if biometrics not available OR for password accounts */}
+            {(!biometricsAvailable || usePassword) && (
               <div className="rounded-2xl bg-white/80 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-sm backdrop-blur">
                 <div className="space-y-3">
                   <input
@@ -319,22 +344,8 @@ const Login: React.FC<LoginProps> = React.memo(
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
                   >
-                    {!isLoading && <span>Sign in</span>}
+                    {!isLoading && <span>Sign in with password</span>}
                   </Button>
-
-                  {/* Add biometrics option for password accounts */}
-                  {usePassword && (
-                    <Button
-                      onClick={handleAddBiometrics}
-                      variant="outline"
-                      size="custom"
-                      fullWidth
-                      className="h-10 rounded-xl text-sm"
-                      disabled={isLoading}
-                    >
-                      Add Biometrics
-                    </Button>
-                  )}
                 </div>
               </div>
             )}

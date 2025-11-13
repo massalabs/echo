@@ -25,15 +25,28 @@ export interface WebAuthnKeyMaterial {
  * Check if WebAuthn is supported in the current browser
  */
 export function isWebAuthnSupported(): boolean {
-  return (
+  const supported =
     typeof window !== 'undefined' &&
     typeof window.navigator !== 'undefined' &&
     typeof window.navigator.credentials !== 'undefined' &&
     typeof window.navigator.credentials.create !== 'undefined' &&
     typeof window.navigator.credentials.get !== 'undefined' &&
     typeof (window as unknown as { PublicKeyCredential?: unknown })
-      .PublicKeyCredential !== 'undefined'
-  );
+      .PublicKeyCredential !== 'undefined';
+
+  console.log('🔍 WebAuthn Support Check:', {
+    hasWindow: typeof window !== 'undefined',
+    hasNavigator: typeof window.navigator !== 'undefined',
+    hasCredentials: typeof window.navigator?.credentials !== 'undefined',
+    hasCreate: typeof window.navigator?.credentials?.create !== 'undefined',
+    hasGet: typeof window.navigator?.credentials?.get !== 'undefined',
+    hasPublicKeyCredential:
+      typeof (window as unknown as { PublicKeyCredential?: unknown })
+        .PublicKeyCredential !== 'undefined',
+    finalResult: supported,
+  });
+
+  return supported;
 }
 
 /**
@@ -45,8 +58,8 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   }
 
   try {
-    const pkc = window.PublicKeyCredential as unknown as {
-      isUserVerifyingPlatformAuthenticatorAvailable: () => Promise<boolean>;
+    const pkc = window.PublicKeyCredential as {
+      isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean>;
     };
     if (
       !pkc ||
