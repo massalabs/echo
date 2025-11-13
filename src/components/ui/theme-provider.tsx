@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Theme, ThemeContext } from './theme-context';
 import { Capacitor } from '@capacitor/core';
-import { StatusBar } from '@capacitor/status-bar';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -53,18 +53,23 @@ export function ThemeProvider({
 
       // Update status bar style for native platforms
       if (Capacitor.isNativePlatform()) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - Capacitor types don't match actual API
+        // Set status bar content color based on theme
         void StatusBar.setStyle({
-          style: (resolved === 'dark' ? 'LIGHT' : 'DARK') as never,
+          style: resolved === 'dark' ? Style.Dark : Style.Light,
         });
 
-        // Also update status bar background color to match app theme
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - Capacitor types don't match actual API
+        // Also update status bar background color to match app theme exactly
+        // Use exact hex values from CSS variables to ensure perfect match
+        const statusBarColor = resolved === 'dark' ? '#18181b' : '#f8f9fa';
         void StatusBar.setBackgroundColor({
-          color: resolved === 'dark' ? '#18181b' : '#f8f9fa',
-        });
+          color: statusBarColor,
+        })
+          .then(() => {
+            console.log('Status bar color set to:', statusBarColor);
+          })
+          .catch(err => {
+            console.warn('Failed to set status bar color:', err);
+          });
       }
     };
 
