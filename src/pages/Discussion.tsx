@@ -75,17 +75,6 @@ const Discussion: React.FC = () => {
     }
   }, [messages.length, isLoading, userProfile?.userId, contact?.userId]);
 
-  // loadMessage every 10 seconds
-  useEffect(() => {
-    if (!contact?.userId) return;
-
-    const interval = setInterval(() => {
-      syncMessages(contact?.userId);
-      // TODO: Improve fetch message logic to avoid fetching messages too often
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [contact?.userId, syncMessages]);
-
   const handleSendMessage = useCallback(
     async (text: string) => {
       if (!contact?.userId) return;

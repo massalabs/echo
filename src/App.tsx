@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { useAccountStore } from './stores/accountStore';
 import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
@@ -32,6 +32,7 @@ const AppContent: React.FC = () => {
 
   // Custom hooks for app initialization and state management
   useProfileLoader();
+  // Don't use background sync for now
   // useBackgroundSync();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
@@ -40,6 +41,13 @@ const AppContent: React.FC = () => {
   addDebugLog(
     `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
   );
+
+  useEffect(() => {
+    if (userProfile?.userId) {
+      initMessage();
+      initDiscussion();
+    }
+  }, [userProfile?.userId, initMessage, initDiscussion]);
 
   // Show global loader only during initial boot, not during sign-in.
   if (isLoading && !isInitialized && !userProfile) {

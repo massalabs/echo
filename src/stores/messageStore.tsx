@@ -35,6 +35,7 @@ interface MessageStoreState {
   ) => void;
   getMessagesForContact: (contactUserId: string) => Message[];
   clearMessages: (contactUserId: string) => void;
+  cleanup: () => void;
 }
 
 // Empty array constant to avoid creating new arrays on each call
@@ -94,17 +95,13 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
   init: async () => {
     const { userProfile } = useAccountStore.getState();
     const ownerUserId = userProfile?.userId;
-    console.log('Initializing message store for ownerUserId:', ownerUserId);
+
     if (!ownerUserId || get().subscription) return; // Already initialized
 
     // Set up a single liveQuery for all messages of the owner
-    const query = liveQuery(
-      () =>
-        // where ownerUserId matches, and readAt is null (unread messages)
-        db.messages.where('ownerUserId').equals(ownerUserId).sortBy('timestamp') // Global sort; we'll group per contact
+    const query = liveQuery(() =>
+      db.messages.where('ownerUserId').equals(ownerUserId).sortBy('timestamp')
     );
-
-    // fill message map with messages from the query
 
     const subscriptionObj = query.subscribe({
       next: allMessages => {
@@ -201,7 +198,11 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
   // Resend a failed message
   resendMessage: async (message: Message) => {
     set({ isSending: true });
-    await messageService.sendMessage(message);
+    const result = await messageService.sendMessage(message);
+    if (result.error) {
+      // Update status to failed again
+      console.error('Failed to resend message:', result.error);
+    }
     set({ isSending: false });
   },
 
@@ -277,6 +278,21 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
     const newMap = new Map(get().messagesByContact);
     newMap.delete(contactUserId);
     set({ messagesByContact: newMap });
+  },
+
+  cleanup: () => {
+    const subscription = get().subscription;
+    if (subscription) {
+      subscription();
+      set({ subscription: undefined });
+    }
+    set({
+      messagesByContact: new Map(),
+      currentContactUserId: null,
+      isLoading: false,
+      isSending: false,
+      isSyncing: false,
+    });
   },
 }));
 

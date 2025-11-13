@@ -33,6 +33,8 @@ import { encodeUserId } from '../utils/userId';
 import { getActiveOrFirstProfile } from './utils/getAccount';
 import { ensureWasmInitialized } from '../wasm/loader';
 import { auth } from './utils/auth';
+import { useDiscussionStore } from './discussionStore';
+import { useMessageStore } from './messageStore';
 
 async function createProfileFromAccount(
   username: string,
@@ -433,6 +435,8 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
 
         // Cleanup session
         cleanupSession();
+        useDiscussionStore.getState().cleanup();
+        useMessageStore.getState().cleanup();
 
         // Delete only the current account, not all accounts
         const currentProfile = await getActiveOrFirstProfile();
@@ -463,7 +467,8 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
 
         // Cleanup session
         cleanupSession();
-
+        useDiscussionStore.getState().cleanup();
+        useMessageStore.getState().cleanup();
         // Clear in-memory state but keep data in database
         // Keep isInitialized true so user goes to login screen
         set(clearAccountState(true));
