@@ -1,6 +1,5 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
-import { useDiscussionStore } from '../stores/discussionStore';
 import { Discussion, Contact, db } from '../db';
 import {
   acceptDiscussionRequest,
@@ -9,16 +8,6 @@ import {
 
 export const useDiscussionList = () => {
   const { userProfile } = useAccountStore();
-
-  const loadDiscussions = useDiscussionStore(s => s.loadDiscussions);
-  const loadContacts = useDiscussionStore(s => s.loadContacts);
-
-  useEffect(() => {
-    if (userProfile?.userId) {
-      loadContacts(userProfile.userId);
-      loadDiscussions(userProfile.userId);
-    }
-  }, [userProfile?.userId, loadContacts, loadDiscussions]);
 
   const handleCreatedNewContact = useCallback(
     async (contact: Contact): Promise<void> => {
@@ -29,14 +18,9 @@ export const useDiscussionList = () => {
           'Failed to ensure discussion exists after contact creation:',
           e
         );
-      } finally {
-        if (userProfile?.userId) {
-          await loadContacts(userProfile.userId);
-          await loadDiscussions(userProfile.userId);
-        }
       }
     },
-    [loadDiscussions, loadContacts, userProfile?.userId]
+    []
   );
 
   const handleAcceptDiscussionRequest = useCallback(
@@ -50,20 +34,16 @@ export const useDiscussionList = () => {
               .where('[ownerUserId+userId]')
               .equals([userProfile.userId, discussion.contactUserId])
               .modify({ name: newName });
-            await loadContacts(userProfile.userId);
           } catch (e) {
             console.error('Failed to update contact name:', e);
           }
         }
         await acceptDiscussionRequest(discussion);
-        if (userProfile?.userId) {
-          await loadDiscussions(userProfile.userId);
-        }
       } catch (error) {
         console.error('Failed to accept discussion:', error);
       }
     },
-    [loadDiscussions, loadContacts, userProfile?.userId]
+    [userProfile?.userId]
   );
 
   const handleRefuseDiscussionRequest = useCallback(
@@ -78,12 +58,8 @@ export const useDiscussionList = () => {
       } catch (error) {
         console.error('Failed to refuse discussion:', error);
       }
-      if (userProfile?.userId) {
-        await loadDiscussions(userProfile.userId);
-        await loadContacts(userProfile.userId);
-      }
     },
-    [loadDiscussions, loadContacts, userProfile?.userId]
+    []
   );
 
   // Only return handlers that are actually used - state and selectors should be accessed directly from stores

@@ -47,7 +47,6 @@ const Discussion: React.FC = () => {
   const sendMessage = useMessageStore(s => s.sendMessage);
   const resendMessage = useMessageStore(s => s.resendMessage);
   const syncMessages = useMessageStore(s => s.syncMessages);
-  const loadMessages = useMessageStore(s => s.loadMessages);
 
   const [isManualSyncing, setIsManualSyncing] = useState(false);
   // Track previous contact userId to prevent unnecessary updates
@@ -73,15 +72,8 @@ const Discussion: React.FC = () => {
       db.markMessagesAsRead(userProfile.userId, contact.userId).catch(error =>
         console.error('Failed to mark messages as read:', error)
       );
-      loadMessages(contact.userId);
     }
-  }, [
-    messages.length,
-    isLoading,
-    userProfile?.userId,
-    contact?.userId,
-    loadMessages,
-  ]);
+  }, [messages.length, isLoading, userProfile?.userId, contact?.userId]);
 
   // loadMessage every 10 seconds
   useEffect(() => {

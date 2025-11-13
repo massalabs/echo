@@ -25,7 +25,7 @@ export interface IMessageProtocol {
   /**
    * Send an encrypted message to the key-value store
    */
-  sendMessage(seeker: Uint8Array, message: EncryptedMessage): Promise<void>;
+  sendMessage(message: EncryptedMessage): Promise<void>;
 
   /**
    * Broadcast an outgoing session announcement produced by WASM.

@@ -47,7 +47,6 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
   const sendMessage = useMessageStore(s => s.sendMessage);
   const resendMessage = useMessageStore(s => s.resendMessage);
   const syncMessages = useMessageStore(s => s.syncMessages);
-  const loadMessages = useMessageStore(s => s.loadMessages);
 
   // Track previous contact userId to prevent unnecessary updates
   const prevContactUserIdRef = useRef<string | null>(null);
@@ -72,25 +71,16 @@ const DiscussionContent: React.FC<{ contact: Contact | null | undefined }> = ({
       db.markMessagesAsRead(userProfile.userId, contact.userId).catch(error =>
         console.error('Failed to mark messages as read:', error)
       );
-      loadMessages(contact.userId);
     }
-  }, [
-    messages.length,
-    isLoading,
-    userProfile?.userId,
-    contact?.userId,
-    loadMessages,
-  ]);
+  }, [messages.length, isLoading, userProfile?.userId, contact?.userId]);
 
-  // loadMessage every 10 seconds
-  useEffect(() => {
-    if (!contact?.userId) return;
+  // // loadMessage every 10 seconds
+  // useEffect(() => {
+  //   if (!contact?.userId) return;
 
-    const interval = setInterval(() => {
-      loadMessages(contact.userId);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [contact?.userId, loadMessages]);
+  //   const interval = setInterval(() => {}, 10000);
+  //   return () => clearInterval(interval);
+  // }, [contact?.userId]);
 
   const handleSendMessage = useCallback(
     async (text: string) => {

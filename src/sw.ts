@@ -172,14 +172,14 @@ class ServiceWorkerMessageReception {
       let actuallyAddedCount = 0;
       if (encryptedMessages.length > 0) {
         try {
-          const now = new Date();
-          await db.pendingEncryptedMessages.bulkAdd(
-            encryptedMessages.map(msg => ({
-              seeker: msg.seeker,
-              ciphertext: msg.ciphertext,
-              fetchedAt: now,
-            }))
-          );
+          // const now = new Date();
+          // await db.pendingEncryptedMessages.bulkAdd(
+          //   encryptedMessages.map(msg => ({
+          //     seeker: msg.seeker,
+          //     ciphertext: msg.ciphertext,
+          //     fetchedAt: now,
+          //   }))
+          // );
           // All messages were added successfully
           actuallyAddedCount = encryptedMessages.length;
         } catch (error) {

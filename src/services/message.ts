@@ -5,7 +5,7 @@
  * This service works both in the main app context and Service Worker context.
  */
 
-import { db, Message, Discussion } from '../db';
+import { db, Message } from '../db';
 import { decodeUserId, encodeUserId } from '../utils/userId';
 import {
   IMessageProtocol,
@@ -14,7 +14,11 @@ import {
 } from '../api/messageProtocol';
 import { useAccountStore } from '../stores/accountStore';
 import { strToBytes } from '@massalabs/massa-web3';
-import { SessionStatus } from '../assets/generated/wasm/gossip_wasm';
+import {
+  SessionStatus,
+  UserSecretKeys,
+} from '../assets/generated/wasm/gossip_wasm';
+import { SessionModule } from '../wasm';
 
 export interface MessageResult {
   success: boolean;
@@ -28,182 +32,158 @@ export interface SendMessageResult {
   error?: string;
 }
 
+interface Decrypted {
+  content: string;
+  sentAt: Date;
+  senderId: string;
+}
+
+const LIMIT_FETCH_ITERATIONS = 30;
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 export class MessageService {
   constructor(public readonly messageProtocol: IMessageProtocol) {}
 
   /**
    * Fetch new encrypted messages for a specific discussion
-   * @param discussionId - The discussion ID
    * @returns Result with count of new messages fetched
    */
   async fetchMessages(): Promise<MessageResult> {
     try {
-      // -------------------------------------------------
-      // 0. Guards
-      // -------------------------------------------------
       const { session, ourSk, userProfile } = useAccountStore.getState();
       if (!session) throw new Error('Session module not initialized');
       if (!ourSk) throw new Error('WASM secret keys unavailable');
       if (!userProfile?.userId) throw new Error('No authenticated user');
 
-      const ownerUserId = userProfile.userId;
+      let previousSeekers: Set<string> = new Set();
+      let iterations = 0;
+      let newMessagesCount = 0;
 
-      // Get all seekers for all active sessions
-      const seekers = session.getMessageBoardReadKeys();
-      if (!seekers?.length) {
-        return { success: true, newMessagesCount: 0 };
-      }
+      while (true) {
+        const seekers = session.getMessageBoardReadKeys();
+        const seekerStrings = seekers.map(s =>
+          Buffer.from(s).toString('base64')
+        );
+        const currentSeekers = new Set(seekerStrings);
 
-      // First, check if service worker has already fetched messages
-      let encrypted: EncryptedMessage[];
-      const pendingMessages = await db.pendingEncryptedMessages.toArray();
+        const allSame =
+          seekerStrings.length === previousSeekers.size &&
+          [...seekerStrings].every(s => previousSeekers.has(s));
 
-      if (pendingMessages.length > 0) {
-        // Use messages from IndexedDB
-        encrypted = pendingMessages.map(p => ({
-          seeker: p.seeker,
-          ciphertext: p.ciphertext,
-        }));
-        // Delete only the messages we just read (by their IDs) to avoid race condition
-        // If service worker adds new messages between read and delete, they won't be lost
-        const messageIds = pendingMessages
-          .map(p => p.id)
-          .filter((id): id is number => id !== undefined);
-        if (messageIds.length > 0) {
-          await db.pendingEncryptedMessages.bulkDelete(messageIds);
-        }
-      } else {
-        // If no pending messages, fetch from API
-        encrypted = await this.messageProtocol.fetchMessages(seekers);
-      }
-
-      if (!encrypted.length) {
-        return { success: true, newMessagesCount: 0 };
-      }
-
-      // -------------------------------------------------
-      // 1. Decrypt everything (CPU only)
-      // -------------------------------------------------
-      interface Decrypted {
-        content: string;
-        sentAt: Date;
-        senderId: string;
-      }
-      const decrypted: Decrypted[] = [];
-
-      for (const msg of encrypted) {
-        try {
-          const out = session.feedIncomingMessageBoardRead(
-            msg.seeker,
-            msg.ciphertext,
-            ourSk
-          );
-          if (!out) continue;
-
-          decrypted.push({
-            content: new TextDecoder().decode(out.message),
-            sentAt: new Date(Number(out.timestamp)),
-            senderId: encodeUserId(out.user_id),
-          });
-        } catch (e) {
-          console.error('Decrypt failed:', e);
-        }
-      }
-
-      if (!decrypted.length) {
-        return { success: true, newMessagesCount: 0 };
-      }
-
-      // -------------------------------------------------
-      // 2. One transaction → parallel DB work
-      // -------------------------------------------------
-      let stored = 0;
-
-      await db.transaction('rw', db.messages, db.discussions, async () => {
-        // ---- 2a. Pre-load all discussions (parallel) ----
-        // Use allSettled to handle missing discussions gracefully
-        const discPromises = decrypted.map(async ({ senderId }) => {
-          const d = await db.getDiscussionByOwnerAndContact(
-            ownerUserId,
-            senderId
-          );
-          if (!d) {
-            return { senderId, discussion: null };
-          }
-          return { senderId, discussion: d };
-        });
-        const discResults = await Promise.allSettled(discPromises);
-        const discMap = new Map<string, Discussion>();
-
-        // Filter out senders without discussions
-        for (const result of discResults) {
-          if (result.status === 'fulfilled' && result.value.discussion) {
-            discMap.set(result.value.senderId, result.value.discussion);
-          }
+        if (allSame || iterations >= LIMIT_FETCH_ITERATIONS) {
+          break;
         }
 
-        // Filter decrypted messages to only process those with discussions
-        const messagesWithDiscussions = decrypted.filter(({ senderId }) =>
-          discMap.has(senderId)
+        const encryptedMessages =
+          await this.messageProtocol.fetchMessages(seekers);
+
+        const decryptedMessages = this.decryptMessages(
+          encryptedMessages,
+          session,
+          ourSk
         );
 
-        if (!messagesWithDiscussions.length) {
-          // No messages have valid discussions, skip this batch
-          return;
-        }
-
-        // ---- 2b. Insert messages (parallel) ----
-        // Only insert messages for senders that have discussions
-        const msgPromises = messagesWithDiscussions.map(
-          async ({ content, sentAt, senderId }) => {
-            const id = await db.messages.add({
-              ownerUserId,
-              contactUserId: senderId,
-              content,
-              type: 'text' as const,
-              direction: 'incoming' as const,
-              status: 'delivered' as const,
-              timestamp: sentAt,
-              metadata: {},
-            });
-            return { id, senderId, content, sentAt };
-          }
-        );
-        const inserted = await Promise.all(msgPromises);
-
-        // ---- 2c. Update discussions (parallel, best-effort) ----
-        const now = new Date();
-        const updPromises = inserted.map(
-          async ({ id, senderId, content, sentAt }) => {
-            const disc = discMap.get(senderId);
-            if (!disc) return;
-
-            await db.discussions.update(disc.id, {
-              lastMessageId: id,
-              lastMessageContent: content,
-              lastMessageTimestamp: sentAt,
-              updatedAt: now,
-              lastSyncTimestamp: now,
-              unreadCount: disc.unreadCount + 1,
-            });
-          }
+        const storedMessagesIds = await this.storeDecryptedMessages(
+          decryptedMessages,
+          userProfile.userId
         );
 
-        // Use allSettled so one bad discussion doesn't kill the whole batch
-        await Promise.allSettled(updPromises);
+        previousSeekers = currentSeekers;
+        newMessagesCount += storedMessagesIds.length;
+        iterations += 1;
+        // Small delay to avoid tight loop
+        await sleep(100);
+      }
 
-        stored = inserted.length;
-      });
-
-      return { success: true, newMessagesCount: stored };
+      return {
+        success: true,
+        newMessagesCount,
+      };
     } catch (err) {
-      console.error('fetchMessages error:', err);
       return {
         success: false,
         newMessagesCount: 0,
         error: err instanceof Error ? err.message : 'Unknown error',
       };
     }
+  }
+
+  private decryptMessages(
+    encrypted: EncryptedMessage[],
+    session: SessionModule,
+    ourSk: UserSecretKeys
+  ): Decrypted[] {
+    const decrypted: Decrypted[] = [];
+    for (const msg of encrypted) {
+      try {
+        const out = session.feedIncomingMessageBoardRead(
+          msg.seeker,
+          msg.ciphertext,
+          ourSk
+        );
+        if (!out) continue;
+        decrypted.push({
+          content: new TextDecoder().decode(out.message),
+          sentAt: new Date(Number(out.timestamp)),
+          senderId: encodeUserId(out.user_id),
+        });
+      } catch (e) {
+        console.error('Decrypt failed:', e);
+      }
+    }
+    return decrypted;
+  }
+
+  private async storeDecryptedMessages(
+    decrypted: Decrypted[],
+    ownerUserId: string
+  ): Promise<number[]> {
+    if (!decrypted.length) return [];
+
+    const ids: number[] = [];
+
+    await Promise.all(
+      decrypted.map(async message => {
+        const discussion = await db.getDiscussionByOwnerAndContact(
+          ownerUserId,
+          message.senderId
+        );
+
+        if (!discussion) {
+          // Skip messages without existing discussion: Should not happen normally
+          console.warn(
+            'No discussion found for incoming message from',
+            message.senderId
+          );
+          return;
+        }
+
+        const id = await db.messages.add({
+          ownerUserId,
+          contactUserId: discussion.contactUserId,
+          content: message.content,
+          type: 'text' as const,
+          direction: 'incoming' as const,
+          status: 'delivered' as const,
+          timestamp: message.sentAt,
+          metadata: {},
+        });
+
+        const now = new Date();
+        await db.discussions.update(discussion.id, {
+          lastMessageId: id,
+          lastMessageContent: message.content,
+          lastMessageTimestamp: message.sentAt,
+          updatedAt: now,
+          lastSyncTimestamp: now,
+          unreadCount: discussion.unreadCount + 1,
+        });
+
+        ids.push(id);
+      })
+    );
+    return ids;
   }
 
   /**
@@ -256,7 +236,7 @@ export class MessageService {
 
       if (!sendOutput) throw new Error('WASM sendMessage returned null');
 
-      await this.messageProtocol.sendMessage(sendOutput.seeker, {
+      await this.messageProtocol.sendMessage({
         seeker: sendOutput.seeker,
         ciphertext: sendOutput.data,
       });

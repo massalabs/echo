@@ -49,10 +49,7 @@ export class RestMessageProtocol implements IMessageProtocol {
     });
   }
 
-  async sendMessage(
-    seeker: Uint8Array,
-    message: EncryptedMessage
-  ): Promise<void> {
+  async sendMessage(message: EncryptedMessage): Promise<void> {
     const url = `${this.baseUrl}${MESSAGES_ENDPOINT}/`;
 
     const response = await this.makeRequest<void>(url, {
@@ -61,7 +58,7 @@ export class RestMessageProtocol implements IMessageProtocol {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: encodeToBase64(seeker),
+        key: encodeToBase64(message.seeker),
         value: encodeToBase64(message.ciphertext),
       }),
     });

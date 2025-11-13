@@ -11,7 +11,7 @@ import './App.css';
 
 // Hooks
 import { useProfileLoader } from './hooks/useProfileLoader';
-import { useBackgroundSync } from './hooks/useBackgroundSync';
+// import { useBackgroundSync } from './hooks/useBackgroundSync';
 import { useAppStateRefresh } from './hooks/useAppStateRefresh';
 import { useAccountInfo } from './hooks/useAccountInfo';
 import { useAuthRouting } from './hooks/useAuthRouting';
@@ -20,15 +20,19 @@ import { useAuthRouting } from './hooks/useAuthRouting';
 import { AuthenticatedRoutes } from './routes/AuthenticatedRoutes';
 import { UnauthenticatedRoutes } from './routes/UnauthenticatedRoutes';
 import { OnboardingRoutes } from './routes/OnboardingRoutes';
+import { useMessageStore } from './stores/messageStore.tsx';
+import { useDiscussionStore } from './stores/discussionStore.tsx';
 
 const AppContent: React.FC = () => {
   const { isInitialized, isLoading, userProfile } = useAccountStore();
+  const initMessage = useMessageStore(s => s.init);
+  const initDiscussion = useDiscussionStore(s => s.init);
   const [showImport, setShowImport] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Custom hooks for app initialization and state management
   useProfileLoader();
-  useBackgroundSync();
+  // useBackgroundSync();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
   useAuthRouting();
@@ -51,6 +55,9 @@ const AppContent: React.FC = () => {
 
   // If authenticated, show main app routes
   if (userProfile) {
+    initMessage(); // Ensure message store is initialized
+    initDiscussion();
+
     return <AuthenticatedRoutes />;
   }
 

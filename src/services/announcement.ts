@@ -13,7 +13,6 @@ import {
   createMessageProtocol,
   IMessageProtocol,
 } from '../api/messageProtocol';
-import { useDiscussionStore } from '../stores/discussionStore';
 
 export interface AnnouncementReceptionResult {
   success: boolean;
@@ -46,8 +45,6 @@ export class AnnouncementService {
     try {
       const { userProfile } = useAccountStore.getState();
       if (!userProfile?.userId) throw new Error('No authenticated user');
-
-      const ownerUserId = userProfile.userId;
 
       // First, check if service worker has already fetched announcements
       let announcements: Uint8Array[];
@@ -85,8 +82,6 @@ export class AnnouncementService {
           hasErrors = true;
         }
       }
-
-      await useDiscussionStore.getState().loadDiscussionStoreData(ownerUserId);
 
       return {
         success: !hasErrors || newAnnouncementsCount > 0,
