@@ -6,9 +6,9 @@ import { useAppStore } from '../stores/appStore';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { PrivacyGraphic } from '../components/ui/PrivacyGraphic';
+import { triggerManualSync } from '../services/messageSync';
 
 const Discussions: React.FC = () => {
-  const refreshAppState = useAppStore(s => s.refreshAppState);
   const navigate = useNavigate();
   const isLoading = useAccountStore(s => s.isLoading);
   const showDebugPanel = useAppStore(s => s.showDebugPanel);
@@ -29,7 +29,7 @@ const Discussions: React.FC = () => {
         <div className="px-6 py-4 border-b border-border flex justify-between items-center">
           <h2 className="text-lg font-medium text-foreground">Discussions</h2>
           <button
-            onClick={refreshAppState}
+            onClick={() => triggerManualSync()}
             className="text-xs text-primary hover:text-primary/80 underline"
           >
             Refresh
@@ -37,7 +37,7 @@ const Discussions: React.FC = () => {
         </div>
         <div className="pb-20 flex-1 overflow-y-auto">
           <DiscussionListPanel
-            onRefresh={refreshAppState}
+            onRefresh={() => triggerManualSync()}
             onSelect={id => {
               navigate(`/discussion/${id}`);
             }}

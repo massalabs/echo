@@ -4,11 +4,10 @@ import { useAccountStore } from '../../stores/accountStore';
 import { announcementService } from '../../services/announcement';
 import { formatMassaAddress } from '../../utils/addressUtils';
 import Button from './Button';
-import { useAppStore } from '../../stores/appStore';
+import { triggerManualSync } from '../../services/messageSync';
 
 const DebugPanel: React.FC = () => {
   const { userProfile, account, resetAccount } = useAccountStore();
-  const refreshAppState = useAppStore(s => s.refreshAppState);
 
   const handleResetAccount = useCallback(async () => {
     try {
@@ -32,9 +31,9 @@ const DebugPanel: React.FC = () => {
     } catch (error) {
       console.error('Failed to reset discussions and messages:', error);
     } finally {
-      await refreshAppState();
+      await triggerManualSync();
     }
-  }, [refreshAppState]);
+  }, []);
 
   const handleResetAllAccounts = useCallback(async () => {
     try {
