@@ -2,10 +2,7 @@ import { create } from 'zustand';
 import { db, UserProfile } from '../db';
 
 import { encrypt, deriveKey } from '../crypto/encryption';
-import {
-  createWebAuthnCredential,
-  isWebAuthnSupported,
-} from '../crypto/webauthn';
+import { isWebAuthnSupported } from '../crypto/webauthn';
 import { biometricService } from '../crypto/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
 import {
@@ -168,15 +165,12 @@ async function buildSecurityFromWebAuthn(
     );
   }
 
-  // Create WebAuthn credential for cryptographic operations
-  const webauthnKey = await createWebAuthnCredential(
-    `Gossip:${username}`,
-    userIdBytes
-  );
-  const { credentialId, publicKey } = webauthnKey;
+  // Use the credential ID and public key from biometric service
+  const { credentialId, publicKey } = credentialResult;
 
   // Derive EncryptionKey deterministically from credentialId + publicKey
-  const seedHash = credentialId + Buffer.from(publicKey).toString('base64');
+  const seedHash =
+    credentialId + (publicKey ? Buffer.from(publicKey).toString('base64') : '');
   const salt = (await generateNonce()).to_bytes();
   const derivedKey = await deriveKey(seedHash, salt);
 
@@ -197,7 +191,7 @@ async function buildSecurityFromWebAuthn(
   const security: UserProfile['security'] = {
     webauthn: {
       credentialId,
-      publicKey: webauthnKey.publicKey,
+      publicKey: publicKey || new ArrayBuffer(0),
     },
     encKeySalt: salt,
     mnemonicBackup,
