@@ -189,25 +189,32 @@ const Login: React.FC<LoginProps> = React.memo(
       onAccountSelected();
     };
 
-    const accountSupportsBiometrics = !usePassword;
     const displayUsername = currentAccount?.username;
 
     // Check if biometrics are available for this account/device
     const biometricsAvailable =
       webauthnSupported && platformAuthenticatorAvailable;
 
+    // Always try biometric first if available, regardless of account type
+    const shouldTryBiometricFirst = biometricsAvailable;
+
+    // For password accounts, we want to show biometric option as primary
+    const accountSupportsBiometrics = !usePassword;
+    const shouldShowBiometricOption =
+      shouldTryBiometricFirst || accountSupportsBiometrics;
+
     // Debug logging
     console.log('🔍 Login Screen Debug:', {
       usePassword,
+      shouldTryBiometricFirst,
       accountSupportsBiometrics,
+      shouldShowBiometricOption,
       webauthnSupported,
       platformAuthenticatorAvailable,
       platformResolved,
       currentAccount: currentAccount?.username,
       hasWebauthnCred: !!currentAccount?.security?.webauthn?.credentialId,
       biometricsAvailable,
-      shouldShowBiometricOption: biometricsAvailable && !usePassword,
-      shouldShowPasswordOption: !biometricsAvailable || usePassword,
     });
 
     if (showAccountSelection) {
@@ -267,7 +274,7 @@ const Login: React.FC<LoginProps> = React.memo(
 
           <div className="space-y-5">
             {/* Biometric authentication - always show if available */}
-            {biometricsAvailable && (
+            {shouldShowBiometricOption && (
               <div className="rounded-2xl bg-white/80 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-sm backdrop-blur">
                 <div className="space-y-3">
                   {accountSupportsBiometrics ? (
@@ -336,10 +343,10 @@ const Login: React.FC<LoginProps> = React.memo(
                   />
                   <Button
                     type="button"
-                    onClick={() => handlePasswordAuth()}
+                    onClick={handlePasswordAuth}
                     disabled={isLoading || !password.trim()}
                     loading={isLoading}
-                    variant="ghost"
+                    variant="outline"
                     size="custom"
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
