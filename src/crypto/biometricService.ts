@@ -21,6 +21,13 @@ export interface BiometricAvailability {
   available: boolean;
   biometryType?: 'fingerprint' | 'face' | 'none';
   reason?: string;
+  method?: 'capacitor' | 'webauthn' | 'none';
+}
+
+export interface BiometricMethods {
+  capacitor: boolean;
+  webauthn: boolean;
+  any: boolean;
 }
 
 export interface CreateCredentialResult extends BiometricResult {
@@ -62,11 +69,52 @@ export class BiometricService {
   }
 
   /**
+   * Check which biometric methods are available
+   */
+  public async checkBiometricMethods(): Promise<BiometricMethods> {
+    const methods: BiometricMethods = {
+      capacitor: false,
+      webauthn: false,
+      any: false,
+    };
+
+    // Check Capacitor Biometric Auth
+    if (this.capacitorAvailable) {
+      try {
+        const result = await BiometricAuth.checkBiometry();
+        methods.capacitor = result.isAvailable;
+        console.log('📱 Capacitor biometrics available:', methods.capacitor);
+      } catch (error) {
+        console.warn('❌ Capacitor biometric check failed:', error);
+        methods.capacitor = false;
+      }
+    }
+
+    // Check WebAuthn
+    if (isWebAuthnSupported()) {
+      try {
+        const platformAvailable = await isPlatformAuthenticatorAvailable();
+        methods.webauthn = platformAvailable;
+        console.log('🌐 WebAuthn available:', methods.webauthn);
+      } catch (error) {
+        console.warn('❌ WebAuthn availability check failed:', error);
+        methods.webauthn = false;
+      }
+    }
+
+    methods.any = methods.capacitor || methods.webauthn;
+    console.log('🔍 Final biometric methods:', methods);
+    return methods;
+  }
+
+  /**
    * Check if biometric authentication is available
    */
   public async checkAvailability(): Promise<BiometricAvailability> {
+    const methods = await this.checkBiometricMethods();
+
     // Try Capacitor Biometric Auth first (native)
-    if (this.capacitorAvailable) {
+    if (methods.capacitor) {
       try {
         const result = await BiometricAuth.checkBiometry();
         console.log('📊 Capacitor checkBiometry result:', result);
@@ -75,6 +123,7 @@ export class BiometricService {
           available: result.isAvailable,
           biometryType: this.mapBiometryType(result.biometryType),
           reason: result.reason || undefined,
+          method: 'capacitor' as const,
         };
 
         console.log('✅ Final availability result:', availability);
@@ -85,7 +134,7 @@ export class BiometricService {
     }
 
     // Fallback to WebAuthn
-    if (isWebAuthnSupported()) {
+    if (methods.webauthn) {
       console.log('🌐 Using WebAuthn fallback');
       try {
         const platformAvailable = await isPlatformAuthenticatorAvailable();
@@ -94,6 +143,7 @@ export class BiometricService {
         const availability: BiometricAvailability = {
           available: platformAvailable,
           biometryType: platformAvailable ? 'fingerprint' : 'none',
+          method: 'webauthn' as const,
         };
 
         console.log('✅ WebAuthn availability result:', availability);
@@ -107,6 +157,7 @@ export class BiometricService {
       available: false,
       biometryType: 'none',
       reason: 'No biometric authentication available',
+      method: 'none' as const,
     };
   }
 
