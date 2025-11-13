@@ -58,6 +58,13 @@ export function ThemeProvider({
         void StatusBar.setStyle({
           style: (resolved === 'dark' ? 'LIGHT' : 'DARK') as never,
         });
+
+        // Also update status bar background color to match app theme
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Capacitor types don't match actual API
+        void StatusBar.setBackgroundColor({
+          color: resolved === 'dark' ? '#18181b' : '#f8f9fa',
+        });
       }
     };
 
