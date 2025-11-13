@@ -174,17 +174,16 @@ export class BiometricService {
     credentialId: string,
     reason?: string
   ): Promise<BiometricResult> {
-    // Try Capacitor Biometric Auth first (native)
+    // Use Capacitor Biometric Auth for native platforms
     if (this.capacitorAvailable) {
       try {
+        console.log('📱 Using native biometric authentication');
         await BiometricAuth.authenticate({
           reason: reason || 'Authenticate to access your account',
           allowDeviceCredential: true,
         });
 
-        // For native platforms, we still need to verify the WebAuthn credential
-        // to ensure the cryptographic material is valid
-        await authenticateWithWebAuthn(credentialId);
+        console.log('✅ Native biometric authentication successful');
         return { success: true };
       } catch (error) {
         console.error('Native biometric authentication failed:', error);
@@ -207,8 +206,9 @@ export class BiometricService {
       }
     }
 
-    // Fallback to WebAuthn
+    // Use WebAuthn for web platforms only
     try {
+      console.log('🌐 Using WebAuthn authentication for web platform');
       await authenticateWithWebAuthn(credentialId);
       return { success: true };
     } catch (error) {
