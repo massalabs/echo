@@ -145,48 +145,44 @@ export class MessageService {
   ): Promise<number[]> {
     if (!decrypted.length) return [];
 
-    const ids: number[] = [];
-
-    decrypted.map(async message => {
-      const discussion = await db.getDiscussionByOwnerAndContact(
-        ownerUserId,
-        message.senderId
-      );
-
-      if (!discussion) {
-        // Skip messages without existing discussion: Should not happen normally
-        console.error(
-          'No discussion found for incoming message from',
+    const ids = await Promise.all(
+      decrypted.map(async message => {
+        const discussion = await db.getDiscussionByOwnerAndContact(
+          ownerUserId,
           message.senderId
         );
-        return;
-      }
-
-      const id = await db.messages.add({
-        ownerUserId,
-        contactUserId: discussion.contactUserId,
-        content: message.content,
-        type: 'text' as const,
-        direction: 'incoming' as const,
-        status: 'delivered' as const,
-        timestamp: message.sentAt,
-        metadata: {},
-      });
-
-      const now = new Date();
-      await db.discussions.update(discussion.id, {
-        lastMessageId: id,
-        lastMessageContent: message.content,
-        lastMessageTimestamp: message.sentAt,
-        updatedAt: now,
-        lastSyncTimestamp: now,
-        unreadCount: discussion.unreadCount + 1,
-      });
-
-      ids.push(id);
-    });
-
-    return ids;
+        if (!discussion) {
+          // Skip messages without existing discussion: Should not happen normally
+          console.error(
+            'No discussion found for incoming message from',
+            message.senderId
+          );
+          return undefined;
+        }
+        const id = await db.messages.add({
+          ownerUserId,
+          contactUserId: discussion.contactUserId,
+          content: message.content,
+          type: 'text' as const,
+          direction: 'incoming' as const,
+          status: 'delivered' as const,
+          timestamp: message.sentAt,
+          metadata: {},
+        });
+        const now = new Date();
+        await db.discussions.update(discussion.id, {
+          lastMessageId: id,
+          lastMessageContent: message.content,
+          lastMessageTimestamp: message.sentAt,
+          updatedAt: now,
+          lastSyncTimestamp: now,
+          unreadCount: discussion.unreadCount + 1,
+        });
+        return id;
+      })
+    );
+    // Filter out any undefined values (messages without a discussion)
+    return ids.filter((id): id is number => typeof id === 'number');
   }
 
   /**

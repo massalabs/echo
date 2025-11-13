@@ -287,7 +287,7 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
     const subscription = get().subscription;
     if (subscription) {
       subscription.unsubscribe();
-      set({ subscription: undefined });
+      set({ subscription: null });
     }
     set({
       messagesByContact: new Map(),
