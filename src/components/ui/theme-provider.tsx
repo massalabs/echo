@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Theme, ThemeContext } from './theme-context';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar } from '@capacitor/status-bar';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -47,6 +49,15 @@ export function ThemeProvider({
         root.classList.add('dark');
       } else {
         root.classList.remove('dark');
+      }
+
+      // Update status bar style for native platforms
+      if (Capacitor.isNativePlatform()) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - Capacitor types don't match actual API
+        void StatusBar.setStyle({
+          style: (resolved === 'dark' ? 'LIGHT' : 'DARK') as never,
+        });
       }
     };
 
