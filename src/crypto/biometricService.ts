@@ -69,26 +69,37 @@ export class BiometricService {
     if (this.capacitorAvailable) {
       try {
         const result = await BiometricAuth.checkBiometry();
-        return {
+        console.log('📊 Capacitor checkBiometry result:', result);
+
+        const availability = {
           available: result.isAvailable,
           biometryType: this.mapBiometryType(result.biometryType),
           reason: result.reason || undefined,
         };
+
+        console.log('✅ Final availability result:', availability);
+        return availability;
       } catch (error) {
-        console.warn('Capacitor biometric check failed:', error);
+        console.warn('❌ Capacitor biometric check failed:', error);
       }
     }
 
     // Fallback to WebAuthn
     if (isWebAuthnSupported()) {
+      console.log('🌐 Using WebAuthn fallback');
       try {
         const platformAvailable = await isPlatformAuthenticatorAvailable();
-        return {
+        console.log('📊 WebAuthn platformAvailable:', platformAvailable);
+
+        const availability: BiometricAvailability = {
           available: platformAvailable,
           biometryType: platformAvailable ? 'fingerprint' : 'none',
         };
+
+        console.log('✅ WebAuthn availability result:', availability);
+        return availability;
       } catch (error) {
-        console.warn('WebAuthn availability check failed:', error);
+        console.warn('❌ WebAuthn availability check failed:', error);
       }
     }
 

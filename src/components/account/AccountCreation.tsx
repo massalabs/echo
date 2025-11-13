@@ -49,16 +49,50 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   // In create flow, we no longer check for existing accounts. This screen is only for creating new accounts.
 
   useEffect(() => {
-    setPlatformAvailable(platformAuthenticatorAvailable);
+    const checkBiometricAvailability = async () => {
+      try {
+        // Use biometric service directly for more accurate detection
+        const { biometricService } = await import(
+          '../../crypto/biometricService'
+        );
+        const availability = await biometricService.checkAvailability();
 
-    // If biometrics are not available, force password mode
-    if (!webauthnSupported || !platformAuthenticatorAvailable) {
-      setUsePassword(true);
-    } else {
-      // If biometrics are available, default to biometrics but allow user to choose
-      setUsePassword(false);
-    }
-  }, [webauthnSupported, platformAuthenticatorAvailable]);
+        console.log('🔍 Account Creation - Biometric Service Check:', {
+          availability,
+          platformInfo: biometricService.getPlatformInfo(),
+        });
+
+        setPlatformAvailable(availability.available);
+
+        // Debug logging after state update
+        console.log('🔍 Account Creation - After Biometric Check:', {
+          webauthnSupported: storeWebauthnSupported,
+          platformAuthenticatorAvailable,
+          platformAvailable: availability.available,
+          usePassword,
+        });
+
+        // If biometrics are not available, force password mode
+        if (!availability.available) {
+          console.log('🔒 Forcing password mode - biometrics not available', {
+            reason: availability.reason || 'Unknown reason',
+          });
+          setUsePassword(true);
+        } else {
+          // If biometrics are available, default to biometrics but allow user to choose
+          console.log('👆 Defaulting to biometrics - available');
+          setUsePassword(false);
+        }
+      } catch (error) {
+        console.error('❌ Error checking biometric availability:', error);
+        // Fallback to password if check fails
+        setUsePassword(true);
+        setPlatformAvailable(false);
+      }
+    };
+
+    checkBiometricAvailability();
+  }, [storeWebauthnSupported, platformAuthenticatorAvailable, usePassword]);
 
   const validateUsernameField = (value: string) => {
     const result = validateUsername(value);
@@ -148,7 +182,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                 options={[
                   {
                     value: 'biometrics',
-                    label: 'Biometrics',
+                    label: 'Biometrics (Recommended)',
                     icon: (
                       <svg
                         className="w-4 h-4"
@@ -311,7 +345,11 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                       d="M13 10V3L4 14h7v7l9-11h-7z"
                     />
                   </svg>
-                  <span>Create Account</span>
+                  <span>
+                    {usePassword
+                      ? 'Create Account with Password'
+                      : 'Create Account with Biometrics'}
+                  </span>
                 </>
               )}
             </Button>
