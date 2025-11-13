@@ -74,7 +74,6 @@ const Login: React.FC<LoginProps> = React.memo(
 
         // Check biometric availability first
         const availability = await biometricService.checkAvailability();
-        console.log('🔐 Biometric availability check:', availability);
 
         if (!availability.available) {
           throw new Error(
@@ -202,20 +201,6 @@ const Login: React.FC<LoginProps> = React.memo(
     const accountSupportsBiometrics = !usePassword;
     const shouldShowBiometricOption =
       shouldTryBiometricFirst || accountSupportsBiometrics;
-
-    // Debug logging
-    console.log('🔍 Login Screen Debug:', {
-      usePassword,
-      shouldTryBiometricFirst,
-      accountSupportsBiometrics,
-      shouldShowBiometricOption,
-      webauthnSupported,
-      platformAuthenticatorAvailable,
-      platformResolved,
-      currentAccount: currentAccount?.username,
-      hasWebauthnCred: !!currentAccount?.security?.webauthn?.credentialId,
-      biometricsAvailable,
-    });
 
     if (showAccountSelection) {
       return (
