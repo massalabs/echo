@@ -5,9 +5,13 @@
  */
 
 import { useAccountStore } from '../stores/accountStore';
+import { notificationService } from './notifications';
+import { triggerManualSync } from './messageSync';
+import { defaultSyncConfig } from '../config/sync';
 
 /**
  * Setup service worker: register, listen for messages, and start sync scheduler
+ * Also initializes background sync (notifications, periodic sync, online listener)
  */
 export async function setupServiceWorker(): Promise<void> {
   if (!('serviceWorker' in navigator)) {
@@ -19,6 +23,9 @@ export async function setupServiceWorker(): Promise<void> {
 
   // Register service worker and setup sync scheduler
   await registerAndStartSync();
+
+  // Initialize background sync: request notification permission, register periodic sync, setup online listener
+  await initializeBackgroundSync();
 }
 
 /**
@@ -58,10 +65,7 @@ function setupMessageListener(): void {
     // Handle notification from service worker when new messages are detected
     if (event.data && event.data.type === 'NEW_MESSAGES_DETECTED') {
       try {
-        // Dynamically import to avoid circular dependency
-        const { useAppStore } = await import('../stores/appStore');
-        const { refreshAppState } = useAppStore.getState();
-        await refreshAppState();
+        await triggerManualSync();
       } catch (error) {
         console.error('Failed to refresh app state on new messages:', error);
       }
@@ -85,6 +89,15 @@ async function registerAndStartSync(): Promise<void> {
     }
   } catch (error) {
     console.error('App: Error checking service worker registrations:', error);
+  }
+}
+
+/**
+ * Send START_SYNC_SCHEDULER message to service worker
+ */
+function startSyncScheduler(registration: ServiceWorkerRegistration): void {
+  if (registration.active) {
+    registration.active.postMessage({ type: 'START_SYNC_SCHEDULER' });
   }
 }
 
@@ -114,14 +127,12 @@ async function registerServiceWorker(): Promise<void> {
         scope: '/',
       });
 
-      // Wait for service worker to be ready
+      // Wait for service worker to be ready and start sync scheduler
       if (registration.installing) {
         registration.installing.addEventListener('statechange', event => {
           const sw = event.target as ServiceWorker;
           if (sw.state === 'activated') {
-            if (registration.active) {
-              registration.active.postMessage({ type: 'START_SYNC_SCHEDULER' });
-            }
+            startSyncScheduler(registration);
           }
         });
       } else if (registration.waiting) {
@@ -129,13 +140,11 @@ async function registerServiceWorker(): Promise<void> {
         registration.waiting.addEventListener('statechange', event => {
           const sw = event.target as ServiceWorker;
           if (sw.state === 'activated') {
-            if (registration.active) {
-              registration.active.postMessage({ type: 'START_SYNC_SCHEDULER' });
-            }
+            startSyncScheduler(registration);
           }
         });
       } else if (registration.active) {
-        registration.active.postMessage({ type: 'START_SYNC_SCHEDULER' });
+        startSyncScheduler(registration);
       }
 
       // Success! Exit the loop
@@ -158,10 +167,81 @@ async function handleExistingRegistration(): Promise<void> {
   // Wait for ready and send start message
   try {
     const registration = await navigator.serviceWorker.ready;
-    if (registration.active) {
-      registration.active.postMessage({ type: 'START_SYNC_SCHEDULER' });
-    }
+    startSyncScheduler(registration);
   } catch (error) {
     console.error('App: Error waiting for service worker ready:', error);
+  }
+}
+
+/**
+ * Initialize background sync: notifications, periodic sync, and online listener
+ */
+async function initializeBackgroundSync(): Promise<void> {
+  try {
+    // Request notification permission
+    await notificationService.requestPermission();
+
+    // Register periodic background sync
+    await registerPeriodicSync();
+
+    console.log('Background sync service initialized');
+
+    // Auto-retry pending announcements when coming back online
+    window.addEventListener('online', () => {
+      void triggerManualSync();
+    });
+  } catch (error) {
+    console.error('Failed to initialize background sync service:', error);
+  }
+}
+
+/**
+ * Register periodic background sync
+ * Note: On mobile devices, browsers may throttle or delay syncs significantly
+ * Requesting 5 minutes, but actual syncs may be much less frequent
+ */
+async function registerPeriodicSync(): Promise<void> {
+  if (!('sync' in window.ServiceWorkerRegistration.prototype)) {
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+
+    // Use centralized sync config
+    const PERIODIC_SYNC_MIN_INTERVAL_MS =
+      defaultSyncConfig.periodicSyncMinIntervalMs;
+
+    // Register periodic sync with minInterval parameter
+    // Type assertion needed for experimental API
+    const periodicSync = (
+      registration as ServiceWorkerRegistration & {
+        periodicSync?: {
+          register: (
+            tag: string,
+            options?: { minInterval?: number }
+          ) => Promise<void>;
+        };
+      }
+    ).periodicSync;
+
+    if (periodicSync) {
+      await periodicSync.register('gossip-message-sync', {
+        minInterval: PERIODIC_SYNC_MIN_INTERVAL_MS,
+      });
+    } else {
+      // Fallback for browsers that don't support periodicSync but support sync
+      await (
+        registration as ServiceWorkerRegistration & {
+          sync: { register: (tag: string) => Promise<void> };
+        }
+      ).sync.register('gossip-message-sync');
+    }
+  } catch (error) {
+    // Silently handle permission errors (expected in many browsers)
+    // Only log unexpected errors
+    if (!(error instanceof DOMException && error.name === 'NotAllowedError')) {
+      console.error('Failed to register periodic background sync:', error);
+    }
   }
 }

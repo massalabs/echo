@@ -11,7 +11,7 @@ import './App.css';
 
 // Hooks
 import { useProfileLoader } from './hooks/useProfileLoader';
-// import { useBackgroundSync } from './hooks/useBackgroundSync';
+
 import { useAppStateRefresh } from './hooks/useAppStateRefresh';
 import { useAccountInfo } from './hooks/useAccountInfo';
 import { useAuthRouting } from './hooks/useAuthRouting';
@@ -32,11 +32,16 @@ const AppContent: React.FC = () => {
 
   // Custom hooks for app initialization and state management
   useProfileLoader();
-  // Don't use background sync for now
-  // useBackgroundSync();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
   useAuthRouting();
+
+  // Setup service worker: register, listen for messages, start sync scheduler, and initialize background sync
+  // useEffect(() => {
+  //   setupServiceWorker().catch(error => {
+  //     console.error('Failed to setup service worker:', error);
+  //   });
+  // }, []); // Only run once on mount
 
   addDebugLog(
     `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`

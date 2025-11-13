@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAccountStore } from '../stores/accountStore';
-import { useAppStore } from '../stores/appStore';
 import { defaultSyncConfig } from '../config/sync';
+import { triggerManualSync } from '../services/messageSync';
 
 /**
  * Hook to refresh app state periodically when user is logged in
@@ -12,16 +12,17 @@ export function useAppStateRefresh() {
 
   useEffect(() => {
     if (userProfile?.userId) {
-      const { refreshAppState } = useAppStore.getState();
-
-      // Initial refresh on login
-      refreshAppState().catch(error => {
-        console.error('Failed to refresh app state on login:', error);
+      console.log('User logged in, triggering message sync');
+      triggerManualSync().catch(error => {
+        console.error('Failed to sync messages on login:', error);
       });
 
       const REFRESH_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
       const refreshInterval = setInterval(() => {
-        refreshAppState().catch(error => {
+        console.log(
+          `Periodic app state refresh triggered (every ${REFRESH_INTERVAL_MS / 1000}s)`
+        );
+        triggerManualSync().catch(error => {
           console.error('Failed to refresh app state periodically:', error);
         });
       }, REFRESH_INTERVAL_MS);
