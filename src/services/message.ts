@@ -258,9 +258,9 @@ export class MessageService {
         );
         if (!discussion)
           throw new Error(
-            'Could not send message after session manager and could save failed encrypted message because discussion not found'
+            'Could not send message after session manager and could not save failed encrypted message because discussion not found'
           );
-        await db.discussions.update(discussion?.id, {
+        await db.discussions.update(discussion.id, {
           failedEncryptedMessage: {
             seeker: sendOutput.seeker,
             ciphertext: sendOutput.data,
@@ -323,7 +323,7 @@ export class MessageService {
         };
       }
     } else {
-      // If the message has not been encrypted by sessionManager, send it as if it where new
+      // If the message has not been encrypted by sessionManager, send it as if it were new
       return await this.sendMessage(message);
     }
   }

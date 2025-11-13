@@ -65,7 +65,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
             autoCapitalize="sentences"
             spellCheck="true"
             className="flex-1 min-h-[36px] md:min-h-[40px] max-h-[120px] bg-transparent dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-none transition-all duration-200 overflow-y-auto text-[15px] leading-relaxed focus:outline-none"
-            // disabled={disabled}
             style={
               {
                 height: `${Math.max(inputHeight, 36)}px`,
@@ -79,7 +78,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
           <div className="hidden md:block w-px h-6 bg-gray-200 dark:bg-gray-700/60 mx-1" />
           <div onClick={handleContainerClick} className="shrink-0">
             <Button
-              //disabled={!newMessage.trim() || disabled}
               onClick={handleSendMessage}
               variant="primary"
               size="custom"
