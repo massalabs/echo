@@ -4,7 +4,7 @@ import { createSelectors } from './utils/createSelectors';
 import { useAccountStore } from './accountStore';
 import { messageService } from '../services/message';
 import { notificationService } from '../services/notifications';
-import { liveQuery } from 'dexie';
+import { liveQuery, Subscription } from 'dexie';
 
 interface MessageStoreState {
   // Messages keyed by contactUserId (Map for efficient lookups)
@@ -18,9 +18,10 @@ interface MessageStoreState {
   // Syncing state (global)
   isSyncing: boolean;
   // Subscription for liveQuery
-  subscription?: () => void;
+  subscription: Subscription | null;
 
   init: () => Promise<void>;
+  isInitializing: boolean;
 
   // Actions
   setCurrentContact: (contactUserId: string | null) => void;
@@ -80,7 +81,8 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
   isLoading: false,
   isSending: false,
   isSyncing: false,
-  subscription: undefined,
+  subscription: null,
+  isInitializing: false,
 
   // Set current contact (for viewing messages)
   setCurrentContact: (contactUserId: string | null) => {
@@ -96,8 +98,9 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
     const { userProfile } = useAccountStore.getState();
     const ownerUserId = userProfile?.userId;
 
-    if (!ownerUserId || get().subscription) return; // Already initialized
+    if (!ownerUserId || get().subscription || get().isInitializing) return; // Already initialized
 
+    set({ isInitializing: true });
     // Set up a single liveQuery for all messages of the owner
     const query = liveQuery(() =>
       db.messages.where('ownerUserId').equals(ownerUserId).sortBy('timestamp')
@@ -131,16 +134,16 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
         if (hasChanges) {
           set({ messagesByContact: newMap });
         }
-
-        set({ isLoading: false });
       },
       error: error => {
         console.error('Global live query error:', error);
+      },
+      complete: () => {
         set({ isLoading: false });
       },
     });
 
-    set({ subscription: () => subscriptionObj.unsubscribe(), isLoading: true }); // Loading during initial fetch
+    set({ subscription: subscriptionObj, isInitializing: false }); // Loading during initial fetch
   },
 
   // Send a message
@@ -283,7 +286,7 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
   cleanup: () => {
     const subscription = get().subscription;
     if (subscription) {
-      subscription();
+      subscription.unsubscribe();
       set({ subscription: undefined });
     }
     set({

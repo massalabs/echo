@@ -77,6 +77,11 @@ export class MessageService {
 
         const encryptedMessages =
           await this.messageProtocol.fetchMessages(seekers);
+        previousSeekers = currentSeekers;
+
+        if (encryptedMessages.length === 0) {
+          continue;
+        }
 
         const decryptedMessages = this.decryptMessages(
           encryptedMessages,
@@ -89,7 +94,6 @@ export class MessageService {
           userProfile.userId
         );
 
-        previousSeekers = currentSeekers;
         newMessagesCount += storedMessagesIds.length;
         iterations += 1;
         // Small delay to avoid tight loop
@@ -143,46 +147,45 @@ export class MessageService {
 
     const ids: number[] = [];
 
-    await Promise.all(
-      decrypted.map(async message => {
-        const discussion = await db.getDiscussionByOwnerAndContact(
-          ownerUserId,
+    decrypted.map(async message => {
+      const discussion = await db.getDiscussionByOwnerAndContact(
+        ownerUserId,
+        message.senderId
+      );
+
+      if (!discussion) {
+        // Skip messages without existing discussion: Should not happen normally
+        console.error(
+          'No discussion found for incoming message from',
           message.senderId
         );
+        return;
+      }
 
-        if (!discussion) {
-          // Skip messages without existing discussion: Should not happen normally
-          console.warn(
-            'No discussion found for incoming message from',
-            message.senderId
-          );
-          return;
-        }
+      const id = await db.messages.add({
+        ownerUserId,
+        contactUserId: discussion.contactUserId,
+        content: message.content,
+        type: 'text' as const,
+        direction: 'incoming' as const,
+        status: 'delivered' as const,
+        timestamp: message.sentAt,
+        metadata: {},
+      });
 
-        const id = await db.messages.add({
-          ownerUserId,
-          contactUserId: discussion.contactUserId,
-          content: message.content,
-          type: 'text' as const,
-          direction: 'incoming' as const,
-          status: 'delivered' as const,
-          timestamp: message.sentAt,
-          metadata: {},
-        });
+      const now = new Date();
+      await db.discussions.update(discussion.id, {
+        lastMessageId: id,
+        lastMessageContent: message.content,
+        lastMessageTimestamp: message.sentAt,
+        updatedAt: now,
+        lastSyncTimestamp: now,
+        unreadCount: discussion.unreadCount + 1,
+      });
 
-        const now = new Date();
-        await db.discussions.update(discussion.id, {
-          lastMessageId: id,
-          lastMessageContent: message.content,
-          lastMessageTimestamp: message.sentAt,
-          updatedAt: now,
-          lastSyncTimestamp: now,
-          unreadCount: discussion.unreadCount + 1,
-        });
+      ids.push(id);
+    });
 
-        ids.push(id);
-      })
-    );
     return ids;
   }
 

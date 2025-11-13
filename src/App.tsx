@@ -63,9 +63,6 @@ const AppContent: React.FC = () => {
 
   // If authenticated, show main app routes
   if (userProfile) {
-    initMessage(); // Ensure message store is initialized
-    initDiscussion();
-
     return <AuthenticatedRoutes />;
   }
 

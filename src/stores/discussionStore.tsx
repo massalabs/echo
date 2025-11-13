@@ -12,6 +12,7 @@ interface DiscussionStoreState {
   openNameModals: Set<number>;
   subscriptionDiscussions: Subscription | null;
   subscriptionContacts: Subscription | null;
+  isInitializing: boolean;
 
   init: () => void;
   cleanup: () => void;
@@ -26,16 +27,19 @@ const useDiscussionStoreBase = create<DiscussionStoreState>((set, get) => ({
   openNameModals: new Set<number>(),
   subscriptionDiscussions: null,
   subscriptionContacts: null,
+  isInitializing: false,
 
   init: () => {
     const ownerUserId = useAccountStore.getState().userProfile?.userId;
-    console.log('Initializing discussion store for ownerUserId:', ownerUserId);
+
     if (
       !ownerUserId ||
-      get().subscriptionDiscussions ||
-      get().subscriptionContacts
+      (get().subscriptionDiscussions && get().subscriptionContacts) ||
+      get().isInitializing
     )
       return;
+
+    set({ isInitializing: true });
 
     // Set up liveQuery for discussions
     const discussionsQuery = liveQuery(() =>
@@ -44,10 +48,6 @@ const useDiscussionStoreBase = create<DiscussionStoreState>((set, get) => ({
 
     const subscriptionDiscussions = discussionsQuery.subscribe({
       next: async discussionsList => {
-        console.log(
-          'Global live query received discussions:',
-          discussionsList.length
-        );
         // Sort discussions as in original
         const sortedDiscussions = discussionsList.sort((a, b) => {
           if (a.lastMessageTimestamp && b.lastMessageTimestamp) {
@@ -103,7 +103,11 @@ const useDiscussionStoreBase = create<DiscussionStoreState>((set, get) => ({
       },
     });
 
-    set({ subscriptionDiscussions, subscriptionContacts });
+    set({
+      subscriptionDiscussions,
+      subscriptionContacts,
+      isInitializing: false,
+    });
   },
 
   cleanup: () => {
