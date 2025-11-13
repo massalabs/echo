@@ -288,7 +288,7 @@ const Login: React.FC<LoginProps> = React.memo(
                       fullWidth
                       className="h-11 rounded-xl text-sm font-medium"
                     >
-                      {!isLoading && <span>Sign in with biometrics</span>}
+                      {!isLoading && <span>Login</span>}
                     </Button>
                   ) : (
                     // Password account - show setup biometrics button
@@ -351,7 +351,7 @@ const Login: React.FC<LoginProps> = React.memo(
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
                   >
-                    {!isLoading && <span>Sign in with password</span>}
+                    {!isLoading && <span>Login</span>}
                   </Button>
                 </div>
               </div>
