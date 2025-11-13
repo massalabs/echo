@@ -516,6 +516,25 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           );
         }
 
+        // Test biometric authentication before creating account
+        console.log(
+          '🔐 Testing biometric authentication before account creation...'
+        );
+        const testCredentialId = 'test-biometric-verification';
+        const biometricTest = await biometricService.authenticate(
+          testCredentialId,
+          'Test biometric authentication to enable account creation'
+        );
+
+        if (!biometricTest.success) {
+          throw new Error(
+            biometricTest.error ||
+              'Biometric authentication test failed. Please try again or use password authentication.'
+          );
+        }
+
+        console.log('✅ Biometric authentication test passed');
+
         // Generate a BIP39 mnemonic and create account from it
         const mnemonic = generateMnemonic(256);
         const keys = await generateUserKeys(mnemonic);
