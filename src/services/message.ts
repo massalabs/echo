@@ -17,6 +17,7 @@ import { strToBytes } from '@massalabs/massa-web3';
 import {
   SessionStatus,
   UserSecretKeys,
+  SendMessageOutput,
 } from '../assets/generated/wasm/gossip_wasm';
 import { SessionModule } from '../wasm';
 
@@ -197,6 +198,8 @@ export class MessageService {
       };
     }
 
+    let sendOutput: SendMessageOutput | undefined;
+
     try {
       const session = useAccountStore.getState().session;
       if (!session) throw new Error('Session module not initialized');
@@ -231,7 +234,7 @@ export class MessageService {
         };
       }
 
-      const sendOutput = session.sendMessage(peerId, contentBytes);
+      sendOutput = session.sendMessage(peerId, contentBytes);
 
       if (!sendOutput) throw new Error('WASM sendMessage returned null');
 
@@ -248,11 +251,80 @@ export class MessageService {
       };
     } catch (error) {
       await db.messages.update(message.id, { status: 'failed' });
+      if (sendOutput) {
+        const discussion = await db.getDiscussionByOwnerAndContact(
+          message.ownerUserId,
+          message.contactUserId
+        );
+        if (!discussion)
+          throw new Error(
+            'Could not send message after session manager and could not save failed encrypted message because discussion not found'
+          );
+        await db.discussions.update(discussion.id, {
+          failedEncryptedMessage: {
+            seeker: sendOutput.seeker,
+            ciphertext: sendOutput.data,
+          },
+        });
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Send failed',
         message: { ...message, status: 'failed' },
       };
+    }
+  }
+
+  async resendMessage(message: Message): Promise<SendMessageResult> {
+    const discussion = await db.getDiscussionByOwnerAndContact(
+      message.ownerUserId,
+      message.contactUserId
+    );
+    if (!discussion)
+      return {
+        success: false,
+        error: 'Discussion not found',
+        message: { ...message, status: 'failed' },
+      };
+
+    if (discussion.failedEncryptedMessage) {
+      // If the message has already been encrypted by sessionManager, resend it
+      try {
+        // Optimistically update status. Ensure DB reflects that this message is being (re)sent
+        await db.messages.update(message.id, { status: 'sending' });
+
+        // Send the message
+        await this.messageProtocol.sendMessage({
+          seeker: discussion.failedEncryptedMessage.seeker,
+          ciphertext: discussion.failedEncryptedMessage.ciphertext,
+        });
+
+        await db.messages.update(message.id, { status: 'sent' });
+
+        // Update the discussion to remove the failed encrypted message
+        await db.discussions.update(discussion.id, {
+          failedEncryptedMessage: undefined,
+        });
+
+        return {
+          success: true,
+          message: { ...message, id: message.id, status: 'sent' },
+        };
+      } catch (error) {
+        await db.messages.update(message.id, { status: 'failed' });
+
+        return {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to resend message: ' + error,
+          message: { ...message, status: 'failed' },
+        };
+      }
+    } else {
+      // If the message has not been encrypted by sessionManager, send it as if it were new
+      return await this.sendMessage(message);
     }
   }
 }

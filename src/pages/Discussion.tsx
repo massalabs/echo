@@ -52,6 +52,8 @@ const Discussion: React.FC = () => {
   // Track previous contact userId to prevent unnecessary updates
   const prevContactUserIdRef = useRef<string | null>(null);
 
+  const isMsgFailed = messages.some(m => m.status === 'failed');
+
   // Set current contact when it changes (only if different)
   useEffect(() => {
     const contactUserId = contact?.userId || null;
@@ -95,6 +97,14 @@ const Discussion: React.FC = () => {
     setIsManualSyncing(false);
   }, [contact?.userId, syncMessages]);
 
+  const handleInputClick = () => {
+    if (isMsgFailed) {
+      toast.error(
+        "You can't send new messages until your last failed message is resent. Please tap 'Resend' to try again."
+      );
+    }
+  };
+
   if (!contact) return null;
 
   // Mobile-first: show only discussion page when selected
@@ -118,7 +128,11 @@ const Discussion: React.FC = () => {
               onResend={resendMessage}
             />
 
-            <MessageInput onSend={handleSendMessage} disabled={isSending} />
+            <MessageInput
+              onSend={handleSendMessage}
+              onClick={handleInputClick}
+              disabled={isSending || isMsgFailed}
+            />
           </div>
         </div>
       </div>

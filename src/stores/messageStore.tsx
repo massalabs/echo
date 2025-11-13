@@ -149,7 +149,7 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
   // Send a message
   sendMessage: async (contactUserId: string, content: string) => {
     const { userProfile } = useAccountStore.getState();
-    if (!userProfile?.userId || !content.trim()) return;
+    if (!userProfile?.userId || !content.trim() || get().isSending) return;
 
     set({ isSending: true });
 
@@ -201,7 +201,7 @@ const useMessageStoreBase = create<MessageStoreState>((set, get) => ({
   // Resend a failed message
   resendMessage: async (message: Message) => {
     set({ isSending: true });
-    const result = await messageService.sendMessage(message);
+    const result = await messageService.resendMessage(message);
     if (result.error) {
       // Update status to failed again
       console.error('Failed to resend message:', result.error);
