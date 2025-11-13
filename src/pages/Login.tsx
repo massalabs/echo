@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { UserProfile } from '../db';
+import { biometricService } from '../crypto/biometricService';
 import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
+import AddBiometrics from '../components/account/AddBiometrics';
 import Button from '../components/ui/Button';
 
 interface LoginProps {
@@ -35,6 +37,7 @@ const Login: React.FC<LoginProps> = React.memo(
     const [usePassword, setUsePassword] = useState(false);
     const [showAccountSelection, setShowAccountSelection] = useState(false);
     const [showAccountImport, setShowAccountImport] = useState(false);
+    const [showAddBiometrics, setShowAddBiometrics] = useState(false);
     const [selectedAccountInfo, setSelectedAccountInfo] =
       useState<UserProfile | null>(null);
     const [autoAuthTriggered, setAutoAuthTriggered] = useState(false);
@@ -68,6 +71,16 @@ const Login: React.FC<LoginProps> = React.memo(
       try {
         setIsLoading(true);
         onErrorChange?.(null);
+
+        // Check biometric availability first
+        const availability = await biometricService.checkAvailability();
+        console.log('🔐 Biometric availability check:', availability);
+
+        if (!availability.available) {
+          throw new Error(
+            availability.reason || 'Biometric authentication is not available'
+          );
+        }
 
         await loadAccount(undefined, currentAccount?.userId);
         onAccountSelected();
@@ -157,6 +170,20 @@ const Login: React.FC<LoginProps> = React.memo(
       setShowAccountImport(false);
     };
 
+    const handleAddBiometrics = () => {
+      setShowAddBiometrics(true);
+    };
+
+    const handleBackFromAddBiometrics = () => {
+      setShowAddBiometrics(false);
+    };
+
+    const handleAddBiometricsComplete = () => {
+      setShowAddBiometrics(false);
+      // Force a re-render to pick up the new biometric credentials
+      window.location.reload();
+    };
+
     const handleImportComplete = () => {
       setShowAccountImport(false);
       onAccountSelected();
@@ -164,6 +191,17 @@ const Login: React.FC<LoginProps> = React.memo(
 
     const accountSupportsBiometrics = !usePassword;
     const displayUsername = currentAccount?.username;
+
+    // Debug logging
+    console.log('🔍 Login Debug:', {
+      usePassword,
+      accountSupportsBiometrics,
+      webauthnSupported,
+      platformAuthenticatorAvailable,
+      platformResolved,
+      currentAccount: currentAccount?.username,
+      hasWebauthnCred: !!currentAccount?.security?.webauthn?.credentialId,
+    });
 
     if (showAccountSelection) {
       return (
@@ -180,6 +218,16 @@ const Login: React.FC<LoginProps> = React.memo(
         <AccountImport
           onBack={handleBackFromImport}
           onComplete={handleImportComplete}
+        />
+      );
+    }
+
+    if (showAddBiometrics && currentAccount) {
+      return (
+        <AddBiometrics
+          account={currentAccount}
+          onBack={handleBackFromAddBiometrics}
+          onComplete={handleAddBiometricsComplete}
         />
       );
     }
@@ -273,6 +321,20 @@ const Login: React.FC<LoginProps> = React.memo(
                   >
                     Sign in
                   </Button>
+
+                  {/* Add biometrics option for password accounts */}
+                  {usePassword && (
+                    <Button
+                      onClick={handleAddBiometrics}
+                      variant="outline"
+                      size="custom"
+                      fullWidth
+                      className="h-10 rounded-xl text-sm"
+                      disabled={isLoading}
+                    >
+                      Add Biometrics
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

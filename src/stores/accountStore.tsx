@@ -5,8 +5,8 @@ import { encrypt, deriveKey } from '../crypto/encryption';
 import {
   createWebAuthnCredential,
   isWebAuthnSupported,
-  isPlatformAuthenticatorAvailable,
 } from '../crypto/webauthn';
+import { biometricService } from '../crypto/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
 import {
   JsonRpcProvider,
@@ -155,6 +155,20 @@ async function buildSecurityFromWebAuthn(
   security: UserProfile['security'];
   encryptionKey: EncryptionKey;
 }> {
+  // Use the unified biometric service to create credentials
+  const credentialResult = await biometricService.createCredential(
+    `Gossip:${username}`,
+    userIdBytes,
+    'Create biometric credential for secure access'
+  );
+
+  if (!credentialResult.success || !credentialResult.credentialId) {
+    throw new Error(
+      credentialResult.error || 'Failed to create biometric credential'
+    );
+  }
+
+  // Create WebAuthn credential for cryptographic operations
   const webauthnKey = await createWebAuthnCredential(
     `Gossip:${username}`,
     userIdBytes
@@ -485,28 +499,26 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
 
     checkPlatformAvailability: async () => {
       try {
-        const available = await isPlatformAuthenticatorAvailable();
-        set({ platformAuthenticatorAvailable: available });
+        // Use the unified biometric service to check availability
+        const availability = await biometricService.checkAvailability();
+        set({ platformAuthenticatorAvailable: availability.available });
       } catch (error) {
         console.error('Error checking platform availability:', error);
         set({ platformAuthenticatorAvailable: false });
       }
     },
 
-    // WebAuthn-based account initialization
+    // Biometric-based account initialization
     initializeAccountWithBiometrics: async (username: string) => {
       try {
         set({ isLoading: true });
 
-        // Check WebAuthn support
-        if (!isWebAuthnSupported()) {
-          throw new Error('WebAuthn is not supported in this browser');
-        }
-
-        const platformAvailable = await isPlatformAuthenticatorAvailable();
-        if (!platformAvailable) {
+        // Check biometric support using unified service
+        const availability = await biometricService.checkAvailability();
+        if (!availability.available) {
           throw new Error(
-            'Biometric authentication is not available on this device'
+            availability.reason ||
+              'Biometric authentication is not available on this device'
           );
         }
 
@@ -545,7 +557,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           session,
           isInitialized: true,
           isLoading: false,
-          platformAuthenticatorAvailable: platformAvailable,
+          platformAuthenticatorAvailable: availability.available,
         });
       } catch (error) {
         console.error('Error creating user profile with biometrics:', error);
