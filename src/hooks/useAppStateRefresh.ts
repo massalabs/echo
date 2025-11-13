@@ -21,9 +21,6 @@ export function useAppStateRefresh() {
 
       const REFRESH_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
       const refreshInterval = setInterval(() => {
-        console.log(
-          `Periodic app state refresh triggered (every ${REFRESH_INTERVAL_MS / 1000}s)`
-        );
         refreshAppState().catch(error => {
           console.error('Failed to refresh app state periodically:', error);
         });

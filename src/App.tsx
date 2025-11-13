@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { useAccountStore } from './stores/accountStore';
 import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
@@ -11,7 +11,7 @@ import './App.css';
 
 // Hooks
 import { useProfileLoader } from './hooks/useProfileLoader';
-import { useBackgroundSync } from './hooks/useBackgroundSync';
+// import { useBackgroundSync } from './hooks/useBackgroundSync';
 import { useAppStateRefresh } from './hooks/useAppStateRefresh';
 import { useAccountInfo } from './hooks/useAccountInfo';
 import { useAuthRouting } from './hooks/useAuthRouting';
@@ -20,15 +20,20 @@ import { useAuthRouting } from './hooks/useAuthRouting';
 import { AuthenticatedRoutes } from './routes/AuthenticatedRoutes';
 import { UnauthenticatedRoutes } from './routes/UnauthenticatedRoutes';
 import { OnboardingRoutes } from './routes/OnboardingRoutes';
+import { useMessageStore } from './stores/messageStore.tsx';
+import { useDiscussionStore } from './stores/discussionStore.tsx';
 
 const AppContent: React.FC = () => {
   const { isInitialized, isLoading, userProfile } = useAccountStore();
+  const initMessage = useMessageStore(s => s.init);
+  const initDiscussion = useDiscussionStore(s => s.init);
   const [showImport, setShowImport] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Custom hooks for app initialization and state management
   useProfileLoader();
-  useBackgroundSync();
+  // Don't use background sync for now
+  // useBackgroundSync();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
   useAuthRouting();
@@ -36,6 +41,13 @@ const AppContent: React.FC = () => {
   addDebugLog(
     `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
   );
+
+  useEffect(() => {
+    if (userProfile?.userId) {
+      initMessage();
+      initDiscussion();
+    }
+  }, [userProfile?.userId, initMessage, initDiscussion]);
 
   // Show global loader only during initial boot, not during sign-in.
   if (isLoading && !isInitialized && !userProfile) {

@@ -33,12 +33,8 @@ export class MockMessageProtocol implements IMessageProtocol {
     return collected;
   }
 
-  async sendMessage(
-    seeker: Uint8Array,
-    message: EncryptedMessage
-  ): Promise<void> {
-    // Convert seeker to base64 string for storage key
-    const seekerBase64 = encodeToBase64(seeker);
+  async sendMessage(message: EncryptedMessage): Promise<void> {
+    const seekerBase64 = encodeToBase64(message.seeker);
     console.log('Mock: Sending message to seeker (b64):', seekerBase64);
 
     // Store the message in our mock storage

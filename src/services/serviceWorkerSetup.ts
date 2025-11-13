@@ -38,13 +38,13 @@ function setupMessageListener(): void {
           return;
         }
 
-        const seekers = session.getMessageBoardReadKeys();
+        // const seekers = session.getMessageBoardReadKeys();
         // Convert Uint8Array[] to number[][] for JSON serialization
-        const seekersArray = seekers.map(seeker => Array.from(seeker));
+        // const seekersArray = seekers.map(seeker => Array.from(seeker));
 
         // Respond via the message channel port
         if (event.ports && event.ports[0]) {
-          event.ports[0].postMessage({ seekers: seekersArray });
+          // event.ports[0].postMessage({ seekers: seekersArray });
         }
       } catch (error) {
         console.error('Failed to get seekers for service worker:', error);
