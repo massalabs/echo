@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { EncryptedMessage } from './api/messageProtocol/types';
 
 // Define interfaces for your data models
 export interface Contact {
@@ -82,6 +83,9 @@ export interface Discussion {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+
+  // Failed encrypted message. The last msg has failed and must be sent before sending another msg.
+  failedEncryptedMessage?: EncryptedMessage;
 }
 
 export interface PendingEncryptedMessage {
