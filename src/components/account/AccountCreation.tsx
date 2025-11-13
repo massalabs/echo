@@ -46,14 +46,11 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
 
         // Default to first available biometric method, but allow user to choose
         if (methods.any) {
-          console.log('👆 Biometrics available, defaulting to biometric mode');
           setUsePassword(false);
         } else {
-          console.log('🔒 No biometrics available, forcing password mode');
           setUsePassword(true);
         }
-      } catch (error) {
-        console.error('❌ Error checking biometric methods:', error);
+      } catch (_error) {
         setUsePassword(true);
       }
     };

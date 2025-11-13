@@ -63,13 +63,9 @@ export function ThemeProvider({
         const statusBarColor = resolved === 'dark' ? '#18181b' : '#f8f9fa';
         void StatusBar.setBackgroundColor({
           color: statusBarColor,
-        })
-          .then(() => {
-            console.log('Status bar color set to:', statusBarColor);
-          })
-          .catch(err => {
-            console.warn('Failed to set status bar color:', err);
-          });
+        }).catch(err => {
+          console.warn('Failed to set status bar color:', err);
+        });
       }
     };
 
