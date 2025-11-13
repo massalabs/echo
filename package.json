@@ -19,6 +19,9 @@
     "wasm:clean": "rm -rf src/assets/generated/wasm"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@massalabs/massa-web3": "^5.3.1-dev.20250925215116",
     "@noble/hashes": "^1.8.0",
     "@scure/base": "^2.0.0",
@@ -43,6 +46,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.4",
     "@eslint/js": "^9.18.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.6.1",
