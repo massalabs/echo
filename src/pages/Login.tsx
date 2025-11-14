@@ -185,7 +185,7 @@ const Login: React.FC<LoginProps> = React.memo(
     }
 
     return (
-      <div className="bg-background flex flex-col items-center justify-center p-6">
+      <div className="bg-background flex flex-col items-center justify-center p-6 h-full">
         <div className="w-full max-w-sm mx-auto">
           <div className="text-center mb-8">
             <img
@@ -266,12 +266,12 @@ const Login: React.FC<LoginProps> = React.memo(
                     onClick={() => handlePasswordAuth()}
                     disabled={isLoading || !password.trim()}
                     loading={isLoading}
-                    variant="ghost"
+                    variant="primary"
                     size="custom"
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
                   >
-                    {!isLoading && <span>Sign in</span>}
+                    Sign in
                   </Button>
                 </div>
               </div>

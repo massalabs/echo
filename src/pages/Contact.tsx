@@ -86,7 +86,7 @@ const Contact: React.FC = () => {
 
   return (
     <div className=" h-full">
-      <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
+      <div className="max-w-sm mx-auto flex flex-col">
         <div className="px-4 py-3 flex items-center gap-3">
           <BackButton />
           <h1 className="text-xl font-semibold text-black dark:text-white">

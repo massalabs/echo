@@ -109,33 +109,27 @@ const Discussion: React.FC = () => {
 
   // Mobile-first: show only discussion page when selected
   return (
-    <div className="h-screen-mobile md:h-screen bg-background flex">
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-full flex flex-col w-full">
-          <div className="w-full md:max-w-lg lg:max-w-2xl xl:max-w-3xl mx-auto h-full flex flex-col">
-            <DiscussionHeader
-              contact={contact}
-              discussion={discussion}
-              isSyncing={isManualSyncing}
-              onBack={onBack}
-              onSync={handleManualSync}
-            />
+    <div className="h-full max-w-md mx-auto bg-background flex flex-col">
+      <DiscussionHeader
+        contact={contact}
+        discussion={discussion}
+        isSyncing={isManualSyncing}
+        onBack={onBack}
+        onSync={handleManualSync}
+      />
 
-            <MessageList
-              messages={messages}
-              contact={contact}
-              isLoading={isLoading || isDiscussionLoading}
-              onResend={resendMessage}
-            />
+      <MessageList
+        messages={messages}
+        contact={contact}
+        isLoading={isLoading || isDiscussionLoading}
+        onResend={resendMessage}
+      />
 
-            <MessageInput
-              onSend={handleSendMessage}
-              onClick={handleInputClick}
-              disabled={isSending || isMsgFailed}
-            />
-          </div>
-        </div>
-      </div>
+      <MessageInput
+        onSend={handleSendMessage}
+        onClick={handleInputClick}
+        disabled={isSending || isMsgFailed}
+      />
     </div>
   );
 };

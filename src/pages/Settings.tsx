@@ -49,13 +49,14 @@ const Settings = (): React.ReactElement => {
   }
 
   return (
-    <>
-      <div className="max-w-sm mx-auto">
+    <div className="max-w-md mx-auto bg-card h-full overflow-scroll">
+      <div className="h-full">
         {/* Header */}
-        <PageHeader title="Settings" showLogo />
-
+        <div className="max-w-md m-auto border-b border-border fixed top-0 left-0 right-0 z-50 bg-card">
+          <PageHeader title="Settings" />
+        </div>
         {/* Account Profile Section */}
-        <div className="px-4 mb-4">
+        <div className="px-4 mt-20">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
             <div className="flex items-start gap-4 mb-4">
               <img
@@ -69,7 +70,7 @@ const Settings = (): React.ReactElement => {
                 </h3>
                 {userProfile?.userId && (
                   <div className="mb-2 flex items-baseline gap-2">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                       User ID:
                     </p>
                     <div className="flex items-center gap-2">
@@ -89,7 +90,7 @@ const Settings = (): React.ReactElement => {
         </div>
 
         {/* Settings Options */}
-        <div className="px-4 pb-20 space-y-2">
+        <div className="px-4 pb-24 space-y-2">
           {/* App Version */}
           <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 justify-between">
             <span className="text-base font-semibold text-black dark:text-white">
@@ -407,7 +408,7 @@ const Settings = (): React.ReactElement => {
           </div>
         </div>
       </BaseModal>
-    </>
+    </div>
   );
 };
 

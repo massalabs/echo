@@ -161,7 +161,6 @@
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
 
-    height: 100vh;
     height: 100dvh;
   }
 
@@ -229,7 +228,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
   #root {
     height: 100%;
   }
@@ -276,21 +274,6 @@
     animation: spin-reverse 1s linear infinite;
   }
 
-  /* Mobile viewport utilities */
-  .min-h-screen-mobile {
-    min-height: 100vh;
-    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
-    /* Fallback for Firefox mobile */
-    min-height: calc(100vh - env(keyboard-inset-height, 0px));
-  }
-
-  .h-screen-mobile {
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile browsers */
-    /* Fallback for Firefox mobile */
-    height: calc(100vh - env(keyboard-inset-height, 0px));
-  }
-
   /* Safe area support for mobile browsers */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
@@ -312,17 +295,6 @@
   /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (20px) = 96px + safe area */
   .bottom-nav-offset {
     bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
-  }
-
-  /* Firefox mobile specific fixes */
-  @-moz-document url-prefix() {
-    .min-h-screen-mobile {
-      min-height: 100vh;
-    }
-
-    .h-screen-mobile {
-      height: 100vh;
-    }
   }
 
   @keyframes fade-in {
