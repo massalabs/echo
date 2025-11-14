@@ -145,7 +145,7 @@ const Settings = (): React.ReactElement => {
         </div>
 
         {/* Settings Options */}
-        <div className="px-4 pb-24 space-y-2">
+        <div className="px-4 pb-bottom-nav space-y-2">
           <div className="py-2">
             <InfoRow label="Version" value={APP_VERSION} />
             {showDebugOption && (
@@ -156,7 +156,6 @@ const Settings = (): React.ReactElement => {
               />
             )}
           </div>
-          {/* App Version */}
           {/* Account Backup Button */}
           <Button
             variant="outline"

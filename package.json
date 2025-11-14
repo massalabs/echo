@@ -16,7 +16,19 @@
     "prepare": "husky",
     "wasm:build": "wasm-pack build --out-dir ../../src/assets/generated/wasm --target web wasm/main && rm -f src/assets/generated/wasm/.gitignore",
     "wasm:test": "cargo test --workspace --manifest-path wasm/Cargo.toml --all-features --all-targets --verbose",
-    "wasm:clean": "rm -rf src/assets/generated/wasm"
+    "wasm:clean": "rm -rf src/assets/generated/wasm",
+    "cap:sync": "cap sync",
+    "cap:sync:ios": "cap sync ios",
+    "cap:sync:android": "cap sync android",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android",
+    "cap:build:ios": "npm run build && cap sync ios",
+    "cap:build:android": "npm run build && cap sync android",
+    "cap:run:ios": "npm run build && cap sync ios && cap run ios",
+    "cap:run:android": "npm run build && cap sync android && cap run android",
+    "cap:copy": "cap copy",
+    "cap:copy:ios": "cap copy ios",
+    "cap:copy:android": "cap copy android"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^9.1.2",
