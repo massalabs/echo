@@ -32,39 +32,38 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
         <EmptyDiscussions />
       ) : (
         // Multiply discussions by 20 for testing
-        Array.from({ length: 20 }, (_, multiplier) =>
-          discussions
-            .filter(d => d.status !== 'closed')
-            .map((discussion, index) => {
-              const contact = contacts.find(
-                c => c.userId === discussion.contactUserId
-              );
-              if (!contact) return null;
 
-              const lastMessage = lastMessages.get(discussion.contactUserId);
+        discussions
+          .filter(d => d.status !== 'closed')
+          .map((discussion, index) => {
+            const contact = contacts.find(
+              c => c.userId === discussion.contactUserId
+            );
+            if (!contact) return null;
 
-              const isSelected = discussion.contactUserId === activeUserId;
+            const lastMessage = lastMessages.get(discussion.contactUserId);
 
-              return (
-                <div
-                  key={`${discussion.id}-${multiplier}-${index}`}
-                  className={isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
-                >
-                  <DiscussionListItem
-                    discussion={discussion}
-                    contact={contact}
-                    lastMessage={lastMessage}
-                    onSelect={d => onSelect(d.contactUserId)}
-                    onAccept={async (d, newName) => {
-                      await handleAcceptDiscussionRequest(d, newName);
-                      navigate(`/discussion/${d.contactUserId}`);
-                    }}
-                    onRefuse={() => handleRefuseDiscussionRequest(discussion)}
-                  />
-                </div>
-              );
-            })
-        ).flat()
+            const isSelected = discussion.contactUserId === activeUserId;
+
+            return (
+              <div
+                key={`${discussion.id}-${index}`}
+                className={isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
+              >
+                <DiscussionListItem
+                  discussion={discussion}
+                  contact={contact}
+                  lastMessage={lastMessage}
+                  onSelect={d => onSelect(d.contactUserId)}
+                  onAccept={async (d, newName) => {
+                    await handleAcceptDiscussionRequest(d, newName);
+                    navigate(`/discussion/${d.contactUserId}`);
+                  }}
+                  onRefuse={() => handleRefuseDiscussionRequest(discussion)}
+                />
+              </div>
+            );
+          })
       )}
       {/* </div> */}
     </div>

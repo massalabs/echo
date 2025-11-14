@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
 import { useAccountStore } from '../stores/accountStore';
-import { useAppStore } from '../stores/appStore';
 import { useTheme } from '../components/ui/use-theme';
 import { formatUserId } from '../utils/userId';
 import appLogo from '../assets/gossip_face.svg';
@@ -10,6 +9,10 @@ import AccountBackup from '../components/account/AccountBackup';
 import ShareContact from '../components/settings/ShareContact';
 import Button from '../components/ui/Button';
 import CopyClipboard from '../components/ui/CopyClipboard';
+import { db } from '../db';
+import { announcementService } from '../services/announcement';
+import { triggerManualSync } from '../services/messageSync';
+import { useLocalStorage } from '../hooks/temp/useLocalStorage';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -19,7 +22,10 @@ enum SettingsView {
 const Settings = (): React.ReactElement => {
   const { userProfile, getMnemonicBackupInfo, logout, resetAccount } =
     useAccountStore();
-  const { showDebugPanel, setShowDebugPanel } = useAppStore();
+  const [showDebugOption, setShowDebugOption] = useLocalStorage<boolean>(
+    'showDebugOption',
+    false
+  );
   const { setTheme, resolvedTheme } = useTheme();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -37,6 +43,76 @@ const Settings = (): React.ReactElement => {
   };
 
   const mnemonicBackupInfo = getMnemonicBackupInfo();
+
+  const handleResetAllDiscussionsAndMessages = useCallback(async () => {
+    try {
+      await db.transaction(
+        'rw',
+        [db.contacts, db.messages, db.discussions],
+        async () => {
+          await db.messages.clear();
+          await db.discussions.clear();
+          await db.contacts.clear();
+        }
+      );
+    } catch (error) {
+      console.error('Failed to reset discussions and messages:', error);
+    } finally {
+      await triggerManualSync();
+    }
+  }, []);
+
+  const handleResetAllAccounts = useCallback(async () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+
+      db.close();
+      await db.delete();
+      try {
+        await db.delete();
+      } catch (_e) {
+        console.debug('DB already deleted');
+      }
+
+      try {
+        const databases = await indexedDB.databases();
+        for (const database of databases) {
+          if (database.name?.includes('GossipDatabase')) {
+            indexedDB.deleteDatabase(database.name);
+          }
+        }
+      } catch (_e) {
+        console.log('Could not enumerate databases');
+      }
+
+      await resetAccount();
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to reset all accounts:', error);
+      window.location.reload();
+    }
+  }, [resetAccount]);
+
+  const handleSimulateIncomingDiscussion = useCallback(async () => {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+
+      const result = await announcementService.simulateIncomingDiscussion();
+      if (result.success) {
+        console.log(
+          'Simulated incoming discussion. New messages:',
+          result.newMessagesCount
+        );
+      } else {
+        console.error('Simulation failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to simulate incoming discussion:', error);
+    }
+  }, []);
 
   // Show sub-views based on activeView
   switch (activeView) {
@@ -287,7 +363,7 @@ const Settings = (): React.ReactElement => {
             </button>
           </div>
 
-          {/* Debug Panel Toggle */}
+          {/* Debug Options Toggle */}
           <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
             <svg
               fill="none"
@@ -303,23 +379,98 @@ const Settings = (): React.ReactElement => {
               />
             </svg>
             <span className="text-base font-semibold text-black dark:text-white flex-1 text-left">
-              Show Debug Panel
+              Show Debug Options
             </span>
             <button
-              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              onClick={() => setShowDebugOption(!showDebugOption)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                showDebugPanel ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
+                showDebugOption ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
               }`}
               role="switch"
-              aria-checked={showDebugPanel}
+              aria-checked={showDebugOption}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  showDebugPanel ? 'translate-x-6' : 'translate-x-1'
+                  showDebugOption ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
           </div>
+
+          {/* Debug Options - Only show when showDebugOption is true */}
+          {showDebugOption && (
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="custom"
+                className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-destructive border-destructive hover:bg-destructive/10"
+                onClick={handleResetAllAccounts}
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5 mr-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                <span className="text-base font-semibold flex-1 text-left">
+                  Reset All Accounts (wipe local storage)
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                size="custom"
+                className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-destructive border-destructive hover:bg-destructive/10"
+                onClick={handleResetAllDiscussionsAndMessages}
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5 mr-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                <span className="text-base font-semibold flex-1 text-left">
+                  Reset Discussions, Messages & Contacts (DB only)
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                size="custom"
+                className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-accent border-accent hover:bg-accent/10"
+                onClick={handleSimulateIncomingDiscussion}
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5 mr-4"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                <span className="text-base font-semibold flex-1 text-left">
+                  Simulate Incoming Discussion (test)
+                </span>
+              </Button>
+            </div>
+          )}
 
           {/* Logout Button */}
           <Button

@@ -7,10 +7,10 @@ import {
   DebugLog,
 } from './debugLogs';
 import Button from './Button';
-import { useAppStore } from '../../stores/appStore';
+import { useLocalStorage } from '../../hooks/temp/useLocalStorage';
 
 const DebugOverlay: React.FC = () => {
-  const showDebugPanel = useAppStore(s => s.showDebugPanel);
+  const [showDebugOption] = useLocalStorage<boolean>('showDebugOption', false);
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [showRawText, setShowRawText] = useState(false);
@@ -72,7 +72,7 @@ const DebugOverlay: React.FC = () => {
     }
   };
 
-  if (!showDebugPanel) {
+  if (!showDebugOption) {
     return null;
   }
 
