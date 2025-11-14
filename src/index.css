@@ -292,9 +292,16 @@
   }
 
   /* Bottom navigation offset utility */
-  /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (20px) = 96px + safe area */
+  /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (24px) = 100px + safe area */
+  /* Used for absolutely/fixed positioned elements */
   .bottom-nav-offset {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+  }
+
+  /* Bottom navigation padding utility */
+  /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (24px) = 100px + safe area */
+  .pb-bottom-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
   }
 
   @keyframes fade-in {

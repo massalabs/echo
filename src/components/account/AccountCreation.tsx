@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // Removed static logo in favor of animated PrivacyGraphic
 import { useAccountStore } from '../../stores/accountStore';
-import { addDebugLog } from '../ui/debugLogs';
 import { validatePassword, validateUsername } from '../../utils/validation';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
@@ -95,31 +94,29 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
     e.stopPropagation(); // Prevent event bubbling that might cause issues on mobile
 
     if (!canSubmit) {
-      addDebugLog('Cannot submit - validation failed');
       return;
     }
 
-    addDebugLog('Starting account creation process...');
+    // Safety check: Never allow biometric auth if biometrics aren't actually available
+    const actualUsePassword = usePassword || !biometricMethods.any;
+    console.log('actualUsePassword', actualUsePassword);
+
     setIsCreating(true);
     setAccountCreationStarted(true); // Mark that we've started - prevent resets
     setError(null);
 
     try {
-      addDebugLog(`Calling initializeAccount with username: ${username}`);
-      if (usePassword) {
+      if (actualUsePassword) {
         await initializeAccount(username, password);
       } else {
         await initializeAccountWithBiometrics(username);
       }
-      addDebugLog('Account initialization completed successfully');
-      addDebugLog('Calling onComplete callback');
 
       // Call onComplete - this should trigger DiscussionList to transition
       onComplete();
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to create account';
-      addDebugLog(`Account creation error: ${errorMsg}`);
       setError(errorMsg);
       setIsCreating(false);
       setAccountCreationStarted(false); // Reset on error so user can try again
