@@ -35,7 +35,7 @@ const Discussions: React.FC = () => {
             Refresh
           </button>
         </div>
-        <div className="pb-20 flex-1 overflow-y-auto">
+        <div className="pb-bottom-nav flex-1 overflow-y-auto">
           <DiscussionListPanel
             onRefresh={() => triggerManualSync()}
             onSelect={id => {

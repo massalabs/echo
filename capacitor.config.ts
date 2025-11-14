@@ -4,6 +4,14 @@ const config: CapacitorConfig = {
   appId: 'net.massa.gossip',
   appName: 'Gossip',
   webDir: 'dist',
+  ios: {
+    scheme: 'Gossip',
+    contentInset: 'automatic',
+    backgroundColor: '#000000',
+    scrollEnabled: true,
+    allowsLinkPreview: false,
+  },
+
   plugins: {
     StatusBar: {
       style: 'dark',

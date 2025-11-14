@@ -89,7 +89,7 @@ const Settings = (): React.ReactElement => {
         </div>
 
         {/* Settings Options */}
-        <div className="px-4 pb-20 space-y-2">
+        <div className="px-4 pb-bottom-nav space-y-2">
           {/* App Version */}
           <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 justify-between">
             <span className="text-base font-semibold text-black dark:text-white">
