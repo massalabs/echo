@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
 import { useAccountStore } from '../stores/accountStore';
+import { useAppStore } from '../stores/appStore';
 import { useTheme } from '../components/ui/use-theme';
 import { formatUserId } from '../utils/userId';
 import appLogo from '../assets/gossip_face.svg';
@@ -12,7 +13,6 @@ import CopyClipboard from '../components/ui/CopyClipboard';
 import { db } from '../db';
 import { announcementService } from '../services/announcement';
 import { triggerManualSync } from '../services/messageSync';
-import { useLocalStorage } from '../hooks/temp/useLocalStorage';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -22,10 +22,8 @@ enum SettingsView {
 const Settings = (): React.ReactElement => {
   const { userProfile, getMnemonicBackupInfo, logout, resetAccount } =
     useAccountStore();
-  const [showDebugOption, setShowDebugOption] = useLocalStorage<boolean>(
-    'showDebugOption',
-    false
-  );
+  const showDebugOption = useAppStore(s => s.showDebugOption);
+  const setShowDebugOption = useAppStore(s => s.setShowDebugOption);
   const { setTheme, resolvedTheme } = useTheme();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -125,7 +123,7 @@ const Settings = (): React.ReactElement => {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-card h-full overflow-scroll">
+    <div className="max-w-md mx-auto bg-card h-full overflow-auto">
       <div className="h-full">
         {/* Header */}
         <div className="max-w-md m-auto border-b border-border fixed top-0 left-0 right-0 z-50 bg-card">
@@ -402,46 +400,18 @@ const Settings = (): React.ReactElement => {
             <div className="space-y-2">
               <Button
                 variant="outline"
-                size="custom"
-                className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-destructive border-destructive hover:bg-destructive/10"
+                className="w-full"
                 onClick={handleResetAllAccounts}
               >
-                <svg
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  className="w-5 h-5 mr-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
                 <span className="text-base font-semibold flex-1 text-left">
                   Reset All Accounts (wipe local storage)
                 </span>
               </Button>
               <Button
                 variant="outline"
-                size="custom"
-                className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-destructive border-destructive hover:bg-destructive/10"
+                className="w-full"
                 onClick={handleResetAllDiscussionsAndMessages}
               >
-                <svg
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  className="w-5 h-5 mr-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
                 <span className="text-base font-semibold flex-1 text-left">
                   Reset Discussions, Messages & Contacts (DB only)
                 </span>

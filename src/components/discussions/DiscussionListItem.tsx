@@ -27,7 +27,6 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   onAccept,
   onRefuse,
 }) => {
-  const containerClass = 'w-full px-3 py-2 text-left';
   const [proposedName, setProposedName] = useState(contact.name || '');
   const [isRefuseModalOpen, setIsRefuseModalOpen] = useState(false);
   // Re-render trigger to update relative time display every minute
@@ -106,7 +105,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
     discussion.status === 'pending' && discussion.direction === 'initiated';
 
   return (
-    <div key={discussion.id} className={containerClass}>
+    <div key={discussion.id} className="w-full px-2 py-1 text-left">
       <div
         className={`${
           isPendingIncoming || isPendingOutgoing

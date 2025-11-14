@@ -87,8 +87,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   };
 
   return (
-    <div className="h-full p-4 md:p-8 py-8 w-full max-w-md mx-auto">
-      <div className="h-full flex flex-col">
+    <div className="h-full p-4 md:p-8 py-14 w-full max-w-md mx-auto flex flex-col justify-center items-center">
+      {/* Content */}
+      <div className="flex-1 flex flex-col justify-around text-center ">
         {/* Progress indicator */}
         <div className="flex justify-center shrink-0">
           <div className="flex space-x-2">
@@ -104,12 +105,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             ))}
           </div>
         </div>
-
-        {/* Content */}
-        <div className="flex-1 flex flex-col justify-center text-center min-h-0">
-          <div className="relative mb-8">
-            <PrivacyGraphic size={200} />
-          </div>
+        <PrivacyGraphic size={200} />
+        <div className="">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight">
             {currentStep === 0 ? (
               <>

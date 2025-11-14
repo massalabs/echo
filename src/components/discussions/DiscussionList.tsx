@@ -31,8 +31,6 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
       {discussions.filter(d => d.status !== 'closed').length === 0 ? (
         <EmptyDiscussions />
       ) : (
-        // Multiply discussions by 20 for testing
-
         discussions
           .filter(d => d.status !== 'closed')
           .map((discussion, index) => {
@@ -65,7 +63,6 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
             );
           })
       )}
-      {/* </div> */}
     </div>
   );
 };

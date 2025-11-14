@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { NetworkName } from '@massalabs/massa-web3';
 import { createSelectors } from './utils/createSelectors';
 
@@ -6,14 +7,42 @@ interface AppStoreState {
   // Network config (read by accountStore)
   networkName: NetworkName;
   setNetworkName: (networkName: NetworkName) => void;
+  // Debug options visibility
+  showDebugOption: boolean;
+  setShowDebugOption: (show: boolean) => void;
+  // Debug overlay visibility
+  debugOverlayVisible: boolean;
+  setDebugOverlayVisible: (visible: boolean) => void;
 }
 
-const useAppStoreBase = create<AppStoreState>(set => ({
-  // Network config
-  networkName: NetworkName.Buildnet,
-  setNetworkName: (networkName: NetworkName) => {
-    set({ networkName });
-  },
-}));
+const useAppStoreBase = create<AppStoreState>()(
+  persist(
+    set => ({
+      // Network config
+      networkName: NetworkName.Buildnet,
+      setNetworkName: (networkName: NetworkName) => {
+        set({ networkName });
+      },
+      // Debug options visibility
+      showDebugOption: false,
+      setShowDebugOption: (show: boolean) => {
+        set({ showDebugOption: show });
+      },
+      // Debug overlay visibility
+      debugOverlayVisible: false,
+      setDebugOverlayVisible: (visible: boolean) => {
+        set({ debugOverlayVisible: visible });
+      },
+    }),
+    {
+      name: 'app-store',
+      storage: createJSONStorage(() => localStorage),
+      partialize: state => ({
+        showDebugOption: state.showDebugOption,
+        debugOverlayVisible: state.debugOverlayVisible,
+      }),
+    }
+  )
+);
 
 export const useAppStore = createSelectors(useAppStoreBase);
