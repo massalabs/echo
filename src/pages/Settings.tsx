@@ -49,7 +49,7 @@ const Settings = (): React.ReactElement => {
   }
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+    <>
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <PageHeader title="Settings" showLogo />
@@ -407,7 +407,7 @@ const Settings = (): React.ReactElement => {
           </div>
         </div>
       </BaseModal>
-    </div>
+    </>
   );
 };
 

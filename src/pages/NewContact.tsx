@@ -184,7 +184,7 @@ const NewContact: React.FC = () => {
   ]);
 
   return (
-    <div className="min-h-screen-mobile bg-background">
+    <div className="bg-background">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4">

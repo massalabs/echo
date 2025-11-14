@@ -71,7 +71,7 @@ const Contact: React.FC = () => {
 
   if (!contact) {
     return (
-      <div className="min-h-screen-mobile bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -85,7 +85,7 @@ const Contact: React.FC = () => {
   const canStart = discussion ? discussion.status === 'active' : true;
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900">
+    <div className=" h-full">
       <div className="max-w-sm mx-auto h-screen-mobile flex flex-col">
         <div className="px-4 py-3 flex items-center gap-3">
           <BackButton />

@@ -40,7 +40,7 @@ const Wallet: React.FC = () => {
   const displayAddress = formatMassaAddress(fullAddress);
 
   return (
-    <div className="min-h-screen-mobile bg-white dark:bg-gray-900">
+    <div className="bg-background">
       <div className="max-w-sm mx-auto">
         {/* Header */}
         <div className="px-6 py-4 flex justify-between items-center">

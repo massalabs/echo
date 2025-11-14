@@ -157,12 +157,12 @@
     @apply bg-background text-foreground;
     margin: 0;
     min-width: 20rem; /* min-w-80 */
-    min-height: 100dvh; /* Use dynamic viewport height for mobile browsers */
-    /* Fallback for browsers that don't support dvh */
-    min-height: 100vh;
     /* Disable pull-to-refresh on mobile */
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+
+    height: 100vh;
+    height: 100dvh;
   }
 
   /* Global scrollbar styling - thin, minimal, no track background */
@@ -231,8 +231,7 @@
   }
 
   #root {
-    min-height: 100vh;
-    min-height: 100dvh;
+    height: 100%;
   }
 
   /* Ensure pointer cursor on all buttons */

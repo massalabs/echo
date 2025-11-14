@@ -18,7 +18,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
   const { exportFileContact, isLoading, error } = useFileShareContact();
 
   return (
-    <div className="min-h-screen-mobile bg-background">
+    <div className="bg-background">
       <div className="max-w-sm mx-auto">
         <PageHeader title="Share Contact" onBack={onBack} />
 

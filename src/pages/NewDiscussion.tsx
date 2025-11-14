@@ -57,7 +57,7 @@ const NewDiscussion: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen-mobile bg-[#efefef] dark:bg-gray-900 px-3 py-3">
+    <div className="h-full px-3 py-3">
       <div className="max-w-sm mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden">
           {/* Card header */}

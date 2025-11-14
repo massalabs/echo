@@ -7,10 +7,12 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <>
-      {children}
-      <BottomNavigation />
-    </>
+    <div className="h-full">
+      <div className="overflow-y-auto h-full">{children}</div>
+      <div className="flex  items-center bg-transparent fixed bottom-3 left-0 right-0">
+        <BottomNavigation />
+      </div>
+    </div>
   );
 };
 

@@ -14,7 +14,7 @@ const Discussions: React.FC = () => {
   const showDebugPanel = useAppStore(s => s.showDebugPanel);
   if (isLoading) {
     return (
-      <div className="min-h-screen-mobile bg-background flex items-center justify-center">
+      <div className="bg-background flex items-center justify-center">
         <div className="text-center">
           <PrivacyGraphic size={120} loading={true} />
           <p className="text-muted-foreground mt-4">Loading...</p>
@@ -24,9 +24,9 @@ const Discussions: React.FC = () => {
   }
 
   return (
-    <div className="h-screen-mobile bg-background overflow-hidden">
-      <div className="max-w-md mx-auto h-full flex flex-col bg-card relative">
-        <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+    <div className="bg-background overflow-hidden h-full">
+      <div className="h-full max-w-md mx-auto flex flex-col bg-card">
+        <div className="px-6 py-4 max-w-md m-auto border-b border-border flex justify-between items-center fixed top-0 left-0 right-0 z-50 bg-card">
           <h2 className="text-lg font-medium text-foreground">Discussions</h2>
           <button
             onClick={() => triggerManualSync()}
@@ -35,7 +35,7 @@ const Discussions: React.FC = () => {
             Refresh
           </button>
         </div>
-        <div className="pb-20 flex-1 overflow-y-auto">
+        <div className="pb-20 flex-1 overflow-y-auto mt-16">
           <DiscussionListPanel
             onRefresh={() => triggerManualSync()}
             onSelect={id => {

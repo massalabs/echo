@@ -57,7 +57,7 @@ const AppContent: React.FC = () => {
   // Show global loader only during initial boot, not during sign-in.
   if (isLoading && !isInitialized && !userProfile) {
     return (
-      <div className="min-h-screen-mobile bg-background flex items-center justify-center">
+      <div className="bg-background flex items-center justify-center h-full">
         <div className="text-center">
           <PrivacyGraphic size={120} loading={true} />
           <p className="text-sm text-muted-foreground mt-4">Loading...</p>
