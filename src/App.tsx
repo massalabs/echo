@@ -43,9 +43,11 @@ const AppContent: React.FC = () => {
   //   });
   // }, []); // Only run once on mount
 
-  addDebugLog(
-    `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
-  );
+  useEffect(() => {
+    addDebugLog(
+      `AppContent render: init=${isInitialized}, loading=${isLoading}, hasProfile=${!!userProfile}`
+    );
+  }, [isInitialized, isLoading, userProfile]);
 
   useEffect(() => {
     if (userProfile?.userId) {
