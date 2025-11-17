@@ -49,6 +49,8 @@ const useAppStoreBase = create<AppStoreState>()(
       partialize: state => ({
         showDebugOption: state.showDebugOption,
         debugOverlayVisible: state.debugOverlayVisible,
+        isInitialized: state.isInitialized,
+        networkName: state.networkName,
       }),
     }
   )
