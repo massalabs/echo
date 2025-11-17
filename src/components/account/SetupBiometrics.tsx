@@ -3,7 +3,6 @@ import { UserProfile, db } from '../../db';
 import { biometricService } from '../../crypto/biometricService';
 import { validateMnemonic } from '../../crypto/bip39';
 import { encryptMnemonicWithBiometricCredentials } from '../../crypto/encryption';
-import { createWebAuthnCredential } from '../../crypto/webauthn';
 import { decodeUserId } from '../../utils/userId';
 import Button from '../ui/Button';
 
@@ -65,17 +64,15 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
         'Enable biometric authentication for your account'
       );
 
-      if (!credentialResult.success || !credentialResult.credentialId) {
+      if (
+        !credentialResult.success ||
+        !credentialResult.credentialId ||
+        !credentialResult.publicKey
+      ) {
         throw new Error(
           credentialResult.error || 'Failed to create biometric credentials'
         );
       }
-
-      // Create WebAuthn credential for cryptographic operations
-      const webauthnKey = await createWebAuthnCredential(
-        `Gossip:${account.username}`,
-        userIdBytes
-      );
 
       // Re-encrypt mnemonic with new biometric-derived key
       const {
@@ -83,8 +80,8 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
         nonce: nonceForBackup,
         salt,
       } = await encryptMnemonicWithBiometricCredentials(
-        webauthnKey.credentialId,
-        webauthnKey.publicKey,
+        credentialResult.credentialId,
+        credentialResult.publicKey,
         currentMnemonic
       );
 
@@ -92,8 +89,8 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
       const updatedSecurity = {
         ...account.security,
         webauthn: {
-          credentialId: webauthnKey.credentialId,
-          publicKey: webauthnKey.publicKey,
+          credentialId: credentialResult.credentialId,
+          publicKey: credentialResult.publicKey,
         },
         encKeySalt: salt,
         mnemonicBackup: {
