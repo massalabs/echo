@@ -19,6 +19,7 @@ export function useVersionCheck() {
       // Version changed → show update prompt
       setShowUpdatePrompt(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildId]);
 
   const isVersionDifferent = buildId !== null && buildId !== APP_BUILD_ID;
