@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { NetworkName } from '@massalabs/massa-web3';
 import { createSelectors } from './utils/createSelectors';
+import { STORAGE_KEYS } from '../utils/localStorage';
 
 interface AppStoreState {
   // Network config (read by accountStore)
@@ -35,7 +36,7 @@ const useAppStoreBase = create<AppStoreState>()(
       },
     }),
     {
-      name: 'app-store',
+      name: STORAGE_KEYS.APP_STORE,
       storage: createJSONStorage(() => localStorage),
       partialize: state => ({
         showDebugOption: state.showDebugOption,

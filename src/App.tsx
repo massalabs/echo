@@ -11,10 +11,8 @@ import './App.css';
 
 // Hooks
 import { useProfileLoader } from './hooks/useProfileLoader';
-
 import { useAppStateRefresh } from './hooks/useAppStateRefresh';
 import { useAccountInfo } from './hooks/useAccountInfo';
-import { useAuthRouting } from './hooks/useAuthRouting';
 
 // Route components
 import { AuthenticatedRoutes } from './routes/AuthenticatedRoutes';
@@ -22,6 +20,8 @@ import { UnauthenticatedRoutes } from './routes/UnauthenticatedRoutes';
 import { OnboardingRoutes } from './routes/OnboardingRoutes';
 import { useMessageStore } from './stores/messageStore.tsx';
 import { useDiscussionStore } from './stores/discussionStore.tsx';
+import { useVersionCheck } from './hooks/useVersionCheck.ts';
+import VersionUpdateModal from './components/ui/VersionUpdateModal.tsx';
 
 const AppContent: React.FC = () => {
   const { isInitialized, isLoading, userProfile } = useAccountStore();
@@ -30,11 +30,9 @@ const AppContent: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Custom hooks for app initialization and state management
   useProfileLoader();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
-  useAuthRouting();
 
   // Setup service worker: register, listen for messages, start sync scheduler, and initialize background sync
   // useEffect(() => {
@@ -70,7 +68,11 @@ const AppContent: React.FC = () => {
 
   // If authenticated, show main app routes
   if (userProfile) {
-    return <AuthenticatedRoutes />;
+    return (
+      <>
+        <AuthenticatedRoutes />
+      </>
+    );
   }
 
   // If not initialized and no profile, show onboarding
@@ -85,15 +87,19 @@ const AppContent: React.FC = () => {
 
   // Initialized but unauthenticated: route between Login and Setup
   return (
-    <UnauthenticatedRoutes
-      existingAccountInfo={existingAccountInfo}
-      loginError={loginError}
-      onLoginErrorChange={setLoginError}
-    />
+    <>
+      <UnauthenticatedRoutes
+        existingAccountInfo={existingAccountInfo}
+        loginError={loginError}
+        onLoginErrorChange={setLoginError}
+      />
+    </>
   );
 };
 
 function App() {
+  const { showUpdatePrompt, handleForceUpdate, dismissUpdate } =
+    useVersionCheck();
   return (
     <HashRouter>
       <ErrorBoundary>
@@ -125,6 +131,11 @@ function App() {
               },
             },
           }}
+        />
+        <VersionUpdateModal
+          isOpen={showUpdatePrompt}
+          onClose={dismissUpdate}
+          onAccept={handleForceUpdate}
         />
       </ErrorBoundary>
     </HashRouter>

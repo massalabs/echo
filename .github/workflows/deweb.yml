@@ -21,9 +21,15 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Get short commit hash
+        id: vars
+        run: |
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: Build
         env:
           VITE_PROTOCOL_API_URL: ${{ secrets.VITE_PROTOCOL_API_URL }}
+          VITE_APP_VERSION: ${{ env.COMMIT_HASH }}
         run: npm run build
 
       - name: Deploy main version to Massa DeWeb (${{ matrix.network }})

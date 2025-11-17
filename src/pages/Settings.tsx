@@ -3,16 +3,35 @@ import BaseModal from '../components/ui/BaseModal';
 import PageHeader from '../components/ui/PageHeader';
 import { useAccountStore } from '../stores/accountStore';
 import { useAppStore } from '../stores/appStore';
-import { useTheme } from '../components/ui/use-theme';
+import { useTheme } from '../hooks/useTheme';
 import { formatUserId } from '../utils/userId';
 import appLogo from '../assets/gossip_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
 import ShareContact from '../components/settings/ShareContact';
 import Button from '../components/ui/Button';
+import Toggle from '../components/ui/Toggle';
+import InfoRow from '../components/ui/InfoRow';
 import CopyClipboard from '../components/ui/CopyClipboard';
 import { db } from '../db';
-import { announcementService } from '../services/announcement';
 import { triggerManualSync } from '../services/messageSync';
+import { useVersionCheck } from '../hooks/useVersionCheck';
+import { APP_VERSION } from '../config/version';
+import {
+  STORAGE_KEYS,
+  getStorageItem,
+  clearAllStorage,
+} from '../utils/localStorage';
+import {
+  DangerIcon,
+  AccountBackupIcon,
+  ShareContactIcon,
+  DarkModeIcon,
+  LightModeIcon,
+  DebugIcon,
+  RefreshIcon,
+  LogoutIcon,
+  DeleteIcon,
+} from '../components/ui/icons';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -27,6 +46,7 @@ const Settings = (): React.ReactElement => {
   const { setTheme, resolvedTheme } = useTheme();
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const { isVersionDifferent, handleForceUpdate } = useVersionCheck();
 
   const handleLogout = async () => {
     try {
@@ -62,7 +82,7 @@ const Settings = (): React.ReactElement => {
 
   const handleResetAllAccounts = useCallback(async () => {
     try {
-      localStorage.clear();
+      clearAllStorage();
       sessionStorage.clear();
 
       db.close();
@@ -85,32 +105,10 @@ const Settings = (): React.ReactElement => {
       }
 
       await resetAccount();
-      window.location.reload();
     } catch (error) {
       console.error('Failed to reset all accounts:', error);
-      window.location.reload();
     }
   }, [resetAccount]);
-
-  const handleSimulateIncomingDiscussion = useCallback(async () => {
-    try {
-      if ('Notification' in window && Notification.permission === 'default') {
-        await Notification.requestPermission();
-      }
-
-      const result = await announcementService.simulateIncomingDiscussion();
-      if (result.success) {
-        console.log(
-          'Simulated incoming discussion. New messages:',
-          result.newMessagesCount
-        );
-      } else {
-        console.error('Simulation failed:', result.error);
-      }
-    } catch (error) {
-      console.error('Failed to simulate incoming discussion:', error);
-    }
-  }, []);
 
   // Show sub-views based on activeView
   switch (activeView) {
@@ -165,16 +163,19 @@ const Settings = (): React.ReactElement => {
 
         {/* Settings Options */}
         <div className="px-4 pb-24 space-y-2">
-          {/* App Version */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4 justify-between">
-            <span className="text-base font-semibold text-black dark:text-white">
-              Version
-            </span>
-            <span className="text-sm text-gray-600 dark:text-gray-300">
-              0.0.1
-            </span>
+          <div className="py-2">
+            <InfoRow label="Version" value={APP_VERSION} />
+            {showDebugOption && (
+              <InfoRow
+                label="Commit"
+                value={
+                  getStorageItem<string>(STORAGE_KEYS.APP_VERSION) ?? 'unknown'
+                }
+                valueClassName="text-xs text-muted-foreground font-mono"
+              />
+            )}
           </div>
-
+          {/* App Version */}
           {/* Account Backup Button */}
           <Button
             variant="outline"
@@ -182,19 +183,7 @@ const Settings = (): React.ReactElement => {
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => setActiveView(SettingsView.SHOW_ACCOUNT_BACKUP)}
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-              />
-            </svg>
+            <AccountBackupIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
               Account Backup
             </span>
@@ -202,7 +191,6 @@ const Settings = (): React.ReactElement => {
               <div className="w-2 h-2 bg-success rounded-full ml-auto"></div>
             )}
           </Button>
-
           {/* Share Contact Button */}
           <Button
             variant="outline"
@@ -210,201 +198,89 @@ const Settings = (): React.ReactElement => {
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => setActiveView(SettingsView.SHARE_CONTACT)}
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm-9 9a6 6 0 1112 0H6z"
-              />
-            </svg>
+            <ShareContactIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
               Share Contact
             </span>
           </Button>
-
           {/* Security Button */}
-          <Button
+          {/* <Button
             variant="outline"
             size="custom"
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+            <SecurityIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
               Security
             </span>
-          </Button>
-
+          </Button> */}
           {/* Notifications Button */}
-          <Button
+          {/* <Button
             variant="outline"
             size="custom"
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-              />
-            </svg>
+            <NotificationsIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
               Notifications
             </span>
-          </Button>
-
+          </Button> */}
           {/* Privacy Button */}
-          <Button
+          {/* <Button
             variant="outline"
             size="custom"
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg"
             onClick={() => {}}
             disabled
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
+            <PrivacyIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
               Privacy
             </span>
-          </Button>
-
+          </Button> */}
           {/* Theme Toggle */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
+          <div className="bg-card border border-border rounded-lg h-[54px] flex items-center px-4 justify-start w-full shadow-sm">
             {resolvedTheme === 'dark' ? (
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5 text-black dark:text-white mr-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                />
-              </svg>
+              <DarkModeIcon className="text-foreground mr-4" />
             ) : (
-              <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                className="w-5 h-5 text-black dark:text-white mr-4"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
+              <LightModeIcon className="text-foreground mr-4" />
             )}
-            <span className="text-base font-semibold text-black dark:text-white flex-1 text-left">
+            <span className="text-base font-semibold text-foreground flex-1 text-left">
               {resolvedTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}
             </span>
-            <button
-              onClick={() => {
-                setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
-              }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                resolvedTheme === 'dark'
-                  ? 'bg-primary'
-                  : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-              role="switch"
-              aria-checked={resolvedTheme === 'dark'}
-              aria-label="Toggle theme"
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  resolvedTheme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <Toggle
+              checked={resolvedTheme === 'dark'}
+              onChange={checked => setTheme(checked ? 'dark' : 'light')}
+              ariaLabel="Toggle theme"
+            />
           </div>
-
           {/* Debug Options Toggle */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg h-[54px] flex items-center px-4">
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 text-black dark:text-white mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-              />
-            </svg>
-            <span className="text-base font-semibold text-black dark:text-white flex-1 text-left">
+          <div className="bg-card border border-border rounded-lg h-[54px] flex items-center px-4 justify-start w-full shadow-sm">
+            <DebugIcon className="text-foreground mr-4" />
+            <span className="text-base font-semibold text-foreground flex-1 text-left">
               Show Debug Options
             </span>
-            <button
-              onClick={() => setShowDebugOption(!showDebugOption)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                showDebugOption ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
-              }`}
-              role="switch"
-              aria-checked={showDebugOption}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  showDebugOption ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <Toggle
+              checked={showDebugOption}
+              onChange={setShowDebugOption}
+              ariaLabel="Show debug options"
+            />
           </div>
-
           {/* Debug Options - Only show when showDebugOption is true */}
           {showDebugOption && (
-            <div className="space-y-2">
+            <div className="space-y-2 pl-10">
               <Button
                 variant="outline"
                 className="w-full"
                 onClick={handleResetAllAccounts}
               >
+                <DangerIcon className="mr-4" />
                 <span className="text-base font-semibold flex-1 text-left">
-                  Reset All Accounts (wipe local storage)
+                  Reset App
                 </span>
               </Button>
               <Button
@@ -412,36 +288,27 @@ const Settings = (): React.ReactElement => {
                 className="w-full"
                 onClick={handleResetAllDiscussionsAndMessages}
               >
+                <DangerIcon className="mr-4" />
                 <span className="text-base font-semibold flex-1 text-left">
-                  Reset Discussions, Messages & Contacts (DB only)
-                </span>
-              </Button>
-              <Button
-                variant="outline"
-                size="custom"
-                className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-accent border-accent hover:bg-accent/10"
-                onClick={handleSimulateIncomingDiscussion}
-              >
-                <svg
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  className="w-5 h-5 mr-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                <span className="text-base font-semibold flex-1 text-left">
-                  Simulate Incoming Discussion (test)
+                  Clear Messages & Contacts
                 </span>
               </Button>
             </div>
           )}
-
+          {/* Clear Cache & Database Button - Only show when version differs */}
+          {isVersionDifferent && (
+            <Button
+              variant="outline"
+              size="custom"
+              className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-destructive border-destructive hover:bg-destructive/10"
+              onClick={handleForceUpdate}
+            >
+              <RefreshIcon className="mr-4" />
+              <span className="text-base font-semibold flex-1 text-left">
+                Clear Cache & Database
+              </span>
+            </Button>
+          )}
           {/* Logout Button */}
           <Button
             variant="outline"
@@ -449,24 +316,11 @@ const Settings = (): React.ReactElement => {
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-foreground border-border hover:bg-muted"
             onClick={handleLogout}
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
+            <LogoutIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
               Logout
             </span>
           </Button>
-
           {/* Reset Account Button */}
           <Button
             variant="outline"
@@ -474,21 +328,9 @@ const Settings = (): React.ReactElement => {
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
             onClick={handleResetAccount}
           >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              className="w-5 h-5 mr-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
+            <DeleteIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
-              Reset Account
+              Delete Account
             </span>
           </Button>
         </div>

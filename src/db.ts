@@ -338,6 +338,11 @@ export class GossipDatabase extends Dexie {
       updatedAt: new Date(),
     });
   }
+
+  async deleteDb(): Promise<void> {
+    await this.close();
+    await db.delete();
+  }
 }
 
 // Create and export the database instance
