@@ -34,18 +34,6 @@ export function isWebAuthnSupported(): boolean {
     typeof (window as unknown as { PublicKeyCredential?: unknown })
       .PublicKeyCredential !== 'undefined';
 
-  console.log('🔍 WebAuthn Support Check:', {
-    hasWindow: typeof window !== 'undefined',
-    hasNavigator: typeof window.navigator !== 'undefined',
-    hasCredentials: typeof window.navigator?.credentials !== 'undefined',
-    hasCreate: typeof window.navigator?.credentials?.create !== 'undefined',
-    hasGet: typeof window.navigator?.credentials?.get !== 'undefined',
-    hasPublicKeyCredential:
-      typeof (window as unknown as { PublicKeyCredential?: unknown })
-        .PublicKeyCredential !== 'undefined',
-    finalResult: supported,
-  });
-
   return supported;
 }
 
@@ -254,8 +242,6 @@ export async function authenticateWithWebAuthn(
     };
   } catch (error) {
     console.error('Error authenticating with WebAuthn:', error);
-    console.error('CredentialId used:', credentialId);
-    console.error('RP ID used:', window.location.hostname);
     throw new Error(
       `Biometric authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );

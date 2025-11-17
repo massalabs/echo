@@ -83,9 +83,8 @@ export class BiometricService {
       try {
         const result = await BiometricAuth.checkBiometry();
         methods.capacitor = result.isAvailable;
-        console.log('📱 Capacitor biometrics available:', methods.capacitor);
       } catch (error) {
-        console.warn('❌ Capacitor biometric check failed:', error);
+        console.warn('Capacitor biometric check failed:', error);
         methods.capacitor = false;
       }
     }
@@ -95,15 +94,13 @@ export class BiometricService {
       try {
         const platformAvailable = await isPlatformAuthenticatorAvailable();
         methods.webauthn = platformAvailable;
-        console.log('🌐 WebAuthn available:', methods.webauthn);
       } catch (error) {
-        console.warn('❌ WebAuthn availability check failed:', error);
+        console.warn('WebAuthn availability check failed:', error);
         methods.webauthn = false;
       }
     }
 
     methods.any = methods.capacitor || methods.webauthn;
-    console.log('🔍 Final biometric methods:', methods);
     return methods;
   }
 
@@ -117,7 +114,6 @@ export class BiometricService {
     if (methods.capacitor) {
       try {
         const result = await BiometricAuth.checkBiometry();
-        console.log('📊 Capacitor checkBiometry result:', result);
 
         const availability = {
           available: result.isAvailable,
@@ -126,19 +122,16 @@ export class BiometricService {
           method: 'capacitor' as const,
         };
 
-        console.log('✅ Final availability result:', availability);
         return availability;
       } catch (error) {
-        console.warn('❌ Capacitor biometric check failed:', error);
+        console.warn('Capacitor biometric check failed:', error);
       }
     }
 
     // Fallback to WebAuthn
     if (methods.webauthn) {
-      console.log('🌐 Using WebAuthn fallback');
       try {
         const platformAvailable = await isPlatformAuthenticatorAvailable();
-        console.log('📊 WebAuthn platformAvailable:', platformAvailable);
 
         const availability: BiometricAvailability = {
           available: platformAvailable,
@@ -146,10 +139,9 @@ export class BiometricService {
           method: 'webauthn' as const,
         };
 
-        console.log('✅ WebAuthn availability result:', availability);
         return availability;
       } catch (error) {
-        console.warn('❌ WebAuthn availability check failed:', error);
+        console.warn('WebAuthn availability check failed:', error);
       }
     }
 
@@ -172,8 +164,6 @@ export class BiometricService {
     // For native platforms, create biometric credentials without WebAuthn browser APIs
     if (this.capacitorAvailable) {
       try {
-        console.log('🔐 Creating biometric credential on native platform');
-
         // Generate a unique credential ID for this account
         const credentialId = await this.generateCredentialId(username, userId);
 
@@ -183,7 +173,6 @@ export class BiometricService {
         const publicKeyArray = crypto.getRandomValues(new Uint8Array(32));
         const publicKey = publicKeyArray.buffer;
 
-        console.log('✅ Native biometric credential created successfully');
         return {
           success: true,
           credentialId,
@@ -231,13 +220,11 @@ export class BiometricService {
     // Use Capacitor Biometric Auth for native platforms
     if (this.capacitorAvailable) {
       try {
-        console.log('📱 Using native biometric authentication');
         await BiometricAuth.authenticate({
           reason: reason || 'Authenticate to access your account',
           allowDeviceCredential: true,
         });
 
-        console.log('✅ Native biometric authentication successful');
         return { success: true };
       } catch (error) {
         console.error('Native biometric authentication failed:', error);
@@ -262,7 +249,6 @@ export class BiometricService {
 
     // Use WebAuthn for web platforms only
     try {
-      console.log('🌐 Using WebAuthn authentication for web platform');
       await authenticateWithWebAuthn(credentialId);
       return { success: true };
     } catch (error) {

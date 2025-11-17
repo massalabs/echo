@@ -108,7 +108,7 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
         updatedAt: new Date(),
       });
 
-      console.log('✅ Biometric authentication enabled successfully');
+      console.log('Biometric authentication enabled successfully');
       onComplete();
     } catch (error) {
       console.error('Error setting up biometrics:', error);
