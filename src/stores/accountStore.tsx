@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
 
-import { encrypt, deriveKey } from '../crypto/encryption';
+import {
+  encrypt,
+  deriveKey,
+  encryptMnemonicWithBiometricCredentials,
+} from '../crypto/encryption';
 import { isWebAuthnSupported } from '../crypto/webauthn';
 import { biometricService } from '../crypto/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
@@ -168,19 +172,21 @@ async function buildSecurityFromWebAuthn(
   // Use the credential ID and public key from biometric service
   const { credentialId, publicKey } = credentialResult;
 
-  // Derive EncryptionKey deterministically from credentialId + publicKey
-  const seedHash =
-    credentialId + (publicKey ? Buffer.from(publicKey).toString('base64') : '');
-  const salt = (await generateNonce()).to_bytes();
-  const derivedKey = await deriveKey(seedHash, salt);
-
-  // Encrypt mnemonic with derived key using AEAD (store nonce with ciphertext)
+  // Encrypt mnemonic with derived key using biometric credentials
   if (!mnemonic) {
     throw new Error('Mnemonic is required for account creation');
   }
 
-  const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
-    await encrypt(mnemonic, derivedKey);
+  const {
+    encryptedMnemonic,
+    nonce: nonceForBackup,
+    salt,
+    derivedKey,
+  } = await encryptMnemonicWithBiometricCredentials(
+    credentialId,
+    publicKey || new ArrayBuffer(0),
+    mnemonic
+  );
   const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
     encryptedMnemonic,
     nonce: nonceForBackup,

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, db } from '../../db';
 import { biometricService } from '../../crypto/biometricService';
 import { validateMnemonic } from '../../crypto/bip39';
-import { encrypt, deriveKey } from '../../crypto/encryption';
-import { generateNonce } from '../../wasm';
+import { encryptMnemonicWithBiometricCredentials } from '../../crypto/encryption';
 import { createWebAuthnCredential } from '../../crypto/webauthn';
 import { decodeUserId } from '../../utils/userId';
 import Button from '../ui/Button';
@@ -78,16 +77,16 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
         userIdBytes
       );
 
-      // Derive new encryption key from biometric credentials (same as WebAuthn)
-      const seedHash =
-        webauthnKey.credentialId +
-        Buffer.from(webauthnKey.publicKey).toString('base64');
-      const salt = (await generateNonce()).to_bytes();
-      const derivedKey = await deriveKey(seedHash, salt);
-
       // Re-encrypt mnemonic with new biometric-derived key
-      const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
-        await encrypt(currentMnemonic, derivedKey);
+      const {
+        encryptedMnemonic,
+        nonce: nonceForBackup,
+        salt,
+      } = await encryptMnemonicWithBiometricCredentials(
+        webauthnKey.credentialId,
+        webauthnKey.publicKey,
+        currentMnemonic
+      );
 
       // Update account security with biometric credentials
       const updatedSecurity = {
