@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAccountStore } from '../stores/accountStore';
+import { useAppStore } from '../stores/appStore';
 import OnboardingFlow from '../components/OnboardingFlow';
 import AccountImport from '../components/account/AccountImport';
 import AccountCreation from '../components/account/AccountCreation';
@@ -27,7 +27,7 @@ export const OnboardingRoutes: React.FC<{
       <AccountImport
         onBack={() => onShowImportChange(false)}
         onComplete={() => {
-          useAccountStore.setState({ isInitialized: true });
+          useAppStore.getState().setIsInitialized(true);
         }}
       />
     );

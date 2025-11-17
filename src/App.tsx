@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { useAccountStore } from './stores/accountStore';
+import { useAppStore } from './stores/appStore';
 import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
 import PWABadge from './PWABadge.tsx';
 import DebugOverlay from './components/ui/DebugOverlay.tsx';
@@ -24,7 +25,8 @@ import { useVersionCheck } from './hooks/useVersionCheck.ts';
 import VersionUpdateModal from './components/ui/VersionUpdateModal.tsx';
 
 const AppContent: React.FC = () => {
-  const { isInitialized, isLoading, userProfile } = useAccountStore();
+  const { isLoading, userProfile } = useAccountStore();
+  const { isInitialized } = useAppStore();
   const initMessage = useMessageStore(s => s.init);
   const initDiscussion = useDiscussionStore(s => s.init);
   const [showImport, setShowImport] = useState(false);
@@ -68,13 +70,10 @@ const AppContent: React.FC = () => {
 
   // If authenticated, show main app routes
   if (userProfile) {
-    return (
-      <>
-        <AuthenticatedRoutes />
-      </>
-    );
+    return <AuthenticatedRoutes />;
   }
 
+  console.log('isInitialized', isInitialized);
   // If not initialized and no profile, show onboarding
   if (!isInitialized) {
     return (
@@ -87,13 +86,11 @@ const AppContent: React.FC = () => {
 
   // Initialized but unauthenticated: route between Login and Setup
   return (
-    <>
-      <UnauthenticatedRoutes
-        existingAccountInfo={existingAccountInfo}
-        loginError={loginError}
-        onLoginErrorChange={setLoginError}
-      />
-    </>
+    <UnauthenticatedRoutes
+      existingAccountInfo={existingAccountInfo}
+      loginError={loginError}
+      onLoginErrorChange={setLoginError}
+    />
   );
 };
 

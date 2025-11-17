@@ -14,6 +14,9 @@ interface AppStoreState {
   // Debug overlay visibility
   debugOverlayVisible: boolean;
   setDebugOverlayVisible: (visible: boolean) => void;
+  // App initialization state (whether app has checked for existing accounts)
+  isInitialized: boolean;
+  setIsInitialized: (value: boolean) => void;
 }
 
 const useAppStoreBase = create<AppStoreState>()(
@@ -33,6 +36,11 @@ const useAppStoreBase = create<AppStoreState>()(
       debugOverlayVisible: false,
       setDebugOverlayVisible: (visible: boolean) => {
         set({ debugOverlayVisible: visible });
+      },
+      // App initialization state
+      isInitialized: false,
+      setIsInitialized: (value: boolean) => {
+        set({ isInitialized: value });
       },
     }),
     {

@@ -13,7 +13,6 @@ import Toggle from '../components/ui/Toggle';
 import InfoRow from '../components/ui/InfoRow';
 import CopyClipboard from '../components/ui/CopyClipboard';
 import { db } from '../db';
-import { triggerManualSync } from '../services/messageSync';
 import { useVersionCheck } from '../hooks/useVersionCheck';
 import { STORAGE_KEYS, clearAllStorage } from '../utils/localStorage';
 import {
@@ -29,6 +28,7 @@ import {
 } from '../components/ui/icons';
 import { APP_VERSION } from '../config/version';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useNavigate } from 'react-router-dom';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -45,6 +45,7 @@ const Settings = (): React.ReactElement => {
   const [activeView, setActiveView] = useState<SettingsView | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const { isVersionDifferent, handleForceUpdate } = useVersionCheck();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
@@ -52,10 +53,6 @@ const Settings = (): React.ReactElement => {
     } catch (error) {
       console.error('Failed to logout:', error);
     }
-  };
-
-  const handleResetAccount = async () => {
-    setIsResetModalOpen(true);
   };
 
   const mnemonicBackupInfo = getMnemonicBackupInfo();
@@ -73,20 +70,28 @@ const Settings = (): React.ReactElement => {
       );
     } catch (error) {
       console.error('Failed to reset discussions and messages:', error);
-    } finally {
-      await triggerManualSync();
     }
   }, []);
+
+  const handleResetAccount = useCallback(async () => {
+    try {
+      await resetAccount();
+      navigate('/welcome');
+    } catch (error) {
+      console.error('Failed to reset account:', error);
+    }
+  }, [resetAccount, navigate]);
 
   const handleResetAllAccounts = useCallback(async () => {
     try {
       clearAllStorage();
       db.deleteDb();
       await resetAccount();
+      navigate('/welcome');
     } catch (error) {
       console.error('Failed to reset all accounts:', error);
     }
-  }, [resetAccount]);
+  }, [resetAccount, navigate]);
 
   // Show sub-views based on activeView
   switch (activeView) {
@@ -302,7 +307,7 @@ const Settings = (): React.ReactElement => {
             variant="outline"
             size="custom"
             className="w-full h-[54px] flex items-center px-4 justify-start rounded-lg text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
-            onClick={handleResetAccount}
+            onClick={() => setIsResetModalOpen(true)}
           >
             <DeleteIcon className="mr-4" />
             <span className="text-base font-semibold flex-1 text-left">
@@ -324,11 +329,7 @@ const Settings = (): React.ReactElement => {
             <Button
               onClick={async () => {
                 setIsResetModalOpen(false);
-                try {
-                  await resetAccount();
-                } catch (error) {
-                  console.error('Failed to reset account:', error);
-                }
+                await handleResetAccount();
               }}
               variant="danger"
               size="custom"

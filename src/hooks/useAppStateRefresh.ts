@@ -11,17 +11,13 @@ export function useAppStateRefresh() {
   const { userProfile } = useAccountStore();
 
   useEffect(() => {
-    if (userProfile?.userId) {
-      console.log('User logged in, triggering message sync');
+    if (userProfile?.session) {
       triggerManualSync().catch(error => {
         console.error('Failed to sync messages on login:', error);
       });
 
       const REFRESH_INTERVAL_MS = defaultSyncConfig.activeSyncIntervalMs;
       const refreshInterval = setInterval(() => {
-        console.log(
-          `Periodic app state refresh triggered (every ${REFRESH_INTERVAL_MS / 1000}s)`
-        );
         triggerManualSync().catch(error => {
           console.error('Failed to refresh app state periodically:', error);
         });
@@ -33,5 +29,5 @@ export function useAppStateRefresh() {
         console.log('Periodic app state refresh interval cleared');
       };
     }
-  }, [userProfile?.userId]);
+  }, [userProfile?.session]);
 }

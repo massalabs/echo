@@ -236,7 +236,6 @@ async function buildSecurityFromWebAuthn(
 interface AccountState {
   userProfile: UserProfile | null;
   encryptionKey: EncryptionKey | null;
-  isInitialized: boolean;
   isLoading: boolean;
   webauthnSupported: boolean;
   platformAuthenticatorAvailable: boolean;
@@ -287,22 +286,23 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
   };
 
   // Helper function to clear account state
-  const clearAccountState = (isInitialized: boolean) => ({
-    account: null,
-    userProfile: null,
-    encryptionKey: null,
-    ourPk: null,
-    ourSk: null,
-    session: null,
-    isLoading: false,
-    isInitialized,
-  });
+  const clearAccountState = (isInitialized: boolean) => {
+    useAppStore.getState().setIsInitialized(isInitialized);
+    return {
+      account: null,
+      userProfile: null,
+      encryptionKey: null,
+      ourPk: null,
+      ourSk: null,
+      session: null,
+      isLoading: false,
+    };
+  };
 
   return {
     // Initial state
     userProfile: null,
     encryptionKey: null,
-    isInitialized: false,
     isLoading: true,
     webauthnSupported: isWebAuthnSupported(),
     platformAuthenticatorAvailable: false,
@@ -343,6 +343,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           session
         );
 
+        useAppStore.getState().setIsInitialized(true);
         set({
           userProfile: profile,
           encryptionKey,
@@ -350,7 +351,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           ourPk: userPublicKeys,
           ourSk: userSecretKeys,
           session,
-          isInitialized: true,
           isLoading: false,
         });
       } catch (error) {
@@ -397,6 +397,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           session
         );
 
+        useAppStore.getState().setIsInitialized(true);
         set({
           account,
           userProfile: profile,
@@ -404,7 +405,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           ourPk: userPublicKeys,
           ourSk: userSecretKeys,
           session,
-          isInitialized: true,
           isLoading: false,
         });
       } catch (error) {
@@ -447,6 +447,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
 
         session.load(profile, encryptionKey);
 
+        useAppStore.getState().setIsInitialized(true);
         set({
           userProfile: profile,
           account,
@@ -454,7 +455,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           ourPk,
           ourSk,
           session,
-          isInitialized: true,
           isLoading: false,
         });
 
@@ -575,6 +575,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           session
         );
 
+        useAppStore.getState().setIsInitialized(true);
         set({
           userProfile: profile,
           encryptionKey,
@@ -582,7 +583,6 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           ourPk: userPublicKeys,
           ourSk: keys.secret_keys(),
           session,
-          isInitialized: true,
           isLoading: false,
           platformAuthenticatorAvailable: availability.available,
         });
