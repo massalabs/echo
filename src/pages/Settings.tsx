@@ -83,6 +83,8 @@ const Settings = (): React.ReactElement => {
   const handleResetAllAccounts = useCallback(async () => {
     try {
       clearAllStorage();
+      // Restore the app version key after clearing storage
+      localStorage.setItem(STORAGE_KEYS.APP_VERSION, APP_VERSION);
       sessionStorage.clear();
 
       db.close();
