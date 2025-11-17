@@ -5,6 +5,7 @@ import { validateMnemonic } from '../../crypto/bip39';
 import { encrypt, deriveKey } from '../../crypto/encryption';
 import { generateNonce } from '../../wasm';
 import { createWebAuthnCredential } from '../../crypto/webauthn';
+import { decodeUserId } from '../../utils/userId';
 import Button from '../ui/Button';
 
 interface SetupBiometricsProps {
@@ -58,7 +59,7 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
       }
 
       // Create new biometric credentials
-      const userIdBytes = new TextEncoder().encode(account.userId);
+      const userIdBytes = decodeUserId(account.userId);
       const credentialResult = await biometricService.createCredential(
         `Gossip:${account.username}`,
         userIdBytes,
