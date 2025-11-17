@@ -14,7 +14,7 @@ import InfoRow from '../components/ui/InfoRow';
 import CopyClipboard from '../components/ui/CopyClipboard';
 import { db } from '../db';
 import { useVersionCheck } from '../hooks/useVersionCheck';
-import { STORAGE_KEYS, clearAllStorage } from '../utils/localStorage';
+import { STORAGE_KEYS, clearAppStorage } from '../utils/localStorage';
 import {
   DangerIcon,
   AccountBackupIcon,
@@ -84,7 +84,7 @@ const Settings = (): React.ReactElement => {
 
   const handleResetAllAccounts = useCallback(async () => {
     try {
-      clearAllStorage();
+      clearAppStorage();
       await db.deleteDb();
       await resetAccount();
       navigate('/welcome');

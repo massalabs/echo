@@ -79,15 +79,3 @@ export const clearAppStorage = (): void => {
     }
   });
 };
-
-/**
- * Clear all localStorage (use with caution - clears everything, not just app data)
- */
-export const clearAllStorage = (): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.clear();
-  } catch (error) {
-    console.error('Error clearing localStorage:', error);
-  }
-};

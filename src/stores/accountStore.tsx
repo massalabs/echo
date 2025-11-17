@@ -286,8 +286,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
   };
 
   // Helper function to clear account state
-  const clearAccountState = (isInitialized: boolean) => {
-    useAppStore.getState().setIsInitialized(isInitialized);
+  const clearAccountState = () => {
     return {
       account: null,
       userProfile: null,
@@ -485,16 +484,9 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           await db.userProfile.delete(currentProfile.userId);
         }
 
-        // Determine if any accounts remain after deletion
-        let hasAnyAccount = false;
-        try {
-          const remaining = await db.userProfile.count();
-          hasAnyAccount = remaining > 0;
-        } catch (_countErr) {
-          hasAnyAccount = false;
-        }
-
-        set(clearAccountState(hasAnyAccount));
+        set(clearAccountState());
+        const nbAccounts = await db.userProfile.count();
+        useAppStore.getState().setIsInitialized(nbAccounts > 0);
       } catch (error) {
         console.error('Error resetting account:', error);
         set({ isLoading: false });
@@ -512,7 +504,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
         useMessageStore.getState().cleanup();
         // Clear in-memory state but keep data in database
         // Keep isInitialized true so user goes to login screen
-        set(clearAccountState(true));
+        set(clearAccountState());
       } catch (error) {
         console.error('Error logging out:', error);
         set({ isLoading: false });
