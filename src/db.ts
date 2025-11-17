@@ -252,7 +252,6 @@ export class GossipDatabase extends Dexie {
   }
 
   async addMessage(message: Omit<Message, 'id'>): Promise<number> {
-    console.log('Adding message for contact:', message.contactUserId);
     const messageId = await this.messages.add(message);
 
     // Get existing discussion
@@ -262,7 +261,6 @@ export class GossipDatabase extends Dexie {
       .first();
 
     if (discussion) {
-      console.log('Updating existing discussion:', discussion.id);
       await this.discussions.update(discussion.id!, {
         lastMessageId: messageId,
         lastMessageContent: message.content,

@@ -28,7 +28,8 @@ export function useLocalStorage<T>(
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setStorageItem(storageKey, value);
-  }, [value, storageKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   return [value, setValue];
 }
