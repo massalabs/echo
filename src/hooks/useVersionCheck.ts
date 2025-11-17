@@ -24,7 +24,7 @@ export function useVersionCheck() {
       // First load or same version → store current version
       setStoredVersion(CURRENT_VERSION);
     }
-  }, [storedVersion, setStoredVersion]);
+  }, [storedVersion, setStoredVersion, CURRENT_VERSION]);
 
   const isVersionDifferent =
     storedVersion !== null && storedVersion !== CURRENT_VERSION;
