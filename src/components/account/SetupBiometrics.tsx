@@ -127,7 +127,7 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
           <h2 className="text-2xl font-semibold mb-4">
             Biometrics Not Available
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             Biometric authentication is not available on this device.
           </p>
           <Button onClick={onBack} variant="outline" fullWidth>
@@ -145,7 +145,7 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
           <h2 className="text-2xl font-semibold mb-4">
             Enter Your Recovery Phrase
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             To enable biometrics, we need to verify your recovery phrase.
           </p>
 
@@ -153,13 +153,13 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
             value={mnemonic}
             onChange={e => setMnemonic(e.target.value)}
             placeholder="Enter your 12 or 24 word recovery phrase"
-            className="w-full h-32 p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-32 p-4 border border-border rounded-xl bg-card text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
             disabled={isLoading}
           />
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive rounded-xl">
+              <p className="text-destructive text-sm">{error}</p>
             </div>
           )}
 
@@ -194,9 +194,9 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
   return (
     <div className="min-h-screen-mobile bg-background flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm mx-auto text-center">
-        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg
-            className="w-8 h-8 text-blue-600 dark:text-blue-400"
+            className="w-8 h-8 text-primary"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -213,7 +213,7 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
         <h2 className="text-2xl font-semibold mb-4">
           Enable Biometric Sign-In
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
+        <p className="text-muted-foreground mb-8">
           Enable fingerprint or face recognition to sign in instantly and
           securely.
           <br />
@@ -223,8 +223,8 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
         </p>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-            <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+          <div className="mb-6 p-3 bg-destructive/10 border border-destructive rounded-xl">
+            <p className="text-destructive text-sm">{error}</p>
           </div>
         )}
 

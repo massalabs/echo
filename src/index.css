@@ -291,17 +291,6 @@
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Status bar safe area for non-overlay mode */
-  .pt-status-bar {
-    padding-top: env(safe-area-inset-top);
-  }
-
-  /* Ensure full viewport height without status bar overlay */
-  .h-full-with-status {
-    height: 100vh;
-    height: 100dvh;
-  }
-
   /* Bottom navigation offset utility */
   /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (20px) = 96px + safe area */
   .bottom-nav-offset {
