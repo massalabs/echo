@@ -52,9 +52,7 @@ function TabSwitcher<T extends string>({
     >
       {/* Active indicator */}
       <div
-        className={`absolute top-1.5 bottom-1.5 rounded-3xl bg-primary shadow-sm ${
-          isMounted ? 'transition-all duration-300 ease-out' : ''
-        }`}
+        className={`absolute top-1.5 bottom-1.5 rounded-3xl bg-primary shadow-sm transition-all duration-300 ease-out${!isMounted ? ' no-transition' : ''}`}
         style={getIndicatorStyle()}
         aria-hidden="true"
       />
