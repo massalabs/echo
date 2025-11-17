@@ -85,7 +85,7 @@ const Settings = (): React.ReactElement => {
   const handleResetAllAccounts = useCallback(async () => {
     try {
       clearAllStorage();
-      db.deleteDb();
+      await db.deleteDb();
       await resetAccount();
       navigate('/welcome');
     } catch (error) {
