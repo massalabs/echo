@@ -169,7 +169,7 @@ const Settings = (): React.ReactElement => {
             <InfoRow label="Version" value={APP_VERSION} />
             {showDebugOption && (
               <InfoRow
-                label="Commit"
+                label="Build ID"
                 value={
                   getStorageItem<string>(STORAGE_KEYS.APP_VERSION) ?? 'unknown'
                 }
