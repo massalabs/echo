@@ -2,8 +2,9 @@ name: Check format
 
 on:
   push:
-    branches: ['**']
+    branches: [main, dev]
   pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   lint-and-build:
