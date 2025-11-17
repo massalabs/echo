@@ -341,7 +341,7 @@ export class GossipDatabase extends Dexie {
 
   async deleteDb(): Promise<void> {
     await this.close();
-    await db.delete();
+    await this.delete();
   }
 }
 
