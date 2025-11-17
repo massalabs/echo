@@ -2,36 +2,34 @@ import { useEffect, useState } from 'react';
 import { db } from '../db';
 import { STORAGE_KEYS, clearAppStorage } from '../utils/localStorage';
 import { useLocalStorage } from './useLocalStorage';
-
-const CURRENT_VERSION = import.meta.env.VITE_APP_VERSION ?? 'dev-local';
+import { APP_BUILD_ID } from '../config/version';
 
 export function useVersionCheck() {
   const [storedVersion, setStoredVersion] = useLocalStorage<string | null>(
-    STORAGE_KEYS.APP_VERSION,
+    STORAGE_KEYS.APP_BUILD_ID,
     null
   );
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
   useEffect(() => {
     console.log(
-      `Current app version: ${CURRENT_VERSION}, stored version: ${storedVersion}`
+      `Current app version: ${APP_BUILD_ID}, stored version: ${storedVersion}`
     );
 
-    if (storedVersion && storedVersion !== CURRENT_VERSION) {
+    if (storedVersion && storedVersion !== APP_BUILD_ID) {
       // Version changed → show update prompt
       setShowUpdatePrompt(true);
-    } else if (storedVersion === null || storedVersion === CURRENT_VERSION) {
+    } else if (storedVersion === null || storedVersion === APP_BUILD_ID) {
       // First load or same version → store current version
-      setStoredVersion(CURRENT_VERSION);
+      setStoredVersion(APP_BUILD_ID);
     }
   }, [storedVersion, setStoredVersion]);
 
   const isVersionDifferent =
-    storedVersion !== null && storedVersion !== CURRENT_VERSION;
+    storedVersion !== null && storedVersion !== APP_BUILD_ID;
 
   const dismissUpdate = () => {
     setShowUpdatePrompt(false);
-    // Don't update the stored version - let user decide later via Settings
   };
 
   const handleForceUpdate = async () => {

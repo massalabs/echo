@@ -15,12 +15,7 @@ import CopyClipboard from '../components/ui/CopyClipboard';
 import { db } from '../db';
 import { triggerManualSync } from '../services/messageSync';
 import { useVersionCheck } from '../hooks/useVersionCheck';
-import { APP_VERSION } from '../config/version';
-import {
-  STORAGE_KEYS,
-  getStorageItem,
-  clearAllStorage,
-} from '../utils/localStorage';
+import { STORAGE_KEYS, clearAllStorage } from '../utils/localStorage';
 import {
   DangerIcon,
   AccountBackupIcon,
@@ -32,6 +27,8 @@ import {
   LogoutIcon,
   DeleteIcon,
 } from '../components/ui/icons';
+import { APP_VERSION } from '../config/version';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -41,6 +38,7 @@ enum SettingsView {
 const Settings = (): React.ReactElement => {
   const { userProfile, getMnemonicBackupInfo, logout, resetAccount } =
     useAccountStore();
+  const [appBuildId] = useLocalStorage(STORAGE_KEYS.APP_BUILD_ID, null);
   const showDebugOption = useAppStore(s => s.showDebugOption);
   const setShowDebugOption = useAppStore(s => s.setShowDebugOption);
   const { setTheme, resolvedTheme } = useTheme();
@@ -83,29 +81,7 @@ const Settings = (): React.ReactElement => {
   const handleResetAllAccounts = useCallback(async () => {
     try {
       clearAllStorage();
-      // Restore the app version key after clearing storage
-      localStorage.setItem(STORAGE_KEYS.APP_VERSION, APP_VERSION);
-      sessionStorage.clear();
-
-      db.close();
-      await db.delete();
-      try {
-        await db.delete();
-      } catch (_e) {
-        console.debug('DB already deleted');
-      }
-
-      try {
-        const databases = await indexedDB.databases();
-        for (const database of databases) {
-          if (database.name?.includes('GossipDatabase')) {
-            indexedDB.deleteDatabase(database.name);
-          }
-        }
-      } catch (_e) {
-        console.log('Could not enumerate databases');
-      }
-
+      db.deleteDb();
       await resetAccount();
     } catch (error) {
       console.error('Failed to reset all accounts:', error);
@@ -170,9 +146,7 @@ const Settings = (): React.ReactElement => {
             {showDebugOption && (
               <InfoRow
                 label="Build ID"
-                value={
-                  getStorageItem<string>(STORAGE_KEYS.APP_VERSION) ?? 'unknown'
-                }
+                value={appBuildId || 'unknown'}
                 valueClassName="text-xs text-muted-foreground font-mono"
               />
             )}

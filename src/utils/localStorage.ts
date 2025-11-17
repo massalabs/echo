@@ -5,7 +5,7 @@
 
 // Define all localStorage keys used in the app
 export const STORAGE_KEYS = {
-  APP_VERSION: 'appVersion',
+  APP_BUILD_ID: 'appBuildId',
   THEME: 'gossip-theme',
   APP_STORE: 'app-store', // Zustand persist key
 } as const;

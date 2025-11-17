@@ -29,7 +29,7 @@ jobs:
       - name: Build
         env:
           VITE_PROTOCOL_API_URL: ${{ secrets.VITE_PROTOCOL_API_URL }}
-          VITE_APP_VERSION: ${{ env.COMMIT_HASH }}
+          VITE_APP_BUILD_ID: ${{ env.COMMIT_HASH }}
         run: npm run build
 
       - name: Deploy main version to Massa DeWeb (${{ matrix.network }})

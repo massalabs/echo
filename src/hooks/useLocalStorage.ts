@@ -12,7 +12,7 @@ import {
  *
  * @example
  * ```tsx
- * const [version, setVersion] = useLocalStorage(STORAGE_KEYS.APP_VERSION, '0.0.0');
+ * const [buildId, setBuildId] = useLocalStorage(STORAGE_KEYS.APP_BUILD_ID, 'dev-local');
  * ```
  */
 export function useLocalStorage<T>(

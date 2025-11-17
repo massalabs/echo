@@ -17,11 +17,11 @@ declare let self: ServiceWorkerGlobalScope;
 // Service Worker configuration constants
 // Import from centralized config for easy adjustment
 const FALLBACK_SYNC_INTERVAL_MS = defaultSyncConfig.fallbackSyncIntervalMs;
-const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? 'dev-local';
+const APP_BUILD_ID = import.meta.env.VITE_APP_BUILD_ID ?? 'dev-local';
 
 setCacheNameDetails({
   prefix: 'gossip',
-  suffix: `-v${APP_VERSION}`,
+  suffix: `-v${APP_BUILD_ID}`,
   precache: 'precache',
   runtime: 'runtime',
 });
