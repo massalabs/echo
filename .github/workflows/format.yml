@@ -32,10 +32,3 @@ jobs:
           VITE_PROTOCOL_API_URL: ${{ secrets.VITE_PROTOCOL_API_URL }}
           VITE_APP_BUILD_ID: ${{ steps.vars.outputs.commit_hash }}
         run: npm run build
-
-      - name: Upload artifact
-        if: github.ref_name == 'main' || github.ref_name == 'dev'
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
