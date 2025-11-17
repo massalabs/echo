@@ -73,7 +73,6 @@ const AppContent: React.FC = () => {
     return <AuthenticatedRoutes />;
   }
 
-  console.log('isInitialized', isInitialized);
   // If not initialized and no profile, show onboarding
   if (!isInitialized) {
     return (
