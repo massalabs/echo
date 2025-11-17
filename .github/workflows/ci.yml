@@ -1,4 +1,4 @@
-name: Check format
+name: CI - Check lint and build
 
 on:
   push:
@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -39,5 +37,5 @@ jobs:
         if: github.ref_name == 'main' || github.ref_name == 'dev'
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ github.ref_name }}
+          name: dist
           path: dist/
