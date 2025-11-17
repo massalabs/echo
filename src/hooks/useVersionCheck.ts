@@ -19,7 +19,7 @@ export function useVersionCheck() {
       // Version changed → show update prompt
       setShowUpdatePrompt(true);
     }
-  }, [buildId, setBuildId]);
+  }, [buildId]);
 
   const isVersionDifferent = buildId !== null && buildId !== APP_BUILD_ID;
 
