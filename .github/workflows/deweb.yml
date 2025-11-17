@@ -8,7 +8,7 @@ jobs:
   deploy-main:
     if: github.ref_name == 'main'
     runs-on: ubuntu-latest
-    needs: ci # ← attend que le workflow ci.yml finisse
+    needs: ci # wait for ci.yml workflow to finish
     steps:
       - uses: actions/download-artifact@v4
         with:
