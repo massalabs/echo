@@ -1,0 +1,42 @@
+name: Check format
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run fmt:check
+
+      - name: Get commit hash
+        id: vars
+        run: echo "commit_hash=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build
+        env:
+          VITE_PROTOCOL_API_URL: ${{ secrets.VITE_PROTOCOL_API_URL }}
+          VITE_APP_BUILD_ID: ${{ steps.vars.outputs.commit_hash }}
+        run: npm run build
+
+      - name: Upload artifact
+        if: github.ref_name == 'main' || github.ref_name == 'dev'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+          path: dist/
