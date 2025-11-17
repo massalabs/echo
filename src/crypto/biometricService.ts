@@ -177,8 +177,11 @@ export class BiometricService {
         // Generate a unique credential ID for this account
         const credentialId = await this.generateCredentialId(username, userId);
 
-        // Generate a simple public key identifier (not actual crypto key)
-        const publicKey = new ArrayBuffer(32); // Just a placeholder for consistency
+        // Generate a random public key identifier for consistency with WebAuthn format
+        // For native platforms, we generate a random identifier since we don't have
+        // access to the actual WebAuthn public key. This is used only for key derivation.
+        const publicKeyArray = crypto.getRandomValues(new Uint8Array(32));
+        const publicKey = publicKeyArray.buffer;
 
         console.log('✅ Native biometric credential created successfully');
         return {
