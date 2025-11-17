@@ -16,11 +16,6 @@ import Wallet from '../pages/Wallet';
 export const AuthenticatedRoutes: React.FC = () => {
   const { userProfile } = useAccountStore();
 
-  // Route guard: redirect to welcome if not authenticated
-  if (!userProfile) {
-    return <Navigate to="/welcome" replace />;
-  }
-
   return (
     <Routes>
       <Route path="/new-discussion" element={<NewDiscussion />} />
