@@ -66,7 +66,7 @@ function TabSwitcher<T extends string>({
           className={`relative z-10 flex-1 h-11 inline-flex items-center justify-center gap-2 text-sm font-semibold rounded-xl transition-all duration-200 ${
             value === option.value
               ? 'text-primary-foreground'
-              : 'hover:text-foreground text-muted-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-pressed={value === option.value}
         >
