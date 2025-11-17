@@ -38,17 +38,6 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
     }
   };
 
-  const generateSecurePassword = () => {
-    // Generate a cryptographically secure random password
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    return btoa(String.fromCharCode(...array))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '')
-      .substring(0, 24); // 24 character password
-  };
-
   const handleSetupBiometrics = async () => {
     try {
       setIsLoading(true);
@@ -67,13 +56,6 @@ const SetupBiometrics: React.FC<SetupBiometricsProps> = ({
       if (!validateMnemonic(currentMnemonic)) {
         throw new Error('Invalid mnemonic phrase');
       }
-
-      // Generate a secure random password for biometric account (for future use if needed)
-      const securePassword = generateSecurePassword();
-      console.log(
-        '🔐 Generated secure password for biometric account:',
-        securePassword.substring(0, 4) + '...'
-      );
 
       // Create new biometric credentials
       const userIdBytes = new TextEncoder().encode(account.userId);
