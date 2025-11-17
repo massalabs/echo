@@ -319,7 +319,7 @@ const Settings = (): React.ReactElement => {
       <BaseModal
         isOpen={isResetModalOpen}
         onClose={() => setIsResetModalOpen(false)}
-        title="Reset account?"
+        title="Delete account?"
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -335,7 +335,7 @@ const Settings = (): React.ReactElement => {
               size="custom"
               className="flex-1 h-11 rounded-lg font-semibold"
             >
-              Reset
+              Delete
             </Button>
             <Button
               onClick={() => setIsResetModalOpen(false)}
