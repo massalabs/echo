@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAccountStore } from '../stores/accountStore';
 import MainLayout from '../components/ui/MainLayout';
 import Discussions from '../pages/Discussions';
 import Contact from '../pages/Contact';
@@ -14,8 +13,6 @@ import Wallet from '../pages/Wallet';
  * Routes accessible when user is authenticated
  */
 export const AuthenticatedRoutes: React.FC = () => {
-  const { userProfile } = useAccountStore();
-
   return (
     <Routes>
       <Route path="/new-discussion" element={<NewDiscussion />} />
