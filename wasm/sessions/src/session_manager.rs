@@ -1651,4 +1651,170 @@ mod tests {
         assert!(json_str.contains("contact_request"));
         assert!(json_str.contains("Hello!"));
     }
+
+    #[test]
+    fn test_session_reestablishment_with_new_announcements() {
+        let config = create_test_config();
+        let mut alice_manager = SessionManager::new(config);
+        let mut bob_manager = SessionManager::new(create_test_config());
+
+        let (alice_pk, alice_sk) = generate_test_keypair();
+        let (bob_pk, bob_sk) = generate_test_keypair();
+        let alice_id = alice_pk.derive_id();
+        let bob_id = bob_pk.derive_id();
+
+        // Phase 1: Initial session establishment
+        // Alice initiates with announcement A
+        let announcement_a =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, vec![]);
+
+        // Bob responds with announcement B
+        let announcement_b =
+            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, vec![]);
+
+        // Alice receives Bob's announcement B
+        alice_manager.feed_incoming_announcement(&announcement_b, &alice_pk, &alice_sk);
+
+        // Bob receives Alice's announcement A
+        bob_manager.feed_incoming_announcement(&announcement_a, &bob_pk, &bob_sk);
+
+        // Verify both have active sessions
+        assert!(
+            matches!(
+                alice_manager.peer_session_status(&bob_id),
+                SessionStatus::Active
+            ),
+            "Alice should have active session"
+        );
+        assert!(
+            matches!(
+                bob_manager.peer_session_status(&alice_id),
+                SessionStatus::Active
+            ),
+            "Bob should have active session"
+        );
+
+        // Phase 2: Test message exchange on initial session (A, B)
+        // Alice sends message to Bob
+        let msg1 = create_test_message(b"Hello Bob from A-B session!");
+        let output1 = alice_manager
+            .send_message(&bob_id, &msg1)
+            .expect("Alice should be able to send message");
+
+        // Bob receives message
+        let received1 = bob_manager
+            .feed_incoming_message_board_read(&output1.seeker, &output1.data, &bob_sk)
+            .expect("Bob should receive message");
+        assert_eq!(received1.message.as_slice(), b"Hello Bob from A-B session!");
+
+        // Bob sends message to Alice
+        let msg2 = create_test_message(b"Hi Alice from B-A session!");
+        let output2 = bob_manager
+            .send_message(&alice_id, &msg2)
+            .expect("Bob should be able to send message");
+
+        // Alice receives message
+        let received2 = alice_manager
+            .feed_incoming_message_board_read(&output2.seeker, &output2.data, &alice_sk)
+            .expect("Alice should receive message");
+        assert_eq!(received2.message.as_slice(), b"Hi Alice from B-A session!");
+
+        // Phase 3: Alice sends new announcement C
+        // Alice sends new announcement C
+        let announcement_c =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, vec![]);
+
+        // Bob receives announcement C
+        bob_manager.feed_incoming_announcement(&announcement_c, &bob_pk, &bob_sk);
+
+        // Verify both still have active sessions
+        assert!(
+            matches!(
+                alice_manager.peer_session_status(&bob_id),
+                SessionStatus::Active
+            ),
+            "Alice should have active session after sending C"
+        );
+        assert!(
+            matches!(
+                bob_manager.peer_session_status(&alice_id),
+                SessionStatus::Active
+            ),
+            "Bob should have active session after receiving C"
+        );
+
+        // Phase 4: Test message exchange on updated session (C, B)
+        // Alice sends message on new session
+        let msg3 = create_test_message(b"Hello Bob from C-B session!");
+        let output3 = alice_manager
+            .send_message(&bob_id, &msg3)
+            .expect("Alice should be able to send message on new session");
+
+        // Bob receives message
+        let received3 = bob_manager
+            .feed_incoming_message_board_read(&output3.seeker, &output3.data, &bob_sk)
+            .expect("Bob should receive message on new session");
+        assert_eq!(received3.message.as_slice(), b"Hello Bob from C-B session!");
+
+        // Bob sends message back
+        let msg4 = create_test_message(b"Hi Alice from B-C session!");
+        let output4 = bob_manager
+            .send_message(&alice_id, &msg4)
+            .expect("Bob should be able to send message on new session");
+
+        // Alice receives message
+        let received4 = alice_manager
+            .feed_incoming_message_board_read(&output4.seeker, &output4.data, &alice_sk)
+            .expect("Alice should receive message on new session");
+        assert_eq!(received4.message.as_slice(), b"Hi Alice from B-C session!");
+
+        // Phase 5: Bob sends new announcement D
+        // Bob sends new announcement D
+        let announcement_d =
+            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, vec![]);
+
+        // Alice receives announcement D
+        alice_manager.feed_incoming_announcement(&announcement_d, &alice_pk, &alice_sk);
+
+        // Verify both still have active sessions
+        assert!(
+            matches!(
+                alice_manager.peer_session_status(&bob_id),
+                SessionStatus::Active
+            ),
+            "Alice should have active session after receiving D"
+        );
+        assert!(
+            matches!(
+                bob_manager.peer_session_status(&alice_id),
+                SessionStatus::Active
+            ),
+            "Bob should have active session after sending D"
+        );
+
+        // Phase 6: Test message exchange on final session (C, D)
+        // Alice sends message on newest session
+        let msg5 = create_test_message(b"Hello Bob from C-D session!");
+        let output5 = alice_manager
+            .send_message(&bob_id, &msg5)
+            .expect("Alice should be able to send message on newest session");
+
+        // Bob receives message
+        let received5 = bob_manager
+            .feed_incoming_message_board_read(&output5.seeker, &output5.data, &bob_sk)
+            .expect("Bob should receive message on newest session");
+        assert_eq!(received5.message.as_slice(), b"Hello Bob from C-D session!");
+
+        // Bob sends message back
+        let msg6 = create_test_message(b"Hi Alice from D-C session!");
+        let output6 = bob_manager
+            .send_message(&alice_id, &msg6)
+            .expect("Bob should be able to send message on newest session");
+
+        // Alice receives message
+        let received6 = alice_manager
+            .feed_incoming_message_board_read(&output6.seeker, &output6.data, &alice_sk)
+            .expect("Alice should receive message on newest session");
+        assert_eq!(received6.message.as_slice(), b"Hi Alice from D-C session!");
+    }
 }
