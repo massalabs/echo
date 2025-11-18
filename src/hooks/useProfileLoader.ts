@@ -20,6 +20,12 @@ export function useProfileLoader() {
           setTimeout(resolve, PROFILE_LOAD_DELAY_MS)
         );
 
+        // Ensure database is open before querying.
+        // NOTE: This may not be needed, but gives us the guarantee that it's open.
+        if (!db.isOpen()) {
+          await db.open();
+        }
+
         const state = useAccountStore.getState();
         const profile =
           state.userProfile || (await db.userProfile.toCollection().first());

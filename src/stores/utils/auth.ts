@@ -1,7 +1,7 @@
 import { EncryptionKey } from '../../assets/generated/wasm/gossip_wasm';
 import { validateMnemonic } from '../../crypto/bip39';
 import { decrypt, deriveKey } from '../../crypto/encryption';
-import { authenticateWithWebAuthn } from '../../crypto/webauthn';
+import { biometricService } from '../../crypto/biometricService';
 import { UserProfile } from '../../db';
 
 export interface AuthResult {
@@ -22,8 +22,16 @@ export async function auth(
   let enKeySeed: string;
   // Check if this is a biometric account
   if (profile.security.webauthn?.credentialId) {
-    // For biometric accounts, authenticate with WebAuthn first (gate UI)
-    await authenticateWithWebAuthn(profile.security.webauthn.credentialId);
+    // For biometric accounts, authenticate using the unified biometric service
+    const authResult = await biometricService.authenticate(
+      profile.security.webauthn.credentialId,
+      'Authenticate to access your account'
+    );
+
+    if (!authResult.success) {
+      throw new Error(authResult.error || 'Biometric authentication failed');
+    }
+
     // Derive EncryptionKey from public WebAuthn fields
     enKeySeed =
       profile.security.webauthn.credentialId +

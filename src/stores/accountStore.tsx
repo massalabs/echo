@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
 
-import { encrypt, deriveKey } from '../crypto/encryption';
 import {
-  createWebAuthnCredential,
-  isWebAuthnSupported,
-  isPlatformAuthenticatorAvailable,
-} from '../crypto/webauthn';
+  encrypt,
+  deriveKey,
+  encryptMnemonicWithBiometricCredentials,
+} from '../crypto/encryption';
+import { isWebAuthnSupported } from '../crypto/webauthn';
+import { biometricService } from '../crypto/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
 import {
   JsonRpcProvider,
@@ -155,24 +156,64 @@ async function buildSecurityFromWebAuthn(
   security: UserProfile['security'];
   encryptionKey: EncryptionKey;
 }> {
-  const webauthnKey = await createWebAuthnCredential(
+  // Use the unified biometric service to create credentials
+  const credentialResult = await biometricService.createCredential(
     `Gossip:${username}`,
-    userIdBytes
+    userIdBytes,
+    'Create biometric credential for secure access'
   );
-  const { credentialId, publicKey } = webauthnKey;
 
-  // Derive EncryptionKey deterministically from credentialId + publicKey
-  const seedHash = credentialId + Buffer.from(publicKey).toString('base64');
-  const salt = (await generateNonce()).to_bytes();
-  const derivedKey = await deriveKey(seedHash, salt);
+  if (!credentialResult.success || !credentialResult.credentialId) {
+    throw new Error(
+      credentialResult.error || 'Failed to create biometric credential'
+    );
+  }
 
-  // Encrypt mnemonic with derived key using AEAD (store nonce with ciphertext)
+  // Use the credential ID and public key from biometric service
+  const { credentialId, publicKey } = credentialResult;
+
+  // Validate that publicKey is present - it's required for key derivation
+  if (!publicKey) {
+    throw new Error(
+      `Public key is required for biometric credential but found: ${publicKey}`
+    );
+  }
+
+  // For Capacitor/native platforms, credential creation doesn't prompt for biometrics,
+  // so we need to verify biometrics here to ensure the device is accessible and working.
+  const platformInfo = biometricService.getPlatformInfo();
+  if (platformInfo.capacitorAvailable) {
+    // Verify that the user can unlock with biometrics before saving the session
+    // This ensures the biometric device is actually accessible and working
+    const verifyResult = await biometricService.authenticate(
+      credentialId,
+      'Verify biometric access to complete account setup'
+    );
+
+    if (!verifyResult.success) {
+      throw new Error(
+        verifyResult.error || 'Biometric verification failed. Please try again.'
+      );
+    }
+  }
+  // For WebAuthn, credential creation already requires user verification (biometric prompt at navigator.credentials.create)
+  // so we skip the redundant authentication check to avoid double prompts
+
+  // Encrypt mnemonic with derived key using biometric credentials
   if (!mnemonic) {
     throw new Error('Mnemonic is required for account creation');
   }
 
-  const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
-    await encrypt(mnemonic, derivedKey);
+  const {
+    encryptedMnemonic,
+    nonce: nonceForBackup,
+    salt,
+    derivedKey,
+  } = await encryptMnemonicWithBiometricCredentials(
+    credentialId,
+    publicKey,
+    mnemonic
+  );
   const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
     encryptedMnemonic,
     nonce: nonceForBackup,
@@ -183,7 +224,7 @@ async function buildSecurityFromWebAuthn(
   const security: UserProfile['security'] = {
     webauthn: {
       credentialId,
-      publicKey: webauthnKey.publicKey,
+      publicKey,
     },
     encKeySalt: salt,
     mnemonicBackup,
@@ -485,28 +526,26 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
 
     checkPlatformAvailability: async () => {
       try {
-        const available = await isPlatformAuthenticatorAvailable();
-        set({ platformAuthenticatorAvailable: available });
+        // Use the unified biometric service to check availability
+        const availability = await biometricService.checkAvailability();
+        set({ platformAuthenticatorAvailable: availability.available });
       } catch (error) {
         console.error('Error checking platform availability:', error);
         set({ platformAuthenticatorAvailable: false });
       }
     },
 
-    // WebAuthn-based account initialization
+    // Biometric-based account initialization
     initializeAccountWithBiometrics: async (username: string) => {
       try {
         set({ isLoading: true });
 
-        // Check WebAuthn support
-        if (!isWebAuthnSupported()) {
-          throw new Error('WebAuthn is not supported in this browser');
-        }
-
-        const platformAvailable = await isPlatformAuthenticatorAvailable();
-        if (!platformAvailable) {
+        // Check biometric support using unified service
+        const availability = await biometricService.checkAvailability();
+        if (!availability.available) {
           throw new Error(
-            'Biometric authentication is not available on this device'
+            availability.reason ||
+              'Biometric authentication is not available on this device'
           );
         }
 
@@ -545,7 +584,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           session,
           isInitialized: true,
           isLoading: false,
-          platformAuthenticatorAvailable: platformAvailable,
+          platformAuthenticatorAvailable: availability.available,
         });
       } catch (error) {
         console.error('Error creating user profile with biometrics:', error);

@@ -6,6 +6,7 @@ import { validatePassword, validateUsername } from '../../utils/validation';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
 import Button from '../ui/Button';
+import { biometricService } from '../../crypto/biometricService';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -24,41 +25,36 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [webauthnSupported, setWebauthnSupported] = useState(false);
-  const [platformAvailable, setPlatformAvailable] = useState(false);
+  const [biometricMethods, setBiometricMethods] = useState({
+    capacitor: false,
+    webauthn: false,
+    any: false,
+  });
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
   const [accountCreationStarted, setAccountCreationStarted] = useState(false);
 
-  const {
-    webauthnSupported: storeWebauthnSupported,
-    platformAuthenticatorAvailable,
-    initializeAccountWithBiometrics,
-    initializeAccount,
-    checkPlatformAvailability,
-  } = useAccountStore();
+  const { initializeAccountWithBiometrics, initializeAccount } =
+    useAccountStore();
 
   useEffect(() => {
-    setWebauthnSupported(storeWebauthnSupported);
+    const checkBiometricMethods = async () => {
+      try {
+        const methods = await biometricService.checkBiometricMethods();
+        setBiometricMethods(methods);
 
-    // Check platform availability if WebAuthn is supported
-    if (storeWebauthnSupported) {
-      checkPlatformAvailability();
-    }
-  }, [storeWebauthnSupported, checkPlatformAvailability]);
+        // Default to first available biometric method, but allow user to choose
+        if (methods.any) {
+          setUsePassword(false);
+        } else {
+          setUsePassword(true);
+        }
+      } catch (_error) {
+        setUsePassword(true);
+      }
+    };
 
-  // In create flow, we no longer check for existing accounts. This screen is only for creating new accounts.
-
-  useEffect(() => {
-    setPlatformAvailable(platformAuthenticatorAvailable);
-
-    // If biometrics are not available, force password mode
-    if (!webauthnSupported || !platformAuthenticatorAvailable) {
-      setUsePassword(true);
-    } else {
-      // If biometrics are available, default to biometrics but allow user to choose
-      setUsePassword(false);
-    }
-  }, [webauthnSupported, platformAuthenticatorAvailable]);
+    checkBiometricMethods();
+  }, []);
 
   const validateUsernameField = (value: string) => {
     const result = validateUsername(value);
@@ -138,7 +134,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
 
       <div className="p-4">
         {/* Authentication Method Toggle */}
-        {webauthnSupported && platformAvailable && (
+        {biometricMethods.any && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-black dark:text-white mb-3">
@@ -191,7 +187,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
         )}
 
         {/* WebAuthn Support Check */}
-        {(!webauthnSupported || !platformAvailable) && (
+        {!biometricMethods.any && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-800">
             <p className="text-blue-600 dark:text-blue-400 text-sm">
               Biometric authentication is not supported on this device. Using
@@ -273,7 +269,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                   <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
                     {usePassword
                       ? 'Your account will be secured using a password. Make sure to choose a strong password.'
-                      : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello).'}
+                      : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello). You will need to authenticate first to confirm biometrics are working.'}
                   </p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { UserProfile } from '../db';
+import { biometricService } from '../crypto/biometricService';
 import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
 import Button from '../components/ui/Button';
@@ -68,6 +69,15 @@ const Login: React.FC<LoginProps> = React.memo(
       try {
         setIsLoading(true);
         onErrorChange?.(null);
+
+        // Check biometric availability first
+        const availability = await biometricService.checkAvailability();
+
+        if (!availability.available) {
+          throw new Error(
+            availability.reason || 'Biometric authentication is not available'
+          );
+        }
 
         await loadAccount(undefined, currentAccount?.userId);
         onAccountSelected();
@@ -162,8 +172,19 @@ const Login: React.FC<LoginProps> = React.memo(
       onAccountSelected();
     };
 
-    const accountSupportsBiometrics = !usePassword;
     const displayUsername = currentAccount?.username;
+
+    // Check if biometrics are available for this account/device
+    const biometricsAvailable =
+      webauthnSupported && platformAuthenticatorAvailable;
+
+    // Always try biometric first if available, regardless of account type
+    const shouldTryBiometricFirst = biometricsAvailable;
+
+    // For password accounts, we want to show biometric option as primary
+    const accountSupportsBiometrics = !usePassword;
+    const shouldShowBiometricOption =
+      shouldTryBiometricFirst || accountSupportsBiometrics;
 
     if (showAccountSelection) {
       return (
@@ -211,7 +232,8 @@ const Login: React.FC<LoginProps> = React.memo(
           </div>
 
           <div className="space-y-5">
-            {accountSupportsBiometrics && (
+            {/* Biometric authentication - show if account supports it */}
+            {shouldShowBiometricOption && accountSupportsBiometrics && (
               <div className="rounded-2xl bg-white/80 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-sm backdrop-blur">
                 <div className="space-y-3">
                   <Button
@@ -223,7 +245,7 @@ const Login: React.FC<LoginProps> = React.memo(
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
                   >
-                    {!isLoading && <span>Sign in with biometrics</span>}
+                    {!isLoading && <span>Login</span>}
                   </Button>
                   {platformResolved &&
                     (!webauthnSupported || !platformAuthenticatorAvailable) && (
@@ -235,7 +257,8 @@ const Login: React.FC<LoginProps> = React.memo(
               </div>
             )}
 
-            {usePassword && (
+            {/* Password authentication - show if biometrics not available OR for password accounts */}
+            {(!biometricsAvailable || usePassword) && (
               <div className="rounded-2xl bg-white/80 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-sm backdrop-blur">
                 <div className="space-y-3">
                   <input
@@ -263,15 +286,15 @@ const Login: React.FC<LoginProps> = React.memo(
                   />
                   <Button
                     type="button"
-                    onClick={() => handlePasswordAuth()}
+                    onClick={handlePasswordAuth}
                     disabled={isLoading || !password.trim()}
                     loading={isLoading}
-                    variant="primary"
+                    variant="outline"
                     size="custom"
                     fullWidth
                     className="h-11 rounded-xl text-sm font-medium"
                   >
-                    Sign in
+                    {!isLoading && <span>Login</span>}
                   </Button>
                 </div>
               </div>
