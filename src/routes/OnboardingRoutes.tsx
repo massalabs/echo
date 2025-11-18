@@ -37,7 +37,7 @@ export const OnboardingRoutes: React.FC<{
     return (
       <AccountCreation
         onComplete={() => {
-          useAccountStore.setState({ isInitialized: true });
+          useAppStore.getState().setIsInitialized(true);
           navigate('/', { replace: true });
         }}
         onBack={() => setShowSetup(false)}
