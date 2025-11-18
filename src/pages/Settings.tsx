@@ -76,7 +76,7 @@ const Settings = (): React.ReactElement => {
   const handleResetAccount = useCallback(async () => {
     try {
       await resetAccount();
-      navigate('/welcome');
+      navigate('/');
     } catch (error) {
       console.error('Failed to reset account:', error);
     }
@@ -84,14 +84,14 @@ const Settings = (): React.ReactElement => {
 
   const handleResetAllAccounts = useCallback(async () => {
     try {
+      await resetAccount();
       clearAppStorage();
       await db.deleteDb();
-      await resetAccount();
-      navigate('/welcome');
+      window.location.reload();
     } catch (error) {
       console.error('Failed to reset all accounts:', error);
     }
-  }, [resetAccount, navigate]);
+  }, [resetAccount]);
 
   // Show sub-views based on activeView
   switch (activeView) {
