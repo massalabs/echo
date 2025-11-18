@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAccountStore } from '../stores/accountStore';
 import OnboardingFlow from '../components/OnboardingFlow';
 import AccountImport from '../components/account/AccountImport';
+import AccountCreation from '../components/account/AccountCreation';
 
 /**
  * Routes for onboarding flow (when no account exists)
@@ -12,6 +13,7 @@ export const OnboardingRoutes: React.FC<{
   onShowImportChange: (show: boolean) => void;
 }> = ({ showImport, onShowImportChange }) => {
   const navigate = useNavigate();
+  const [showSetup, setShowSetup] = useState(false);
 
   if (showImport) {
     return (
@@ -24,12 +26,22 @@ export const OnboardingRoutes: React.FC<{
     );
   }
 
+  if (showSetup) {
+    return (
+      <AccountCreation
+        onComplete={() => {
+          useAccountStore.setState({ isInitialized: true });
+          navigate('/', { replace: true });
+        }}
+        onBack={() => setShowSetup(false)}
+      />
+    );
+  }
+
   return (
     <OnboardingFlow
       onComplete={() => {
-        // When onboarding is complete, mark initialized and navigate to setup
-        useAccountStore.setState({ isInitialized: true });
-        navigate('/setup');
+        setShowSetup(true);
       }}
       onImportMnemonic={() => onShowImportChange(true)}
     />

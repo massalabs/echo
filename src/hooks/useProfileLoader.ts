@@ -20,6 +20,10 @@ export function useProfileLoader() {
           setTimeout(resolve, PROFILE_LOAD_DELAY_MS)
         );
 
+        if (!db.isOpen()) {
+          await db.open();
+        }
+
         const state = useAccountStore.getState();
         const profile =
           state.userProfile || (await db.userProfile.toCollection().first());
