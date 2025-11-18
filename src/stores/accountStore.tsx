@@ -172,6 +172,13 @@ async function buildSecurityFromWebAuthn(
   // Use the credential ID and public key from biometric service
   const { credentialId, publicKey } = credentialResult;
 
+  // Validate that publicKey is present - it's required for key derivation
+  if (!publicKey) {
+    throw new Error(
+      `Public key is required for biometric credential but found: ${publicKey}`
+    );
+  }
+
   // For Capacitor/native platforms, credential creation doesn't prompt for biometrics,
   // so we need to verify biometrics here to ensure the device is accessible and working.
   const platformInfo = biometricService.getPlatformInfo();
@@ -204,7 +211,7 @@ async function buildSecurityFromWebAuthn(
     derivedKey,
   } = await encryptMnemonicWithBiometricCredentials(
     credentialId,
-    publicKey || new ArrayBuffer(0),
+    publicKey,
     mnemonic
   );
   const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
@@ -217,7 +224,7 @@ async function buildSecurityFromWebAuthn(
   const security: UserProfile['security'] = {
     webauthn: {
       credentialId,
-      publicKey: publicKey || new ArrayBuffer(0),
+      publicKey,
     },
     encKeySalt: salt,
     mnemonicBackup,
