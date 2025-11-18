@@ -1,5 +1,5 @@
 // TODO: use virtual list to render messages
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../db';
 import { useDiscussion } from '../hooks/useDiscussion';
@@ -46,9 +46,6 @@ const Discussion: React.FC = () => {
   const isSending = useMessageStore(s => s.isSending);
   const sendMessage = useMessageStore(s => s.sendMessage);
   const resendMessage = useMessageStore(s => s.resendMessage);
-  const syncMessages = useMessageStore(s => s.syncMessages);
-
-  const [isManualSyncing, setIsManualSyncing] = useState(false);
   // Track previous contact userId to prevent unnecessary updates
   const prevContactUserIdRef = useRef<string | null>(null);
 
@@ -90,13 +87,6 @@ const Discussion: React.FC = () => {
     [sendMessage, contact?.userId]
   );
 
-  const handleManualSync = useCallback(async () => {
-    if (!contact?.userId) return;
-    setIsManualSyncing(true);
-    await syncMessages(contact.userId);
-    setIsManualSyncing(false);
-  }, [contact?.userId, syncMessages]);
-
   const handleInputClick = () => {
     if (isMsgFailed) {
       toast.error(
@@ -113,9 +103,7 @@ const Discussion: React.FC = () => {
       <DiscussionHeader
         contact={contact}
         discussion={discussion}
-        isSyncing={isManualSyncing}
         onBack={onBack}
-        onSync={handleManualSync}
       />
 
       <MessageList
