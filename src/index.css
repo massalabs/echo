@@ -42,6 +42,9 @@
   --sidebar-border: #e5e6e8;
   --sidebar-ring: #0d9488;
   --tail-border: #e5e7eb; /* soft gray border for light mode tail */
+  /* Bottom navigation spacing */
+  /* Accounts for: nav height (64px) + margin (12px) + spacing (24px) = 100px */
+  --bottom-nav-backdrop-height: 100px;
 }
 
 .dark {
@@ -295,13 +298,17 @@
   /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (24px) = 100px + safe area */
   /* Used for absolutely/fixed positioned elements */
   .bottom-nav-offset {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+    bottom: calc(
+      env(safe-area-inset-bottom, 0px) + var(--bottom-nav-backdrop-height)
+    );
   }
 
   /* Bottom navigation padding utility */
   /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (24px) = 100px + safe area */
   .pb-bottom-nav {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
+    padding-bottom: calc(
+      env(safe-area-inset-bottom, 0px) + var(--bottom-nav-backdrop-height)
+    );
   }
 
   @keyframes fade-in {
