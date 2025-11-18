@@ -1720,7 +1720,6 @@ mod tests {
         assert_eq!(received2.message.as_slice(), b"Hi Alice from B-A session!");
 
         // Phase 3: Alice sends new announcement C
-        // Alice sends new announcement C
         let announcement_c =
             alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, vec![]);
 
