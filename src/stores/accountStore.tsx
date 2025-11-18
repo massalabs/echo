@@ -172,6 +172,19 @@ async function buildSecurityFromWebAuthn(
   // Use the credential ID and public key from biometric service
   const { credentialId, publicKey } = credentialResult;
 
+  // Verify that the user can unlock with biometrics before saving the session
+  // This ensures the biometric device is actually accessible and working
+  const verifyResult = await biometricService.authenticate(
+    credentialId,
+    'Verify biometric access to complete account setup'
+  );
+
+  if (!verifyResult.success) {
+    throw new Error(
+      verifyResult.error || 'Biometric verification failed. Please try again.'
+    );
+  }
+
   // Encrypt mnemonic with derived key using biometric credentials
   if (!mnemonic) {
     throw new Error('Mnemonic is required for account creation');
