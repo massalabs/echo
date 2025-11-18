@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { NetworkName } from '@massalabs/massa-web3';
 import { createSelectors } from './utils/createSelectors';
+import { STORAGE_KEYS } from '../utils/localStorage';
 
 interface AppStoreState {
   // Network config (read by accountStore)
@@ -13,6 +14,9 @@ interface AppStoreState {
   // Debug overlay visibility
   debugOverlayVisible: boolean;
   setDebugOverlayVisible: (visible: boolean) => void;
+  // App initialization state (whether app has checked for existing accounts)
+  isInitialized: boolean;
+  setIsInitialized: (value: boolean) => void;
 }
 
 const useAppStoreBase = create<AppStoreState>()(
@@ -33,13 +37,20 @@ const useAppStoreBase = create<AppStoreState>()(
       setDebugOverlayVisible: (visible: boolean) => {
         set({ debugOverlayVisible: visible });
       },
+      // App initialization state
+      isInitialized: false,
+      setIsInitialized: (value: boolean) => {
+        set({ isInitialized: value });
+      },
     }),
     {
-      name: 'app-store',
+      name: STORAGE_KEYS.APP_STORE,
       storage: createJSONStorage(() => localStorage),
       partialize: state => ({
         showDebugOption: state.showDebugOption,
         debugOverlayVisible: state.debugOverlayVisible,
+        isInitialized: state.isInitialized,
+        networkName: state.networkName,
       }),
     }
   )

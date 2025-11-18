@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAccountStore } from '../stores/accountStore';
+import { useAppStore } from '../stores/appStore';
 import Login from '../pages/Login';
 import AccountCreation from '../components/account/AccountCreation';
 import { UserProfile } from '../db';
@@ -48,7 +49,7 @@ export const UnauthenticatedRoutes: React.FC<UnauthenticatedRoutesProps> = ({
         element={
           <AccountCreation
             onComplete={() => {
-              useAccountStore.setState({ isInitialized: true });
+              useAppStore.getState().setIsInitialized(true);
               // After account creation, go to discussions
               navigate('/', { replace: true });
             }}
@@ -61,12 +62,12 @@ export const UnauthenticatedRoutes: React.FC<UnauthenticatedRoutesProps> = ({
                   if (hasAny) {
                     navigate('/welcome');
                   } else {
-                    useAccountStore.setState({ isInitialized: false });
+                    useAppStore.getState().setIsInitialized(false);
                   }
                 })
                 .catch(() => {
                   // On error, fall back to onboarding
-                  useAccountStore.setState({ isInitialized: false });
+                  useAppStore.getState().setIsInitialized(false);
                 });
             }}
           />

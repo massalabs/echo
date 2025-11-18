@@ -33,7 +33,7 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
         <div className="bg-card rounded-lg h-full">
           {discussions
             .filter(d => d.status !== 'closed')
-            .map((discussion, index) => {
+            .map(discussion => {
               const contact = contacts.find(
                 c => c.userId === discussion.contactUserId
               );
@@ -45,7 +45,7 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
 
               return (
                 <div
-                  key={`${discussion.id}-${index}`}
+                  key={discussion.id}
                   className={isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
                 >
                   <DiscussionListItem

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter } from 'react-router-dom';
 import { useAccountStore } from './stores/accountStore';
+import { useAppStore } from './stores/appStore';
 import ErrorBoundary from './components/ui/ErrorBoundary.tsx';
 import PWABadge from './PWABadge.tsx';
 import DebugOverlay from './components/ui/DebugOverlay.tsx';
@@ -11,10 +12,8 @@ import './App.css';
 
 // Hooks
 import { useProfileLoader } from './hooks/useProfileLoader';
-
 import { useAppStateRefresh } from './hooks/useAppStateRefresh';
 import { useAccountInfo } from './hooks/useAccountInfo';
-import { useAuthRouting } from './hooks/useAuthRouting';
 
 // Route components
 import { AuthenticatedRoutes } from './routes/AuthenticatedRoutes';
@@ -22,19 +21,20 @@ import { UnauthenticatedRoutes } from './routes/UnauthenticatedRoutes';
 import { OnboardingRoutes } from './routes/OnboardingRoutes';
 import { useMessageStore } from './stores/messageStore.tsx';
 import { useDiscussionStore } from './stores/discussionStore.tsx';
+import { useVersionCheck } from './hooks/useVersionCheck.ts';
+import VersionUpdateModal from './components/ui/VersionUpdateModal.tsx';
 
 const AppContent: React.FC = () => {
-  const { isInitialized, isLoading, userProfile } = useAccountStore();
+  const { isLoading, userProfile } = useAccountStore();
+  const { isInitialized } = useAppStore();
   const initMessage = useMessageStore(s => s.init);
   const initDiscussion = useDiscussionStore(s => s.init);
   const [showImport, setShowImport] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  // Custom hooks for app initialization and state management
   useProfileLoader();
   useAppStateRefresh();
   const existingAccountInfo = useAccountInfo();
-  useAuthRouting();
 
   // Setup service worker: register, listen for messages, start sync scheduler, and initialize background sync
   // useEffect(() => {
@@ -94,6 +94,8 @@ const AppContent: React.FC = () => {
 };
 
 function App() {
+  const { showUpdatePrompt, handleForceUpdate, dismissUpdate } =
+    useVersionCheck();
   return (
     <HashRouter>
       <ErrorBoundary>
@@ -125,6 +127,11 @@ function App() {
               },
             },
           }}
+        />
+        <VersionUpdateModal
+          isOpen={showUpdatePrompt}
+          onClose={dismissUpdate}
+          onAccept={handleForceUpdate}
         />
       </ErrorBoundary>
     </HashRouter>

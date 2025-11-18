@@ -5,7 +5,7 @@ import {
   // WalletIcon,
   DiscussionsIcon,
   SettingsIcon,
-} from './icons/navigationIcons';
+} from './icons';
 
 const BottomNavigation: React.FC = () => {
   const navigate = useNavigate();

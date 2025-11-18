@@ -22,12 +22,6 @@ const Discussions: React.FC = () => {
     <div className="max-w-md mx-auto h-full flex flex-col bg-card">
       <div className="px-6 py-4 max-w-md m-auto border-b border-border flex justify-between items-center fixed top-0 left-0 right-0 z-50 bg-card">
         <h2 className="text-lg font-medium text-foreground">Discussions</h2>
-        <button
-          onClick={() => triggerManualSync()}
-          className="text-xs text-primary hover:text-primary/80 underline"
-        >
-          Refresh
-        </button>
       </div>
       <div className="mt-16 pb-38 h-11/12 overflow-y-scroll">
         <DiscussionListPanel
@@ -45,7 +39,7 @@ const Discussions: React.FC = () => {
             onClick={() => navigate('/new-discussion')}
             variant="primary"
             size="custom"
-            className="px-5 h-14 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
+            className="px-5 h-12 w-12 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
             title="Start new discussion"
           >
             <svg
@@ -61,9 +55,6 @@ const Discussions: React.FC = () => {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            <span className="text-primary-foreground font-semibold text-sm whitespace-nowrap">
-              New Chat
-            </span>
           </Button>
         </div>
       </div>

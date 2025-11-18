@@ -4,23 +4,21 @@ import React, { useEffect, useState } from 'react';
 import { Theme, ThemeContext } from './theme-context';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { STORAGE_KEYS, StorageKey } from '../utils/localStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
   defaultTheme?: Theme;
-  storageKey?: string;
+  storageKey?: StorageKey; // Uses STORAGE_KEYS.THEME by default
 }
 
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'gossip-theme',
+  storageKey = STORAGE_KEYS.THEME,
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return defaultTheme;
-    const stored = localStorage.getItem(storageKey) as Theme | null;
-    return stored || defaultTheme;
-  });
+  const [theme, setTheme] = useLocalStorage<Theme>(storageKey, defaultTheme);
 
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window === 'undefined') return 'light';
@@ -63,8 +61,6 @@ export function ThemeProvider({
         const statusBarColor = resolved === 'dark' ? '#18181b' : '#f8f9fa';
         void StatusBar.setBackgroundColor({
           color: statusBarColor,
-        }).catch(err => {
-          console.warn('Failed to set status bar color:', err);
         });
       }
     };
@@ -78,13 +74,6 @@ export function ThemeProvider({
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [theme]);
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(storageKey, newTheme);
-    }
-  };
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
