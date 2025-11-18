@@ -172,18 +172,25 @@ async function buildSecurityFromWebAuthn(
   // Use the credential ID and public key from biometric service
   const { credentialId, publicKey } = credentialResult;
 
-  // Verify that the user can unlock with biometrics before saving the session
-  // This ensures the biometric device is actually accessible and working
-  const verifyResult = await biometricService.authenticate(
-    credentialId,
-    'Verify biometric access to complete account setup'
-  );
-
-  if (!verifyResult.success) {
-    throw new Error(
-      verifyResult.error || 'Biometric verification failed. Please try again.'
+  // For Capacitor/native platforms, credential creation doesn't prompt for biometrics,
+  // so we need to verify biometrics here to ensure the device is accessible and working.
+  const platformInfo = biometricService.getPlatformInfo();
+  if (platformInfo.capacitorAvailable) {
+    // Verify that the user can unlock with biometrics before saving the session
+    // This ensures the biometric device is actually accessible and working
+    const verifyResult = await biometricService.authenticate(
+      credentialId,
+      'Verify biometric access to complete account setup'
     );
+
+    if (!verifyResult.success) {
+      throw new Error(
+        verifyResult.error || 'Biometric verification failed. Please try again.'
+      );
+    }
   }
+  // For WebAuthn, credential creation already requires user verification (biometric prompt at navigator.credentials.create)
+  // so we skip the redundant authentication check to avoid double prompts
 
   // Encrypt mnemonic with derived key using biometric credentials
   if (!mnemonic) {
