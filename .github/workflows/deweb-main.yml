@@ -1,4 +1,4 @@
-name: CD - Deploy to DeWeb
+name: CD - Deploy Main to DeWeb
 
 on:
   push:
