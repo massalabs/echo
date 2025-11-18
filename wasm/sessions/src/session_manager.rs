@@ -1768,7 +1768,6 @@ mod tests {
         assert_eq!(received4.message.as_slice(), b"Hi Alice from B-C session!");
 
         // Phase 5: Bob sends new announcement D
-        // Bob sends new announcement D
         let announcement_d =
             bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, vec![]);
 
