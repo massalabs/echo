@@ -6,6 +6,7 @@ import { validatePassword, validateUsername } from '../../utils/validation';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
 import Button from '../ui/Button';
+import { biometricService } from '../../crypto/biometricService';
 
 interface AccountCreationProps {
   onComplete: () => void;
@@ -38,9 +39,6 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   useEffect(() => {
     const checkBiometricMethods = async () => {
       try {
-        const { biometricService } = await import(
-          '../../crypto/biometricService'
-        );
         const methods = await biometricService.checkBiometricMethods();
         setBiometricMethods(methods);
 
