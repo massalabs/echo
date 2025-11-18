@@ -86,5 +86,11 @@
 	<array>
 		<string>localhost</string>
 	</array>
+
+	<!-- App Store Information -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Set to true if your app uses encryption and is not exempt -->
+	<!-- Most apps that only use HTTPS/TLS can set this to false -->
 </dict>
 </plist>

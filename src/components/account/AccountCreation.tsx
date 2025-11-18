@@ -99,7 +99,6 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
 
     // Safety check: Never allow biometric auth if biometrics aren't actually available
     const actualUsePassword = usePassword || !biometricMethods.any;
-    console.log('actualUsePassword', actualUsePassword);
 
     setIsCreating(true);
     setAccountCreationStarted(true); // Mark that we've started - prevent resets

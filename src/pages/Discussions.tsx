@@ -30,15 +30,16 @@ const Discussions: React.FC = () => {
             Refresh
           </button>
         </div>
+        {/* Scrollable content with bottom padding to prevent content from being hidden behind the button/nav */}
         <div className="pb-bottom-nav flex-1 overflow-y-auto">
           <DiscussionListPanel
-            onRefresh={() => triggerManualSync()}
             onSelect={id => {
               navigate(`/discussion/${id}`);
             }}
             headerVariant="link"
           />
         </div>
+        {/* Floating button positioned above bottom nav - uses same spacing value as pb-bottom-nav for consistency */}
         <Button
           onClick={() => navigate('/new-discussion')}
           variant="primary"

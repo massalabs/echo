@@ -6,7 +6,6 @@ import EmptyDiscussions from './EmptyDiscussions';
 import DiscussionListItem from './DiscussionListItem';
 
 interface DiscussionListProps {
-  onRefresh: () => void;
   onSelect: (contactUserId: string) => void;
   activeUserId?: string;
   headerVariant?: 'button' | 'link';
