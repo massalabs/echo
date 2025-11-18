@@ -56,8 +56,6 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
     checkBiometricMethods();
   }, []);
 
-  // In create flow, we no longer check for existing accounts. This screen is only for creating new accounts.
-
   const validateUsernameField = (value: string) => {
     const result = validateUsername(value);
     setIsValid(result.valid);
