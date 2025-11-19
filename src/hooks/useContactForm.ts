@@ -83,7 +83,9 @@ export function useContactForm() {
 
   const canSubmit =
     name.error === null &&
+    name.value.trim().length > 0 &&
     userId.error === null &&
+    userId.value.trim().length > 0 &&
     publicKeys !== null &&
     !isSubmitting &&
     !userId.loading;
@@ -142,6 +144,9 @@ export function useContactForm() {
 
       const pubKeys = UserPublicKeys.from_bytes(fileContact.userPubKeys);
       const derivedUserId = encodeUserId(pubKeys.derive_id());
+
+      setPublicKeys(pubKeys);
+      publicKeysCache.current.set(derivedUserId, pubKeys);
 
       if (fileContact.userName) {
         handleNameChange(fileContact.userName);

@@ -20,7 +20,7 @@ const Contact: React.FC = () => {
   );
 
   // All hooks must be called before early return
-  const { exportFileContact, isLoading, error } = useFileShareContact();
+  const { exportFileContact, fileState } = useFileShareContact();
   const ownerUserId = useAccountStore(s => s.userProfile?.userId);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [proposedName, setProposedName] = useState(contact?.name || '');
@@ -159,7 +159,7 @@ const Contact: React.FC = () => {
                     userName: contact.name,
                   })
                 }
-                disabled={isLoading}
+                disabled={fileState.isLoading}
                 variant="outline"
                 size="custom"
                 fullWidth
@@ -175,9 +175,9 @@ const Contact: React.FC = () => {
                     'This discussion is closed.'}
                 </p>
               )}
-              {error && (
+              {fileState.error && (
                 <p className="text-xs text-red-600 dark:text-red-400">
-                  {error}
+                  {fileState.error}
                 </p>
               )}
             </div>
