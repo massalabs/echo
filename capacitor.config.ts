@@ -6,6 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     StatusBar: {
+      // Style will be set dynamically by theme-provider based on light/dark mode
+      // This is just a fallback default (light mode: dark icons on light background)
       style: 'dark',
       overlaysWebView: false,
     },
