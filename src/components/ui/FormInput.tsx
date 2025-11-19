@@ -37,10 +37,13 @@ const FormInput: React.FC<FormInputProps> = ({
   rightElement,
   className = '',
 }) => {
+  // Only show success styling when there's no error and the trimmed value has content
+  const hasValidContent = !error && value.trim().length > 0;
+
   const labelClassName = `block text-sm font-medium mb-2 ${
     error
       ? 'text-destructive'
-      : value.trim().length > 0
+      : hasValidContent
         ? 'text-success'
         : 'text-foreground'
   }`;
@@ -48,7 +51,7 @@ const FormInput: React.FC<FormInputProps> = ({
   const inputClassName = `w-full px-4 py-3.5 rounded-xl border bg-input text-foreground placeholder-muted-foreground focus:ring-2 focus:border-transparent ${
     error
       ? 'border-destructive focus:ring-destructive'
-      : value.trim().length > 0
+      : hasValidContent
         ? 'border-success focus:ring-success'
         : 'border-border focus:ring-primary'
   } ${className}`;
