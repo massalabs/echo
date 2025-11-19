@@ -18,7 +18,7 @@ import {
   NetworkName,
 } from '@massalabs/massa-web3';
 import { useAppStore } from './appStore';
-import { useWalletStore } from './walletStore';
+// import { useWalletStore } from './walletStore';
 import { createSelectors } from './utils/createSelectors';
 import {
   generateUserKeys,
@@ -36,6 +36,7 @@ import { ensureWasmInitialized } from '../wasm/loader';
 import { auth } from './utils/auth';
 import { useDiscussionStore } from './discussionStore';
 import { useMessageStore } from './messageStore';
+import { authService } from '../services/auth';
 
 async function createProfileFromAccount(
   username: string,
@@ -745,13 +746,27 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
       );
 
       useAccountStoreBase.setState({ provider });
-      await useWalletStore.getState().initializeTokens();
-      await useWalletStore.getState().refreshBalances();
+
+      // await useWalletStore.getState().initializeTokens();
+      // await useWalletStore.getState().refreshBalances();
     } else {
       useAccountStoreBase.setState({ provider: null });
     }
+
+    if (state.ourPk && state.userProfile) {
+      try {
+        await authService.ensurePublicKeyPublished(
+          state.ourPk,
+          state.userProfile.userId
+        );
+      } catch (error) {
+        console.error('Error ensuring public key published:', error);
+      }
+    } else {
+      // TODO: Plan to retry ?
+    }
   } catch (error) {
-    console.error('Error initializing provider or refreshing balances:', error);
+    console.error('Error initializing provider:', error);
   }
 });
 
