@@ -24,11 +24,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [biometricMethods, setBiometricMethods] = useState({
-    capacitor: false,
-    webauthn: false,
-    any: false,
-  });
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
   const [accountCreationStarted, setAccountCreationStarted] = useState(false);
 
@@ -38,16 +34,11 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   useEffect(() => {
     const checkBiometricMethods = async () => {
       try {
-        const methods = await biometricService.checkBiometricMethods();
-        setBiometricMethods(methods);
-
-        // Default to first available biometric method, but allow user to choose
-        if (methods.any) {
-          setUsePassword(false);
-        } else {
-          setUsePassword(true);
-        }
+        const { available } = await biometricService.checkAvailability();
+        setBiometricAvailable(available);
+        setUsePassword(!available);
       } catch (_error) {
+        setBiometricAvailable(false);
         setUsePassword(true);
       }
     };
@@ -98,7 +89,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
     }
 
     // Safety check: Never allow biometric auth if biometrics aren't actually available
-    const actualUsePassword = usePassword || !biometricMethods.any;
+    const actualUsePassword = usePassword || !biometricAvailable;
 
     setIsCreating(true);
     setAccountCreationStarted(true); // Mark that we've started - prevent resets
@@ -130,7 +121,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
 
       <div className="p-4">
         {/* Authentication Method Toggle */}
-        {biometricMethods.any && (
+        {biometricAvailable && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-4">
             <div className="mb-4">
               <p className="text-sm font-medium text-black dark:text-white mb-3">
@@ -183,7 +174,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
         )}
 
         {/* WebAuthn Support Check */}
-        {!biometricMethods.any && (
+        {!biometricAvailable && (
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-800">
             <p className="text-blue-600 dark:text-blue-400 text-sm">
               Biometric authentication is not supported on this device. Using

@@ -6,41 +6,12 @@ import {
   Nonce,
 } from '../wasm/encryption';
 
-/**
- * Encrypt mnemonic using biometric credentials (credentialId + publicKey)
- * Returns the encrypted mnemonic, nonce, salt, and derived encryption key
- */
-export async function encryptMnemonicWithBiometricCredentials(
-  credentialId: string,
-  publicKey: ArrayBuffer,
-  mnemonic: string
-): Promise<{
-  encryptedMnemonic: Uint8Array;
-  nonce: Uint8Array;
-  salt: Uint8Array;
-  derivedKey: EncryptionKey;
-}> {
-  const seedHash = credentialId + Buffer.from(publicKey).toString('base64');
-  const salt = (await generateNonce()).to_bytes();
-  const derivedKey = await deriveKey(seedHash, salt);
-  const { encryptedData: encryptedMnemonic, nonce } = await encrypt(
-    mnemonic,
-    derivedKey
-  );
-
-  return {
-    encryptedMnemonic,
-    nonce,
-    salt,
-    derivedKey,
-  };
-}
-
 export async function encrypt(
   plaintext: string,
-  key: EncryptionKey
+  key: EncryptionKey,
+  salt?: Uint8Array
 ): Promise<{ encryptedData: Uint8Array; nonce: Uint8Array }> {
-  const nonce = await generateNonce();
+  const nonce = salt ? Nonce.from_bytes(salt) : await generateNonce();
   const encryptedData = await encryptAead(
     key,
     nonce,
@@ -52,12 +23,12 @@ export async function encrypt(
 
 export async function decrypt(
   encryptedData: Uint8Array,
-  nonce: Uint8Array,
+  salt: Uint8Array,
   key: EncryptionKey
 ): Promise<string> {
   const plain = await decryptAead(
     key,
-    Nonce.from_bytes(nonce),
+    Nonce.from_bytes(salt),
     encryptedData,
     new Uint8Array()
   );

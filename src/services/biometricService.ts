@@ -11,28 +11,34 @@ import {
   createWebAuthnCredential,
   authenticateWithWebAuthn,
 } from '../crypto/webauthn';
-
-export interface BiometricResult {
-  success: boolean;
-  error?: string;
-}
+import { EncryptionKey, generateEncryptionKeyFromSeed } from '../wasm';
+import { encodeUserId } from '../utils';
 
 export interface BiometricAvailability {
   available: boolean;
   biometryType?: 'fingerprint' | 'face' | 'none';
-  reason?: string;
   method?: 'capacitor' | 'webauthn' | 'none';
 }
 
-export interface BiometricMethods {
-  capacitor: boolean;
-  webauthn: boolean;
-  any: boolean;
+export interface BiometricCredentials {
+  encryptionKey: EncryptionKey;
 }
 
-export interface CreateCredentialResult extends BiometricResult {
+export interface BiometricCreationData extends BiometricCredentials {
+  authMethod: 'capacitor' | 'webauthn';
   credentialId?: string;
-  publicKey?: ArrayBuffer;
+}
+
+export interface BiometricResult {
+  success: boolean;
+  error?: string;
+  data?: BiometricCredentials;
+}
+
+export interface BiometricCreationResult {
+  success: boolean;
+  error?: string;
+  data?: BiometricCreationData;
 }
 
 /**
@@ -43,11 +49,13 @@ export class BiometricService {
   private static instance: BiometricService;
   private isNative: boolean;
   private capacitorAvailable: boolean;
+  private isWebAuthnSupported: boolean;
 
   private constructor() {
     this.isNative = Capacitor.isNativePlatform();
     this.capacitorAvailable =
       this.isNative && this.checkCapacitorAvailability();
+    this.isWebAuthnSupported = isWebAuthnSupported();
   }
 
   public static getInstance(): BiometricService {
@@ -69,86 +77,70 @@ export class BiometricService {
   }
 
   /**
-   * Check which biometric methods are available
+   * Internal method that performs all biometric checks once
+   * Returns both methods and detailed availability information
    */
-  public async checkBiometricMethods(): Promise<BiometricMethods> {
-    const methods: BiometricMethods = {
-      capacitor: false,
-      webauthn: false,
-      any: false,
-    };
-
+  private async performBiometricChecks(): Promise<{
+    capacitorAvailable: boolean;
+    webauthnAvailable: boolean;
+    capacitorBiometryType: BiometryType | undefined;
+  }> {
+    let capacitorAvailable = false;
+    let webauthnAvailable = false;
+    let capacitorBiometryType: BiometryType | undefined;
     // Check Capacitor Biometric Auth
     if (this.capacitorAvailable) {
       try {
-        const result = await BiometricAuth.checkBiometry();
-        methods.capacitor = result.isAvailable;
+        const { isAvailable, biometryType } =
+          await BiometricAuth.checkBiometry();
+        capacitorAvailable = isAvailable;
+        capacitorBiometryType = biometryType;
       } catch (error) {
-        console.warn('Capacitor biometric check failed:', error);
-        methods.capacitor = false;
+        console.warn('Capacitor biometric not available:', error);
       }
     }
 
     // Check WebAuthn
-    if (isWebAuthnSupported()) {
+    if (this.isWebAuthnSupported) {
       try {
-        const platformAvailable = await isPlatformAuthenticatorAvailable();
-        methods.webauthn = platformAvailable;
+        webauthnAvailable = await isPlatformAuthenticatorAvailable();
       } catch (error) {
-        console.warn('WebAuthn availability check failed:', error);
-        methods.webauthn = false;
+        console.warn('WebAuthn not available:', error);
       }
     }
 
-    methods.any = methods.capacitor || methods.webauthn;
-    return methods;
+    return { capacitorAvailable, webauthnAvailable, capacitorBiometryType };
   }
 
   /**
-   * Check if biometric authentication is available
+   * Check if biometric authentication is available with detailed information
+   * Returns both availability details and which methods are supported
    */
   public async checkAvailability(): Promise<BiometricAvailability> {
-    const methods = await this.checkBiometricMethods();
+    const { capacitorAvailable, webauthnAvailable, capacitorBiometryType } =
+      await this.performBiometricChecks();
 
     // Try Capacitor Biometric Auth first (native)
-    if (methods.capacitor) {
-      try {
-        const result = await BiometricAuth.checkBiometry();
-
-        const availability = {
-          available: result.isAvailable,
-          biometryType: this.mapBiometryType(result.biometryType),
-          reason: result.reason || undefined,
-          method: 'capacitor' as const,
-        };
-
-        return availability;
-      } catch (error) {
-        console.warn('Capacitor biometric check failed:', error);
-      }
+    if (capacitorAvailable) {
+      return {
+        available: true,
+        biometryType: this.mapBiometryType(capacitorBiometryType!),
+        method: 'capacitor' as const,
+      };
     }
 
     // Fallback to WebAuthn
-    if (methods.webauthn) {
-      try {
-        const platformAvailable = await isPlatformAuthenticatorAvailable();
-
-        const availability: BiometricAvailability = {
-          available: platformAvailable,
-          biometryType: platformAvailable ? 'fingerprint' : 'none',
-          method: 'webauthn' as const,
-        };
-
-        return availability;
-      } catch (error) {
-        console.warn('WebAuthn availability check failed:', error);
-      }
+    if (webauthnAvailable) {
+      return {
+        available: webauthnAvailable,
+        biometryType: 'fingerprint',
+        method: 'webauthn' as const,
+      };
     }
 
     return {
       available: false,
       biometryType: 'none',
-      reason: 'No biometric authentication available',
       method: 'none' as const,
     };
   }
@@ -159,20 +151,16 @@ export class BiometricService {
   public async createCredential(
     username: string,
     userId: Uint8Array,
-    _reason?: string
-  ): Promise<CreateCredentialResult> {
+    salt: Uint8Array
+  ): Promise<BiometricCreationResult> {
     // For native platforms, create biometric credentials without WebAuthn browser APIs
     if (this.capacitorAvailable) {
       try {
-        // Generate a unique credential ID for this account
-        const credentialId = await this.generateCredentialId(username, userId);
+        // temp workaround waiting for secure storage implem
+        const seed = encodeUserId(userId);
+        const encryptionKey = await generateEncryptionKeyFromSeed(seed, salt);
 
-        // Verify that the user can unlock with biometrics before saving the session
-        // This ensures the biometric device is actually accessible and working
-        const verifyResult = await biometricService.authenticate(
-          credentialId,
-          'Verify biometric access to complete account setup'
-        );
+        const verifyResult = await this.authenticate('capacitor', seed, salt);
 
         if (!verifyResult.success) {
           throw new Error(
@@ -181,16 +169,14 @@ export class BiometricService {
           );
         }
 
-        // Generate a random public key identifier for consistency with WebAuthn format
-        // For native platforms, we generate a random identifier since we don't have
-        // access to the actual WebAuthn public key. This is used only for key derivation.
-        const publicKeyArray = crypto.getRandomValues(new Uint8Array(32));
-        const publicKey = publicKeyArray.buffer;
+        // const encryptionKey = await generateEncryptionKey();
 
         return {
           success: true,
-          credentialId,
-          publicKey,
+          data: {
+            encryptionKey,
+            authMethod: 'capacitor',
+          },
         };
       } catch (error) {
         console.error('Native biometric credential creation failed:', error);
@@ -206,11 +192,18 @@ export class BiometricService {
 
     // Fallback to WebAuthn only for web
     try {
-      const webAuthnResult = await createWebAuthnCredential(username, userId);
+      const webAuthnResult = await createWebAuthnCredential(
+        username,
+        userId,
+        salt
+      );
       return {
         success: true,
-        credentialId: webAuthnResult.credentialId,
-        publicKey: webAuthnResult.publicKey,
+        data: {
+          credentialId: webAuthnResult.credentialId,
+          encryptionKey: webAuthnResult.encryptionKey,
+          authMethod: 'webauthn',
+        },
       };
     } catch (error) {
       console.error('WebAuthn credential creation failed:', error);
@@ -226,47 +219,59 @@ export class BiometricService {
 
   /**
    * Authenticate using existing biometric credential
+   * @param method - The authentication method to use
+   * @param credentialId - The credential ID to authenticate with (required for WebAuthn PRF)
+   * @param salt - The salt used during credential creation (required for WebAuthn PRF)
    */
   public async authenticate(
-    credentialId: string,
-    reason?: string
+    method: 'capacitor' | 'webauthn',
+    credentialId?: string,
+    salt?: Uint8Array
   ): Promise<BiometricResult> {
-    // Use Capacitor Biometric Auth for native platforms
-    if (this.capacitorAvailable) {
-      try {
+    try {
+      // Use Capacitor Biometric Auth for native platforms
+      if (method === 'capacitor' && this.capacitorAvailable) {
         await BiometricAuth.authenticate({
-          reason: reason || 'Authenticate to access your account',
+          reason: 'Authenticate to access your account',
           allowDeviceCredential: true,
         });
 
-        return { success: true };
-      } catch (error) {
-        console.error('Native biometric authentication failed:', error);
-        if (
-          error instanceof BiometryError &&
-          error.code === BiometryErrorType.userCancel
-        ) {
-          return {
-            success: false,
-            error: 'Authentication was cancelled',
-          };
+        // temp workaround waiting for secure storage implem
+        const encryptionKey = await generateEncryptionKeyFromSeed(
+          credentialId!,
+          salt!
+        );
+
+        return { success: true, data: { encryptionKey } };
+      } else if (method === 'webauthn' && this.isWebAuthnSupported) {
+        if (!credentialId || !salt) {
+          throw new Error(
+            'Credential ID and salt are required for WebAuthn authentication'
+          );
         }
+        const webAuthnResult = await authenticateWithWebAuthn(
+          credentialId,
+          salt
+        );
         return {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Biometric authentication failed',
+          success: true,
+          data: webAuthnResult,
         };
       }
-    }
-
-    // Use WebAuthn for web platforms only
-    try {
-      await authenticateWithWebAuthn(credentialId);
-      return { success: true };
+      throw new Error(
+        `Invalid or not available authentication method ${method}`
+      );
     } catch (error) {
-      console.error('WebAuthn authentication failed:', error);
+      console.error('Biometric authentication failed:', error);
+      if (
+        error instanceof BiometryError &&
+        error.code === BiometryErrorType.userCancel
+      ) {
+        return {
+          success: false,
+          error: 'Authentication was cancelled',
+        };
+      }
       return {
         success: false,
         error:
@@ -304,26 +309,6 @@ export class BiometricService {
       default:
         return 'none';
     }
-  }
-
-  /**
-   * Generate a unique credential ID for biometric account
-   */
-  private async generateCredentialId(
-    username: string,
-    userId: Uint8Array
-  ): Promise<string> {
-    const timestamp = Date.now().toString();
-    const data = `${username}:${Buffer.from(userId).toString('base64')}:${timestamp}`;
-    const hashBuffer = await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(data)
-    );
-    const hash = new Uint8Array(hashBuffer);
-    return btoa(String.fromCharCode(...hash))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
   }
 }
 

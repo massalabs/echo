@@ -50,7 +50,8 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   };
 
   const formatAccountType = (account: UserProfile) => {
-    if (account.security?.webauthn?.credentialId) {
+    const authMethod = account.security?.authMethod;
+    if (authMethod === 'capacitor' || authMethod === 'webauthn') {
       return 'Biometric';
     } else {
       return 'Password';
@@ -58,7 +59,8 @@ const AccountSelection: React.FC<AccountSelectionProps> = ({
   };
 
   const getAccountIcon = (account: UserProfile) => {
-    if (account.security?.webauthn?.credentialId) {
+    const authMethod = account.security?.authMethod;
+    if (authMethod === 'capacitor' || authMethod === 'webauthn') {
       return (
         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center">
           <svg
