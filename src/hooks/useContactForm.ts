@@ -91,9 +91,7 @@ export function useContactForm() {
     !userId.loading;
 
   const hasUnsavedChanges =
-    !!name.value.trim() ||
-    !!userId.value.trim() ||
-    !!message.value.trim();
+    !!name.value.trim() || !!userId.value.trim() || !!message.value.trim();
 
   // ──────────────────────────────────────────────────────────────
   // Handlers
@@ -152,12 +150,12 @@ export function useContactForm() {
       publicKeysCache.current.set(derivedUserId, pubKeys);
 
       if (fileContact.userName) {
-        handleNameChange(fileContact.userName);
+        setName({ value: fileContact.userName, error: null, loading: false });
       }
 
-      handleUserIdChange(derivedUserId);
+      setUserId({ value: derivedUserId, error: null, loading: false });
     },
-    [importFileContact, handleNameChange, handleUserIdChange]
+    [importFileContact]
   );
 
   const handleSubmit = useCallback(async () => {

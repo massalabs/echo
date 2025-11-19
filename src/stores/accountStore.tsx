@@ -725,7 +725,11 @@ useAccountStoreBase.subscribe(async (state, prevState) => {
   if (current === previous) return;
   if (previous && current.userId === previous.userId) return;
 
-  await authService.ensurePublicKeyPublished(state.ourPk, current.userId);
+  try {
+    await authService.ensurePublicKeyPublished(state.ourPk, current.userId);
+  } catch (error) {
+    console.error('Error publishing public key:', error);
+  }
 });
 
 export const useAccountStore = createSelectors(useAccountStoreBase);

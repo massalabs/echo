@@ -82,6 +82,10 @@ const FormInput: React.FC<FormInputProps> = ({
             onBlur={onBlur ? e => onBlur(e.target.value) : undefined}
             placeholder={placeholder}
             maxLength={maxLength}
+            aria-invalid={!!error}
+            aria-describedby={
+              error ? `${id}-error` : helperText ? `${id}-helper` : undefined
+            }
             className={inputClassName}
           />
         )}
@@ -100,7 +104,11 @@ const FormInput: React.FC<FormInputProps> = ({
         )}
       </div>
       {error && (
-        <p className="mt-1.5 text-sm text-destructive" role="alert">
+        <p
+          id={`${id}-error`}
+          className="mt-1.5 text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </p>
       )}
