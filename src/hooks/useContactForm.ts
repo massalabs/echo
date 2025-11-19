@@ -129,7 +129,7 @@ export function useContactForm() {
   );
 
   const handleMessageChange = useCallback((value: string) => {
-    setMessage({ value: value.trim(), error: null, loading: false });
+    setMessage({ value, error: null, loading: false });
   }, []);
 
   const handleFileImport = useCallback(
