@@ -41,19 +41,28 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Install iOS Platform
+        run: |
+          # Install iOS platform components for Xcode
+          sudo xcodebuild -downloadAllPlatforms || true
+          # Verify available SDKs
+          xcodebuild -showsdks
+
       - name: Install CocoaPods dependencies
         working-directory: ios/App
-        run: pod install
+        run: |
+          ruby -v
+          pod install
 
       - name: Sync Capacitor
         run: npm run cap:sync:ios
 
-      # - name: Setup Ruby
-      #   uses: ruby/setup-ruby@v1
-      #   with:
-      #     ruby-version: '3.2'
-      #     bundler-cache: true
-      #     working-directory: ios/App
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.6'
+          bundler-cache: true
+          working-directory: ios/App
 
       - name: Install Fastlane
         working-directory: ios/App
