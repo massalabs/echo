@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccountStore } from '../stores/accountStore';
 import { UserProfile } from '../db';
-import { biometricService } from '../crypto/biometricService';
+import { biometricService } from '../services/biometricService';
 import AccountSelection from '../components/account/AccountSelection';
 import AccountImport from '../components/account/AccountImport';
 import Button from '../components/ui/Button';

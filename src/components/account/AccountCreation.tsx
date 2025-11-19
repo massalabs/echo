@@ -5,7 +5,7 @@ import { validatePassword, validateUsername } from '../../utils/validation';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
 import Button from '../ui/Button';
-import { biometricService } from '../../crypto/biometricService';
+import { biometricService } from '../../services/biometricService';
 
 interface AccountCreationProps {
   onComplete: () => void;

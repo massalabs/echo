@@ -10,7 +10,7 @@ import {
   isPlatformAuthenticatorAvailable,
   createWebAuthnCredential,
   authenticateWithWebAuthn,
-} from './webauthn';
+} from '../crypto/webauthn';
 
 export interface BiometricResult {
   success: boolean;
@@ -166,6 +166,20 @@ export class BiometricService {
       try {
         // Generate a unique credential ID for this account
         const credentialId = await this.generateCredentialId(username, userId);
+
+        // Verify that the user can unlock with biometrics before saving the session
+        // This ensures the biometric device is actually accessible and working
+        const verifyResult = await biometricService.authenticate(
+          credentialId,
+          'Verify biometric access to complete account setup'
+        );
+
+        if (!verifyResult.success) {
+          throw new Error(
+            verifyResult.error ||
+              'Biometric verification failed. Please try again.'
+          );
+        }
 
         // Generate a random public key identifier for consistency with WebAuthn format
         // For native platforms, we generate a random identifier since we don't have
