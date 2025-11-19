@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import { db, UserProfile } from '../db';
 
-import {
-  encrypt,
-  deriveKey,
-  encryptMnemonicWithBiometricCredentials,
-} from '../crypto/encryption';
+import { encrypt, deriveKey } from '../crypto/encryption';
 import { isWebAuthnSupported } from '../crypto/webauthn';
 import { biometricService } from '../services/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
@@ -88,7 +84,7 @@ async function provisionAccount(
     | undefined;
 
   if (opts.useBiometrics) {
-    built = await buildSecurityFromWebAuthn(mnemonic, username, userId);
+    built = await buildSecurityFromBiometrics(mnemonic, username, userId);
   } else {
     const password = opts.password?.trim();
     if (!password) {
@@ -124,16 +120,19 @@ async function buildSecurityFromPassword(
     throw new Error('Mnemonic is required for account creation');
   }
 
-  const { encryptedData: encryptedMnemonic, nonce: nonceForBackup } =
-    await encrypt(mnemonic, key);
+  const { encryptedData: encryptedMnemonic } = await encrypt(
+    mnemonic,
+    key,
+    salt
+  );
   const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
     encryptedMnemonic,
-    nonce: nonceForBackup,
     createdAt: new Date(),
     backedUp: false,
   };
 
   const security: UserProfile['security'] = {
+    authMethod: 'password',
     encKeySalt: salt,
     mnemonicBackup,
   };
@@ -141,7 +140,7 @@ async function buildSecurityFromPassword(
   return { security, encryptionKey: key };
 }
 
-async function buildSecurityFromWebAuthn(
+async function buildSecurityFromBiometrics(
   mnemonic: string | undefined,
   username: string,
   userIdBytes: Uint8Array
@@ -149,63 +148,47 @@ async function buildSecurityFromWebAuthn(
   security: UserProfile['security'];
   encryptionKey: EncryptionKey;
 }> {
-  // Use the unified biometric service to create credentials
-  const credentialResult = await biometricService.createCredential(
-    `Gossip:${username}`,
-    userIdBytes,
-    'Create biometric credential for secure access'
-  );
-
-  if (!credentialResult.success || !credentialResult.credentialId) {
-    throw new Error(
-      credentialResult.error || 'Failed to create biometric credential'
-    );
-  }
-
-  // Use the credential ID and public key from biometric service
-  const { credentialId, publicKey } = credentialResult;
-
-  // Validate that publicKey is present - it's required for key derivation
-  if (!publicKey) {
-    throw new Error(
-      `Public key is required for biometric credential but found: ${publicKey}`
-    );
-  }
-  // For WebAuthn, credential creation already requires user verification (biometric prompt at navigator.credentials.create)
-  // so we skip the redundant authentication check to avoid double prompts
-
   // Encrypt mnemonic with derived key using biometric credentials
   if (!mnemonic) {
     throw new Error('Mnemonic is required for account creation');
   }
 
-  const {
-    encryptedMnemonic,
-    nonce: nonceForBackup,
-    salt,
-    derivedKey,
-  } = await encryptMnemonicWithBiometricCredentials(
-    credentialId,
-    publicKey,
-    mnemonic
+  const salt = (await generateNonce()).to_bytes();
+  // Use the unified biometric service to create credentials
+  const credentialResult = await biometricService.createCredential(
+    `Gossip:${username}`,
+    userIdBytes,
+    salt
   );
+
+  if (!credentialResult.success || !credentialResult.data) {
+    throw new Error(
+      credentialResult.error || 'Failed to create biometric credential'
+    );
+  }
+
+  const { credentialId, encryptionKey, authMethod } = credentialResult.data;
+
+  const { encryptedData } = await encrypt(mnemonic, encryptionKey, salt);
+
   const mnemonicBackup: UserProfile['security']['mnemonicBackup'] = {
-    encryptedMnemonic,
-    nonce: nonceForBackup,
+    encryptedMnemonic: encryptedData,
     createdAt: new Date(),
     backedUp: false,
   };
 
   const security: UserProfile['security'] = {
-    webauthn: {
-      credentialId,
-      publicKey,
-    },
+    authMethod,
+    webauthn: credentialId
+      ? {
+          credentialId,
+        }
+      : undefined,
     encKeySalt: salt,
     mnemonicBackup,
   };
 
-  return { security, encryptionKey: derivedKey };
+  return { security, encryptionKey };
 }
 
 interface AccountState {
@@ -511,8 +494,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
         const availability = await biometricService.checkAvailability();
         if (!availability.available) {
           throw new Error(
-            availability.reason ||
-              'Biometric authentication is not available on this device'
+            'Biometric authentication is not available on this device'
           );
         }
 

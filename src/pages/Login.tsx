@@ -46,7 +46,7 @@ const Login: React.FC<LoginProps> = React.memo(
 
     useEffect(() => {
       const shouldUsePassword =
-        !currentAccount?.security?.webauthn?.credentialId;
+        currentAccount?.security?.authMethod === 'password';
       if (usePassword !== shouldUsePassword) {
         setUsePassword(shouldUsePassword);
       }
@@ -74,9 +74,7 @@ const Login: React.FC<LoginProps> = React.memo(
         const availability = await biometricService.checkAvailability();
 
         if (!availability.available) {
-          throw new Error(
-            availability.reason || 'Biometric authentication is not available'
-          );
+          throw new Error('Biometric authentication is not available');
         }
 
         await loadAccount(undefined, currentAccount?.userId);
@@ -95,12 +93,12 @@ const Login: React.FC<LoginProps> = React.memo(
 
     useEffect(() => {
       if (autoAuthTriggered || !selectedAccountInfo) return;
-      const credentialId =
-        selectedAccountInfo.security?.webauthn?.credentialId || null;
-      if (!credentialId) return;
-      if (lastAutoAuthCredentialIdRef.current === credentialId) return;
+      const authMethod = selectedAccountInfo.security?.authMethod;
+      if (authMethod === 'password') return;
+      if (lastAutoAuthCredentialIdRef.current === selectedAccountInfo.userId)
+        return;
       if (!webauthnSupported || !platformAuthenticatorAvailable) return;
-      lastAutoAuthCredentialIdRef.current = credentialId;
+      lastAutoAuthCredentialIdRef.current = selectedAccountInfo.userId;
       setAutoAuthTriggered(true);
       handleBiometricAuth();
     }, [

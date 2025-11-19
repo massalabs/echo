@@ -1,6 +1,9 @@
 import Dexie, { Table } from 'dexie';
 import { EncryptedMessage } from './api/messageProtocol/types';
 
+// Define authentication method type
+export type AuthMethod = 'capacitor' | 'webauthn' | 'password';
+
 // Define interfaces for your data models
 export interface Contact {
   ownerUserId: string; // The current user's userId owning this contact
@@ -32,16 +35,17 @@ export interface UserProfile {
   security: {
     encKeySalt: Uint8Array;
 
+    // Authentication method used to create the account
+    authMethod: AuthMethod;
+
     // WebAuthn/FIDO2 (biometric) details when used
     webauthn?: {
-      credentialId: string;
-      publicKey: ArrayBuffer;
+      credentialId?: string;
     };
 
     // Mnemonic backup details
     mnemonicBackup: {
       encryptedMnemonic: Uint8Array;
-      nonce: Uint8Array;
       createdAt: Date;
       backedUp: boolean;
     };

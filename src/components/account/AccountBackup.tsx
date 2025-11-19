@@ -22,7 +22,7 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
   } | null>(null);
   const [privateKeyString, setPrivateKeyString] = useState<string | null>(null);
 
-  const requiresPassword = !userProfile?.security?.webauthn?.credentialId;
+  const requiresPassword = userProfile?.security?.authMethod === 'password';
 
   const handleShow = async () => {
     try {
