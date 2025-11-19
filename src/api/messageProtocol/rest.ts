@@ -88,7 +88,6 @@ export class RestMessageProtocol implements IMessageProtocol {
     const url = `${this.baseUrl}${BULLETIN_ENDPOINT}`;
 
     const response = await this.makeRequest<string[]>(url, {
-      headers: { 'Content-Type': 'application/json' },
       method: 'GET',
     });
 
