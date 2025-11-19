@@ -7,7 +7,7 @@ import {
   encryptMnemonicWithBiometricCredentials,
 } from '../crypto/encryption';
 import { isWebAuthnSupported } from '../crypto/webauthn';
-import { biometricService } from '../crypto/biometricService';
+import { biometricService } from '../services/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
 import { Provider, Account, PrivateKey } from '@massalabs/massa-web3';
 import { useAppStore } from './appStore';
@@ -170,24 +170,6 @@ async function buildSecurityFromWebAuthn(
     throw new Error(
       `Public key is required for biometric credential but found: ${publicKey}`
     );
-  }
-
-  // For Capacitor/native platforms, credential creation doesn't prompt for biometrics,
-  // so we need to verify biometrics here to ensure the device is accessible and working.
-  const platformInfo = biometricService.getPlatformInfo();
-  if (platformInfo.capacitorAvailable) {
-    // Verify that the user can unlock with biometrics before saving the session
-    // This ensures the biometric device is actually accessible and working
-    const verifyResult = await biometricService.authenticate(
-      credentialId,
-      'Verify biometric access to complete account setup'
-    );
-
-    if (!verifyResult.success) {
-      throw new Error(
-        verifyResult.error || 'Biometric verification failed. Please try again.'
-      );
-    }
   }
   // For WebAuthn, credential creation already requires user verification (biometric prompt at navigator.credentials.create)
   // so we skip the redundant authentication check to avoid double prompts

@@ -127,9 +127,6 @@ export async function createWebAuthnCredential(
       throw new Error('No public key in credential response');
     }
 
-    // Note: We don't need to import the public key for our use case
-    // since we're deriving our own encryption key from the credential
-
     // For WebAuthn, we can't directly access the private key
     // Instead, we'll use the credential for authentication and derive a separate encryption key
     const encryptionKey = await deriveEncryptionKeyFromCredential(credential);
