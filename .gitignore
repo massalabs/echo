@@ -38,6 +38,13 @@ ios/App/App/capacitor.config.json
 ios/App/App.xcodeproj/xcuserdata/
 ios/App/App.xcworkspace/xcuserdata/
 ios/DerivedData/
+ios/App/build/
+ios/App/*.ipa
+ios/App/*.dSYM.zip
+ios/App/fastlane/report.xml
+ios/App/fastlane/Preview.html
+ios/App/fastlane/test_output/
+ios/App/Gemfile.lock
 
 # Android build artifacts
 android/.gradle/
