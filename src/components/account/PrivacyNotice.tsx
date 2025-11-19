@@ -2,7 +2,6 @@ import React from 'react';
 
 const PrivacyNotice: React.FC = () => {
   return (
-    // <div className="p-4 bg-muted/50 border border-border rounded-xl">
     <div className="mt-2 p-3 bg-muted/30 border border-border rounded-lg">
       <div className="flex items-start gap-2">
         <svg
