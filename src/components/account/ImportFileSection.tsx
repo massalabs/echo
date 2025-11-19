@@ -24,8 +24,6 @@ const ImportFileSection: React.FC<ImportFileSectionProps> = ({
         </p>
         <Button
           onClick={handleButtonClick}
-          disabled={isImporting}
-          loading={isImporting}
           variant="primary"
           size="md"
           className="inline-flex items-center gap-2"

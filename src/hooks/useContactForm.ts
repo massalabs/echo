@@ -8,6 +8,7 @@ import { UserPublicKeys } from '../assets/generated/wasm/gossip_wasm';
 import { ensureDiscussionExists } from '../crypto/discussionInit';
 import { useFileShareContact } from './useFileShareContact';
 import { authService } from '../services/auth';
+import toast from 'react-hot-toast';
 
 type FieldState = {
   value: string;
@@ -137,6 +138,7 @@ export function useContactForm() {
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!userProfile?.userId) return;
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -146,16 +148,27 @@ export function useContactForm() {
       const pubKeys = UserPublicKeys.from_bytes(fileContact.userPubKeys);
       const derivedUserId = encodeUserId(pubKeys.derive_id());
 
+      // check here if user already exists in contacts
+      const contact = await db.getContactByOwnerAndUserId(
+        userProfile.userId,
+        derivedUserId
+      );
+
+      if (contact) {
+        toast.error('User already registred');
+        return;
+      }
+
       setPublicKeys(pubKeys);
       publicKeysCache.current.set(derivedUserId, pubKeys);
 
       if (fileContact.userName) {
-        setName({ value: fileContact.userName, error: null, loading: false });
+        handleNameChange(fileContact.userName);
       }
 
       setUserId({ value: derivedUserId, error: null, loading: false });
     },
-    [importFileContact]
+    [importFileContact, handleNameChange, userProfile]
   );
 
   const handleSubmit = useCallback(async () => {
