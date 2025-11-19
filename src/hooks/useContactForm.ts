@@ -101,7 +101,7 @@ export function useContactForm() {
         : (validateUsername(trimmed).error ?? 'Invalid display name')
       : 'Display name is required';
 
-    setName({ value: trimmed, error, loading: false });
+    setName({ value, error, loading: false });
   }, []);
 
   const handleUserIdChange = useCallback(
