@@ -62,6 +62,11 @@ const NewContact: React.FC = () => {
               isImporting={fileState.isLoading}
               onFileImport={handleFileImport}
             />
+            {fileState.error && (
+              <p className="text-sm text-destructive mt-2" role="alert">
+                {fileState.error}
+              </p>
+            )}
 
             <UserIdField
               userId={userId.value}
