@@ -17,9 +17,6 @@ export function useAppStateRefresh() {
       });
 
       const refreshInterval = setInterval(() => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Triggering periodic app state sync');
-        }
         triggerManualSync().catch(error => {
           console.error('Failed to refresh app state periodically:', error);
         });

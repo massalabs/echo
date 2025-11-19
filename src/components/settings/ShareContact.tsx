@@ -15,7 +15,7 @@ type ShareTab = 'files' | 'qr';
 const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<ShareTab>('files');
   const { ourPk, userProfile } = useAccountStore();
-  const { exportFileContact, isLoading, error } = useFileShareContact();
+  const { exportFileContact, fileState } = useFileShareContact();
 
   return (
     <div className="bg-background">
@@ -76,14 +76,14 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                     userName: userProfile?.username,
                   });
                 }}
-                disabled={!ourPk || isLoading}
-                loading={isLoading}
+                disabled={!ourPk || fileState.isLoading}
+                loading={fileState.isLoading}
                 variant="primary"
                 size="custom"
                 fullWidth
                 className="h-11 rounded-xl text-sm font-medium"
               >
-                {!isLoading && (
+                {!fileState.isLoading && (
                   <>
                     <svg
                       className="w-5 h-5"
@@ -102,9 +102,9 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                   </>
                 )}
               </Button>
-              {error && (
+              {fileState.error && (
                 <div className="mt-4 text-sm text-red-600 dark:text-red-400 text-center">
-                  {error}
+                  {fileState.error}
                 </div>
               )}
             </div>
