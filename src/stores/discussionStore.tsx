@@ -15,6 +15,8 @@ interface DiscussionStoreState {
   isInitializing: boolean;
 
   init: () => void;
+  getDiscussionsForContact: (contactUserId: string) => Discussion[];
+
   cleanup: () => void;
   setModalOpen: (discussionId: number, isOpen: boolean) => void;
   isModalOpen: (discussionId: number) => boolean;
@@ -108,6 +110,14 @@ const useDiscussionStoreBase = create<DiscussionStoreState>((set, get) => ({
       subscriptionContacts,
       isInitializing: false,
     });
+  },
+
+  getDiscussionsForContact: (contactUserId: string) => {
+    const ownerUserId = useAccountStore.getState().userProfile?.userId;
+    if (!ownerUserId) return [];
+    return get().discussions.filter(
+      discussion => discussion.contactUserId === contactUserId
+    );
   },
 
   cleanup: () => {

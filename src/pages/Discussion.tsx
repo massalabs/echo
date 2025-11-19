@@ -46,6 +46,9 @@ const Discussion: React.FC = () => {
   const isSending = useMessageStore(s => s.isSending);
   const sendMessage = useMessageStore(s => s.sendMessage);
   const resendMessage = useMessageStore(s => s.resendMessage);
+  const syncMessages = useMessageStore(s => s.syncMessages);
+
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
   // Track previous contact userId to prevent unnecessary updates
   const prevContactUserIdRef = useRef<string | null>(null);
 
@@ -110,7 +113,6 @@ const Discussion: React.FC = () => {
         messages={messages}
         discussion={discussion}
         isLoading={isLoading || isDiscussionLoading}
-        onResend={resendMessage}
       />
 
       <MessageInput

@@ -2,9 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { Contact, Discussion } from '../db';
 import {
   initializeDiscussion,
-  getDiscussionsForContact,
   ensureDiscussionExists as ensureDiscussionExistsUtil,
 } from '../crypto/discussionInit';
+import { useDiscussionStore } from '../stores/discussionStore';
 
 interface UseDiscussionProps {
   contact: Contact;
@@ -15,15 +15,16 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getDiscussionsForContact = useDiscussionStore(
+    s => s.getDiscussionsForContact
+  );
+
   const loadDiscussion = useCallback(async () => {
     if (!contact.userId) return;
 
     try {
       setIsLoading(true);
-      const discussions = await getDiscussionsForContact(
-        contact.ownerUserId,
-        contact.userId
-      );
+      const discussions = getDiscussionsForContact(contact.userId);
 
       // Get the most recent discussion (active or pending)
       const latestDiscussion = discussions
@@ -36,7 +37,7 @@ export const useDiscussion = ({ contact }: UseDiscussionProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [contact.ownerUserId, contact.userId]);
+  }, [contact.userId, getDiscussionsForContact]);
 
   const initializeNewDiscussion = useCallback(async (): Promise<boolean> => {
     if (!contact.userId || isInitializing) return false;

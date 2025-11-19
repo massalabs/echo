@@ -11,14 +11,12 @@ interface MessageListProps {
   messages: Message[];
   discussion?: Discussion | null;
   isLoading: boolean;
-  onResend: (message: Message) => void;
 }
 
 const MessageList: React.FC<MessageListProps> = ({
   messages,
   discussion,
   isLoading,
-  onResend,
 }) => {
   const prevLastMessageIdRef = useRef<number | null>(null);
   const hasInitiallyScrolledRef = useRef<boolean>(false);
@@ -26,11 +24,9 @@ const MessageList: React.FC<MessageListProps> = ({
   // Memoize the message items to prevent re-rendering all messages when one is added
   const messageItems = useMemo(() => {
     return messages.map(message => {
-      return (
-        <MessageItem key={message.id} message={message} onResend={onResend} />
-      );
+      return <MessageItem key={message.id} message={message} />;
     });
-  }, [messages, onResend]);
+  }, [messages]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {

@@ -4,10 +4,9 @@ import { formatTime } from '../../utils/timeUtils';
 
 interface MessageItemProps {
   message: Message;
-  onResend: (message: Message) => void;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, onResend }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   const isOutgoing = message.direction === 'outgoing';
 
   return (
@@ -76,13 +75,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onResend }) => {
                     />
                   </svg>
                   <span className="text-[10px] font-medium">Failed</span>
-                  <button
-                    onClick={() => onResend(message)}
-                    className="ml-1 px-1.5 py-0.5 text-[10px] font-medium bg-accent-foreground/20 hover:bg-accent-foreground/30 rounded transition-colors text-accent-foreground"
-                    title="Resend message"
-                  >
-                    Resend
-                  </button>
                 </div>
               )}
               {(message.status === 'delivered' ||
