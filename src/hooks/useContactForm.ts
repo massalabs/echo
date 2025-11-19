@@ -90,7 +90,10 @@ export function useContactForm() {
     !isSubmitting &&
     !userId.loading;
 
-  const hasUnsavedChanges = !!name.value || !!userId.value || !!message.value;
+  const hasUnsavedChanges =
+    !!name.value.trim() ||
+    !!userId.value.trim() ||
+    !!message.value.trim();
 
   // ──────────────────────────────────────────────────────────────
   // Handlers
