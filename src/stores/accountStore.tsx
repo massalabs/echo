@@ -9,16 +9,8 @@ import {
 import { isWebAuthnSupported } from '../crypto/webauthn';
 import { biometricService } from '../crypto/biometricService';
 import { generateMnemonic, validateMnemonic } from '../crypto/bip39';
-import {
-  JsonRpcProvider,
-  Provider,
-  PublicApiUrl,
-  Account,
-  PrivateKey,
-  NetworkName,
-} from '@massalabs/massa-web3';
+import { Provider, Account, PrivateKey } from '@massalabs/massa-web3';
 import { useAppStore } from './appStore';
-// import { useWalletStore } from './walletStore';
 import { createSelectors } from './utils/createSelectors';
 import {
   generateUserKeys,
@@ -725,49 +717,15 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
   };
 });
 
-// TODO: Investigate potential race conditions when rapidly switching accounts
-// - Multiple async operations (provider creation, token initialization, balance refresh) may overlap
-// - Consider adding cancellation tokens or operation queuing to prevent state inconsistencies
-// - Test scenario: rapidly switch between accounts to identify any timing issues
 useAccountStoreBase.subscribe(async (state, prevState) => {
-  if (state.account === prevState.account) return;
+  const current = state.userProfile;
+  const previous = prevState.userProfile;
 
-  try {
-    const networkName = useAppStore.getState().networkName;
-    const publicApiUrl =
-      networkName === NetworkName.Buildnet
-        ? PublicApiUrl.Buildnet
-        : PublicApiUrl.Mainnet;
+  if (!current || !state.ourPk) return;
+  if (current === previous) return;
+  if (previous && current.userId === previous.userId) return;
 
-    if (state.account) {
-      const provider = await JsonRpcProvider.fromRPCUrl(
-        publicApiUrl,
-        state.account
-      );
-
-      useAccountStoreBase.setState({ provider });
-
-      // await useWalletStore.getState().initializeTokens();
-      // await useWalletStore.getState().refreshBalances();
-    } else {
-      useAccountStoreBase.setState({ provider: null });
-    }
-
-    if (state.ourPk && state.userProfile) {
-      try {
-        await authService.ensurePublicKeyPublished(
-          state.ourPk,
-          state.userProfile.userId
-        );
-      } catch (error) {
-        console.error('Error ensuring public key published:', error);
-      }
-    } else {
-      // TODO: Plan to retry ?
-    }
-  } catch (error) {
-    console.error('Error initializing provider:', error);
-  }
+  await authService.ensurePublicKeyPublished(state.ourPk, current.userId);
 });
 
 export const useAccountStore = createSelectors(useAccountStoreBase);

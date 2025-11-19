@@ -47,22 +47,6 @@ export class AuthService {
   }
 
   /**
-   * Post public key to the API
-   * @param publicKeys - UserPublicKeys instance to store
-   */
-  async postPublicKey(publicKeys: UserPublicKeys): Promise<void> {
-    try {
-      await this.messageProtocol.postPublicKey(
-        encodeToBase64(publicKeys.to_bytes())
-      );
-    } catch (e) {
-      // TODO: What if error
-      // TODO:  Handle retry
-      console.log(e);
-    }
-  }
-
-  /**
    * Ensure public key is published (check first, then publish if needed)
    * @param publicKeys - UserPublicKeys instance
    * @param userId - Bech32-encoded userId (e.g., "gossip1...")
@@ -71,12 +55,12 @@ export class AuthService {
     publicKeys: UserPublicKeys,
     userId: string
   ): Promise<void> {
-    // TODO: Add published auth key ? TLS ? when do we reniew, check for every connection, when sending userId ? Both, check every minutes
     const result = await this.fetchPublicKeyByUserId(userId);
     if (result.success) return;
 
-    // TODO: if error what do do ? Retry ?
-    await this.postPublicKey(publicKeys);
+    await this.messageProtocol.postPublicKey(
+      encodeToBase64(publicKeys.to_bytes())
+    );
   }
 }
 
