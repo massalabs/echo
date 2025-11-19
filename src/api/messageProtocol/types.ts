@@ -41,7 +41,7 @@ export interface IMessageProtocol {
 
   /**
    * Fetch public key by userId hash (base64 string)
-   * @param userId - Bech32-encoded userId (e.g., "gossip1...")
+   * @param userId - Decoded userId bytes
    * @returns Base64-encoded public keys
    */
   fetchPublicKeyByUserId(userId: Uint8Array): Promise<string>;
