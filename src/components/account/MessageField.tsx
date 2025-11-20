@@ -34,7 +34,6 @@ const MessageField: React.FC<MessageFieldProps> = ({ message, onChange }) => {
       </label>
       <FormInput
         id="contact-message"
-        label={null}
         value={message}
         onChange={onChange}
         placeholder="Introduce yourself or add context to your contact request..."
