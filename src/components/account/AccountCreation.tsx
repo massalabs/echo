@@ -256,7 +256,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
                   <p className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
                     {usePassword
                       ? 'Your account will be secured using a password. Make sure to choose a strong password.'
-                      : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello). You will need to authenticate first to confirm biometrics are working.'}
+                      : 'Your account will be secured using biometric authentication (fingerprint, face ID, or Windows Hello).'}
                   </p>
                 </div>
               </div>
