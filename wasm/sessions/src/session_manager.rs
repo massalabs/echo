@@ -300,29 +300,29 @@ impl SessionManager {
         let mut keep_alive_needed = Vec::new();
         for (peer_id, peer_info) in self.peers.iter_mut() {
             // session expiry
-            if let Some(active_session) = &mut peer_info.active_session
-                && active_session.last_incoming_message_timestamp < oldest_message_timestamp
-            {
-                peer_info.active_session = None;
+            if let Some(active_session) = &mut peer_info.active_session {
+                if active_session.last_incoming_message_timestamp < oldest_message_timestamp {
+                    peer_info.active_session = None;
+                }
             }
 
             // announcement expiry
-            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request
-                && latest_incoming_init_request.timestamp_millis < oldest_announcement_timestamp
-            {
-                peer_info.latest_incoming_init_request = None;
+            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request {
+                if latest_incoming_init_request.timestamp_millis < oldest_announcement_timestamp {
+                    peer_info.latest_incoming_init_request = None;
+                }
             }
-            if let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request
-                && latest_outgoing_init_request.timestamp_millis < oldest_announcement_timestamp
-            {
-                peer_info.latest_outgoing_init_request = None;
+            if let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request {
+                if latest_outgoing_init_request.timestamp_millis < oldest_announcement_timestamp {
+                    peer_info.latest_outgoing_init_request = None;
+                }
             }
 
             // session keep-alive trigger
-            if let Some(active_session) = &peer_info.active_session
-                && active_session.last_outgoing_message_timestamp < keep_alive_timestamp
-            {
-                keep_alive_needed.push(peer_id.clone());
+            if let Some(active_session) = &peer_info.active_session {
+                if active_session.last_outgoing_message_timestamp < keep_alive_timestamp {
+                    keep_alive_needed.push(peer_id.clone());
+                }
             }
         }
 
@@ -407,28 +407,30 @@ impl SessionManager {
         let peer_id = incoming_initiation_request.origin_public_keys.derive_id();
 
         // make sure that it is newer than the latest incoming initiation request we processed, otherwise ignore
-        if let Some(peer_info) = self.peers.get(&peer_id)
-            && let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request
-            && incoming_initiation_request.timestamp_millis
-                <= latest_incoming_init_request.timestamp_millis
-        {
-            return None;
+        if let Some(peer_info) = self.peers.get(&peer_id) {
+            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request {
+                if incoming_initiation_request.timestamp_millis
+                    <= latest_incoming_init_request.timestamp_millis
+                {
+                    return None;
+                }
+            }
         }
 
         // now check if we have made an outgoing initiation request to this peer, in that case we can create a session
-        if let Some(peer_info) = self.peers.get_mut(&peer_id)
-            && let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request
-        {
-            // set new session or replace existing
-            let new_session = Session::from_initiation_request_pair(
-                latest_outgoing_init_request,
-                &incoming_initiation_request,
-            );
-            peer_info.active_session = Some(SessionInfo {
-                session: new_session,
-                last_incoming_message_timestamp: incoming_initiation_request.timestamp_millis,
-                last_outgoing_message_timestamp: latest_outgoing_init_request.timestamp_millis,
-            });
+        if let Some(peer_info) = self.peers.get_mut(&peer_id) {
+            if let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request {
+                // set new session or replace existing
+                let new_session = Session::from_initiation_request_pair(
+                    latest_outgoing_init_request,
+                    &incoming_initiation_request,
+                );
+                peer_info.active_session = Some(SessionInfo {
+                    session: new_session,
+                    last_incoming_message_timestamp: incoming_initiation_request.timestamp_millis,
+                    last_outgoing_message_timestamp: latest_outgoing_init_request.timestamp_millis,
+                });
+            }
         }
 
         // update the latest incoming initiation request
@@ -511,19 +513,19 @@ impl SessionManager {
             OutgoingInitiationRequest::new(our_pk, our_sk, peer_pk, user_data);
 
         // check if we already have an incoming announcement from this peer
-        if let Some(peer_info) = self.peers.get_mut(&peer_id)
-            && let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request
-        {
-            // we have an incoming announcement. This means we should create a new session
-            let new_session = Session::from_initiation_request_pair(
-                &outgoing_initiation_request,
-                latest_incoming_init_request,
-            );
-            peer_info.active_session = Some(SessionInfo {
-                session: new_session,
-                last_incoming_message_timestamp: latest_incoming_init_request.timestamp_millis,
-                last_outgoing_message_timestamp: outgoing_initiation_request.timestamp_millis,
-            });
+        if let Some(peer_info) = self.peers.get_mut(&peer_id) {
+            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request {
+                // we have an incoming announcement. This means we should create a new session
+                let new_session = Session::from_initiation_request_pair(
+                    &outgoing_initiation_request,
+                    latest_incoming_init_request,
+                );
+                peer_info.active_session = Some(SessionInfo {
+                    session: new_session,
+                    last_incoming_message_timestamp: latest_incoming_init_request.timestamp_millis,
+                    last_outgoing_message_timestamp: outgoing_initiation_request.timestamp_millis,
+                });
+            }
         }
 
         // update the latest outgoing initiation request
@@ -586,12 +588,12 @@ impl SessionManager {
     ) -> Option<FeedIncomingMessageOutput> {
         // try to decode message
         let mut msg = None;
-        if let Some(peer_info) = self.peers.get_mut(peer_id)
-            && let Some(active_session) = &mut peer_info.active_session
-        {
-            msg = active_session
-                .session
-                .try_feed_incoming_message(our_sk, seeker, bytes);
+        if let Some(peer_info) = self.peers.get_mut(peer_id) {
+            if let Some(active_session) = &mut peer_info.active_session {
+                msg = active_session
+                    .session
+                    .try_feed_incoming_message(our_sk, seeker, bytes);
+            }
         }
         let msg = msg?;
 
@@ -609,13 +611,13 @@ impl SessionManager {
 
         // check if the message timestamp is consistent with the latest one,
         // and update the last incoming message timestamp
-        if let Some(peer_info) = self.peers.get_mut(peer_id)
-            && let Some(active_session) = &mut peer_info.active_session
-        {
-            if msg.timestamp < active_session.last_incoming_message_timestamp {
-                return None;
+        if let Some(peer_info) = self.peers.get_mut(peer_id) {
+            if let Some(active_session) = &mut peer_info.active_session {
+                if msg.timestamp < active_session.last_incoming_message_timestamp {
+                    return None;
+                }
+                active_session.last_incoming_message_timestamp = msg.timestamp;
             }
-            active_session.last_incoming_message_timestamp = msg.timestamp;
         }
 
         // return the message
@@ -631,11 +633,11 @@ impl SessionManager {
         // find the peer that has the seeker
         let mut peer_id = None;
         for (p_id, peer_info) in self.peers.iter() {
-            if let Some(active_session) = &peer_info.active_session
-                && active_session.session.next_peer_message_seeker() == seeker
-            {
-                peer_id = Some(p_id.clone());
-                break;
+            if let Some(active_session) = &peer_info.active_session {
+                if active_session.session.next_peer_message_seeker() == seeker {
+                    peer_id = Some(p_id.clone());
+                    break;
+                }
             }
         }
         let peer_id = peer_id?;
@@ -644,10 +646,10 @@ impl SessionManager {
         let msg = self.inner_feed_incoming_msg(&peer_id, seeker, bytes, our_sk);
 
         // if the message is None here, it means the session has a problem: close it
-        if msg.is_none()
-            && let Some(peer_info) = self.peers.get_mut(&peer_id)
-        {
-            peer_info.active_session = None;
+        if msg.is_none() {
+            if let Some(peer_info) = self.peers.get_mut(&peer_id) {
+                peer_info.active_session = None;
+            }
         }
 
         // return the message
@@ -671,15 +673,15 @@ impl SessionManager {
         message: &[u8],
     ) -> Option<SendOutgoingMessageOutput> {
         // get the session and send
-        if let Some(peer_info) = self.peers.get_mut(peer_id)
-            && let Some(active_session) = &mut peer_info.active_session
-        {
-            if active_session.session.lag_length() >= self.config.max_session_lag_length {
-                return None;
+        if let Some(peer_info) = self.peers.get_mut(peer_id) {
+            if let Some(active_session) = &mut peer_info.active_session {
+                if active_session.session.lag_length() >= self.config.max_session_lag_length {
+                    return None;
+                }
+                let send_result = active_session.session.send_outgoing_message(message);
+                active_session.last_outgoing_message_timestamp = send_result.timestamp;
+                return Some(send_result);
             }
-            let send_result = active_session.session.send_outgoing_message(message);
-            active_session.last_outgoing_message_timestamp = send_result.timestamp;
-            return Some(send_result);
         }
         None
     }
@@ -1650,5 +1652,169 @@ mod tests {
         let json_str = String::from_utf8(result.user_data.clone()).unwrap();
         assert!(json_str.contains("contact_request"));
         assert!(json_str.contains("Hello!"));
+    }
+
+    #[test]
+    fn test_session_reestablishment_with_new_announcements() {
+        let config = create_test_config();
+        let mut alice_manager = SessionManager::new(config);
+        let mut bob_manager = SessionManager::new(create_test_config());
+
+        let (alice_pk, alice_sk) = generate_test_keypair();
+        let (bob_pk, bob_sk) = generate_test_keypair();
+        let alice_id = alice_pk.derive_id();
+        let bob_id = bob_pk.derive_id();
+
+        // Phase 1: Initial session establishment
+        // Alice initiates with announcement A
+        let announcement_a =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, vec![]);
+
+        // Bob responds with announcement B
+        let announcement_b =
+            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, vec![]);
+
+        // Alice receives Bob's announcement B
+        alice_manager.feed_incoming_announcement(&announcement_b, &alice_pk, &alice_sk);
+
+        // Bob receives Alice's announcement A
+        bob_manager.feed_incoming_announcement(&announcement_a, &bob_pk, &bob_sk);
+
+        // Verify both have active sessions
+        assert!(
+            matches!(
+                alice_manager.peer_session_status(&bob_id),
+                SessionStatus::Active
+            ),
+            "Alice should have active session"
+        );
+        assert!(
+            matches!(
+                bob_manager.peer_session_status(&alice_id),
+                SessionStatus::Active
+            ),
+            "Bob should have active session"
+        );
+
+        // Phase 2: Test message exchange on initial session (A, B)
+        // Alice sends message to Bob
+        let msg1 = create_test_message(b"Hello Bob from A-B session!");
+        let output1 = alice_manager
+            .send_message(&bob_id, &msg1)
+            .expect("Alice should be able to send message");
+
+        // Bob receives message
+        let received1 = bob_manager
+            .feed_incoming_message_board_read(&output1.seeker, &output1.data, &bob_sk)
+            .expect("Bob should receive message");
+        assert_eq!(received1.message.as_slice(), b"Hello Bob from A-B session!");
+
+        // Bob sends message to Alice
+        let msg2 = create_test_message(b"Hi Alice from B-A session!");
+        let output2 = bob_manager
+            .send_message(&alice_id, &msg2)
+            .expect("Bob should be able to send message");
+
+        // Alice receives message
+        let received2 = alice_manager
+            .feed_incoming_message_board_read(&output2.seeker, &output2.data, &alice_sk)
+            .expect("Alice should receive message");
+        assert_eq!(received2.message.as_slice(), b"Hi Alice from B-A session!");
+
+        // Phase 3: Alice sends new announcement C
+        let announcement_c =
+            alice_manager.establish_outgoing_session(&bob_pk, &alice_pk, &alice_sk, vec![]);
+
+        // Bob receives announcement C
+        bob_manager.feed_incoming_announcement(&announcement_c, &bob_pk, &bob_sk);
+
+        // Verify both still have active sessions
+        assert!(
+            matches!(
+                alice_manager.peer_session_status(&bob_id),
+                SessionStatus::Active
+            ),
+            "Alice should have active session after sending C"
+        );
+        assert!(
+            matches!(
+                bob_manager.peer_session_status(&alice_id),
+                SessionStatus::Active
+            ),
+            "Bob should have active session after receiving C"
+        );
+
+        // Phase 4: Test message exchange on updated session (C, B)
+        // Alice sends message on new session
+        let msg3 = create_test_message(b"Hello Bob from C-B session!");
+        let output3 = alice_manager
+            .send_message(&bob_id, &msg3)
+            .expect("Alice should be able to send message on new session");
+
+        // Bob receives message
+        let received3 = bob_manager
+            .feed_incoming_message_board_read(&output3.seeker, &output3.data, &bob_sk)
+            .expect("Bob should receive message on new session");
+        assert_eq!(received3.message.as_slice(), b"Hello Bob from C-B session!");
+
+        // Bob sends message back
+        let msg4 = create_test_message(b"Hi Alice from B-C session!");
+        let output4 = bob_manager
+            .send_message(&alice_id, &msg4)
+            .expect("Bob should be able to send message on new session");
+
+        // Alice receives message
+        let received4 = alice_manager
+            .feed_incoming_message_board_read(&output4.seeker, &output4.data, &alice_sk)
+            .expect("Alice should receive message on new session");
+        assert_eq!(received4.message.as_slice(), b"Hi Alice from B-C session!");
+
+        // Phase 5: Bob sends new announcement D
+        let announcement_d =
+            bob_manager.establish_outgoing_session(&alice_pk, &bob_pk, &bob_sk, vec![]);
+
+        // Alice receives announcement D
+        alice_manager.feed_incoming_announcement(&announcement_d, &alice_pk, &alice_sk);
+
+        // Verify both still have active sessions
+        assert!(
+            matches!(
+                alice_manager.peer_session_status(&bob_id),
+                SessionStatus::Active
+            ),
+            "Alice should have active session after receiving D"
+        );
+        assert!(
+            matches!(
+                bob_manager.peer_session_status(&alice_id),
+                SessionStatus::Active
+            ),
+            "Bob should have active session after sending D"
+        );
+
+        // Phase 6: Test message exchange on final session (C, D)
+        // Alice sends message on newest session
+        let msg5 = create_test_message(b"Hello Bob from C-D session!");
+        let output5 = alice_manager
+            .send_message(&bob_id, &msg5)
+            .expect("Alice should be able to send message on newest session");
+
+        // Bob receives message
+        let received5 = bob_manager
+            .feed_incoming_message_board_read(&output5.seeker, &output5.data, &bob_sk)
+            .expect("Bob should receive message on newest session");
+        assert_eq!(received5.message.as_slice(), b"Hello Bob from C-D session!");
+
+        // Bob sends message back
+        let msg6 = create_test_message(b"Hi Alice from D-C session!");
+        let output6 = bob_manager
+            .send_message(&alice_id, &msg6)
+            .expect("Bob should be able to send message on newest session");
+
+        // Alice receives message
+        let received6 = alice_manager
+            .feed_incoming_message_board_read(&output6.seeker, &output6.data, &alice_sk)
+            .expect("Alice should receive message on newest session");
+        assert_eq!(received6.message.as_slice(), b"Hi Alice from D-C session!");
     }
 }
