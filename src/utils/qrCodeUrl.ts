@@ -1,5 +1,3 @@
-import { Capacitor } from '@capacitor/core';
-
 /**
  * Get the base URL for QR code generation
  * Uses current window location for web, or environment variable for native/fallback
