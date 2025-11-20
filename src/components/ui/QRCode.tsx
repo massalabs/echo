@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import QRCodeStyling from 'qr-code-styling';
 import { useTheme } from '../../hooks/useTheme';
+import {
+  getForegroundColor,
+  getBackgroundColor,
+} from '../../utils/qrCodeColors';
 
 interface QRCodeProps {
   value: string;
@@ -21,26 +25,13 @@ const QRCode: React.FC<QRCodeProps> = ({
   const qrCodeRef = useRef<QRCodeStyling | null>(null);
   const { resolvedTheme } = useTheme();
 
-  // Get theme colors from CSS variables
-  const getThemeColor = (variable: string): string => {
-    if (typeof window === 'undefined') return '#000000';
-    const root = document.documentElement;
-    return getComputedStyle(root).getPropertyValue(variable).trim();
-  };
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     // Get colors based on theme
-    const foregroundColor =
-      resolvedTheme === 'dark'
-        ? getThemeColor('--foreground') || '#e8e8ea'
-        : getThemeColor('--foreground') || '#1a1a1d';
-    const backgroundColor =
-      resolvedTheme === 'dark'
-        ? getThemeColor('--card') || '#1e1e22'
-        : getThemeColor('--card') || '#ffffff';
+    const foregroundColor = getForegroundColor(resolvedTheme);
+    const backgroundColor = getBackgroundColor(resolvedTheme);
 
     // Create QR code instance
     const qrCode = new QRCodeStyling({

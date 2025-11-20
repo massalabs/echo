@@ -34,7 +34,10 @@ export function generateQRCodeUrl(
   userName?: string | null
 ): string {
   const baseUrl = getBaseUrl();
-  let url = `${baseUrl}/add/${userId}`;
+  // Encode userId as defensive best practice (Bech32 is already URL-safe, but encoding
+  // ensures compatibility and follows URL encoding standards)
+  // React Router will automatically decode it when using useParams()
+  let url = `${baseUrl}/add/${encodeURIComponent(userId)}`;
 
   if (userName) {
     url += `?name=${encodeURIComponent(userName)}`;

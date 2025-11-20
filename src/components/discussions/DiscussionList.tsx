@@ -24,13 +24,15 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
   const { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest } =
     useDiscussionList();
 
+  const activeDiscussions = discussions.filter(d => d.status !== 'closed');
+
   return (
     <>
-      {discussions.length === 0 ? (
+      {activeDiscussions.length === 0 ? (
         <EmptyDiscussions />
       ) : (
         <>
-          {discussions.map(discussion => {
+          {activeDiscussions.map(discussion => {
             const contact = contacts.find(
               c => c.userId === discussion.contactUserId
             );

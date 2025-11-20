@@ -35,7 +35,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
         saveAsBlob: false,
         crossOrigin: 'anonymous',
         margin: 15,
-        imageSize: 0.25, // Logo size ratio (40% of QR code)
+        imageSize: 0.25, // Logo size ratio (25% of QR code)
       },
     }),
     []
@@ -65,10 +65,8 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
             />
           </div>
 
-          {/* QR Code & User ID Tab (Primary) */}
           {activeTab === 'qr' && (
             <div className="space-y-3">
-              {/* QR Code */}
               <div className="bg-card rounded-lg p-6">
                 <div className="text-center mb-6">
                   <h4 className="text-lg font-semibold text-foreground mb-2">
@@ -102,12 +100,8 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                   </div>
                 )}
               </div>
-
-              {/* User ID Copy */}
             </div>
           )}
-
-          {/* File Download Tab */}
           {activeTab === 'files' && (
             <div className="bg-card rounded-lg p-6">
               <div className="text-center mb-6">
