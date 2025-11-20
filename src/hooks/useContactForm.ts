@@ -64,7 +64,7 @@ export function useContactForm() {
         ...prev,
         loading: false,
         // TODO: Improve user feedback: Network, api, not found...
-        // If can't fetch public key create discussion with annoucement not sent, and retry regularly?
+        // If can't fetch public key create discussion with announcement not sent, and retry regularly?
         error: 'Associated public keys not found',
       }));
       setPublicKeys(null);
