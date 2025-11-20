@@ -21,7 +21,7 @@ export const normalizeColor = (color: string): string => {
     return trimmed;
   }
   // Check for space-separated HSL values (e.g., "220 13% 91%")
-  if (/^\d+\s+\d+%?\s+\d+%?$/.test(trimmed)) {
+  if (/^\d+\s+\d+%\s+\d+%$/.test(trimmed)) {
     return `hsl(${trimmed})`;
   }
   // Fallback to black if unrecognized
