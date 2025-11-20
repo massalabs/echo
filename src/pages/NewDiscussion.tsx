@@ -58,7 +58,7 @@ const NewDiscussion: React.FC = () => {
 
   return (
     <div className="h-full px-3 py-3">
-      <div className="max-w-sm mx-auto">
+      <div className="max-w-md mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md overflow-hidden">
           {/* Card header */}
           <div className="relative px-5 py-4 border-b border-gray-200 dark:border-gray-700">

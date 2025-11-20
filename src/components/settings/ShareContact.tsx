@@ -43,7 +43,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
 
   return (
     <div className="bg-background">
-      <div className="max-w-sm mx-auto">
+      <div className="max-w-md mx-auto">
         <PageHeader title="Share Contact" onBack={onBack} />
 
         <div className="px-4 pb-20 space-y-6">

@@ -104,42 +104,39 @@ const Settings = (): React.ReactElement => {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-card h-full overflow-auto">
+    <div className="bg-card h-full overflow-auto">
       <div className="h-full">
         {/* Header */}
-        <div className="max-w-md m-auto border-b border-border fixed top-0 left-0 right-0 z-50 bg-card">
-          <PageHeader title="Settings" />
-        </div>
+        <PageHeader title="Settings" />
         {/* Account Profile Section */}
-        <div className="px-4 mt-20">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-            <div className="flex items-start gap-4 mb-4">
-              <img
-                src={appLogo}
-                className="w-16 h-16 rounded-lg object-cover"
-                alt="Profile"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-black dark:text-white mb-2">
-                  {userProfile?.username || 'Account name'}
-                </h3>
-                {userProfile?.userId && (
-                  <div className="mb-2 flex items-baseline gap-2">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-                      User ID:
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mt-4">
+          <div className="flex items-start gap-4 mb-4">
+            <img
+              src={appLogo}
+              className="w-16 h-16 rounded-lg object-cover"
+              alt="Profile"
+            />
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-semibold text-black dark:text-white mb-2">
+                {userProfile?.username || 'Account name'}
+              </h3>
+              {userProfile?.userId && (
+                <div className="mb-2 flex items-baseline gap-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                    User ID:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
+                      {formatUserId(userProfile.userId, 5, 3)}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
-                        {formatUserId(userProfile.userId, 5, 3)}
-                      </p>
-                      <CopyClipboard
-                        text={userProfile.userId}
-                        title="Copy user ID"
-                      />
-                    </div>
+                    <CopyClipboard
+                      text={userProfile.userId}
+                      title="Copy user ID"
+                    />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

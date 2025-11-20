@@ -51,7 +51,7 @@ const NewContact: React.FC = () => {
 
   return (
     <div className="bg-background">
-      <div className="max-w-sm mx-auto">
+      <div className="max-w-md mx-auto">
         <NewContactHeader onBack={handleBack} />
 
         {/* Main Form */}
