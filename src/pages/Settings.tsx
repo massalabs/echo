@@ -142,7 +142,7 @@ const Settings = (): React.ReactElement => {
         </div>
 
         {/* Settings Options */}
-        <div className="px-4 space-y-2">
+        <div className="px-4 space-y-2 pb-20">
           <div className="py-2">
             <InfoRow label="Version" value={APP_VERSION} />
             {showDebugOption && (

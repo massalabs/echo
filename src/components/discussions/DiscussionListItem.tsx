@@ -159,7 +159,7 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
               <>
                 {discussion.announcementMessage && (
                   <div className="mt-2 p-2.5 bg-muted/50 border border-border rounded-lg">
-                    <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                    <p className="text-sm text-foreground whitespace-pre-wrap wrap-break-word">
                       {discussion.announcementMessage}
                     </p>
                   </div>

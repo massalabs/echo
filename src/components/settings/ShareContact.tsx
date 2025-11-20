@@ -65,49 +65,49 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
             />
           </div>
 
-          {activeTab === 'qr' && (
-            <div className="space-y-3">
-              <div className="bg-card rounded-lg p-6">
-                <div className="text-center mb-6">
-                  <h4 className="text-lg font-semibold text-foreground mb-2">
-                    Scan QR code
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Share your contact information via QR code
+          {/* QR Code Tab - Keep mounted to cache QR code */}
+          <div className={`space-y-3 ${activeTab !== 'qr' ? 'hidden' : ''}`}>
+            <div className="bg-card rounded-lg p-6">
+              <div className="text-center mb-6">
+                <h4 className="text-lg font-semibold text-foreground mb-2">
+                  Scan QR code
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Share your contact information via QR code
+                </p>
+              </div>
+              {userProfile?.userId ? (
+                <div className="flex justify-center">
+                  <QRCode
+                    value={
+                      // For now we use only userId
+                      userProfile.userId
+                      //   generateQRCodeUrl(
+                      //   userProfile.userId,
+                      //   userProfile.username
+                      // )
+                    }
+                    size={300}
+                    level="H"
+                    type="svg"
+                    dotsOptions={qrCodeOptions.dotsOptions}
+                    cornersSquareOptions={qrCodeOptions.cornersSquareOptions}
+                    cornersDotOptions={qrCodeOptions.cornersDotOptions}
+                    image={qrCodeOptions.image}
+                    imageOptions={qrCodeOptions.imageOptions}
+                  />
+                </div>
+              ) : (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-sm text-muted-foreground">
+                    No user ID available
                   </p>
                 </div>
-                {userProfile?.userId ? (
-                  <div className="flex justify-center">
-                    <QRCode
-                      value={
-                        // For now we use only userId
-                        userProfile.userId
-                        //   generateQRCodeUrl(
-                        //   userProfile.userId,
-                        //   userProfile.username
-                        // )
-                      }
-                      size={300}
-                      level="H"
-                      type="svg"
-                      dotsOptions={qrCodeOptions.dotsOptions}
-                      cornersSquareOptions={qrCodeOptions.cornersSquareOptions}
-                      cornersDotOptions={qrCodeOptions.cornersDotOptions}
-                      image={qrCodeOptions.image}
-                      imageOptions={qrCodeOptions.imageOptions}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex justify-center items-center h-64">
-                    <p className="text-sm text-muted-foreground">
-                      No user ID available
-                    </p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
-          {activeTab === 'files' && (
+          </div>
+          {/* File Tab */}
+          <div className={`space-y-3 ${activeTab !== 'files' ? 'hidden' : ''}`}>
             <div className="bg-card rounded-lg p-6">
               <div className="text-center mb-6">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -173,7 +173,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 </div>
               )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
