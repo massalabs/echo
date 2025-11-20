@@ -1,25 +1,49 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAccountStore } from '../../stores/accountStore';
 import { useFileShareContact } from '../../hooks/useFileShareContact';
-import TabSwitcher from '../ui/TabSwitcher';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
-import QrCodePlaceholder from '../ui/QrCodePlaceholder';
+import QRCode from '../ui/QRCode';
+import TabSwitcher from '../ui/TabSwitcher';
+// import { generateQRCodeUrl } from '../../utils/qrCodeUrl';
 
 interface ShareContactProps {
   onBack: () => void;
 }
 
-type ShareTab = 'files' | 'qr';
+type ShareTab = 'qr' | 'files';
 
 const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<ShareTab>('files');
+  const [activeTab, setActiveTab] = useState<ShareTab>('qr');
   const { ourPk, userProfile } = useAccountStore();
   const { exportFileContact, fileState } = useFileShareContact();
 
+  // Memoize QR code options to prevent unnecessary re-renders
+  const qrCodeOptions = useMemo(
+    () => ({
+      dotsOptions: {
+        type: 'extra-rounded' as const,
+      },
+      cornersSquareOptions: {
+        type: 'extra-rounded' as const,
+      },
+      cornersDotOptions: {
+        type: 'dot' as const,
+      },
+      image: '/favicon/web-app-manifest-192x192.png',
+      imageOptions: {
+        saveAsBlob: false,
+        crossOrigin: 'anonymous',
+        margin: 15,
+        imageSize: 0.25, // Logo size ratio (25% of QR code)
+      },
+    }),
+    []
+  );
+
   return (
-    <div className="bg-background">
-      <div className="max-w-sm mx-auto">
+    <div className="bg-card h-full overflow-auto max-w-md mx-auto">
+      <div className="max-w-md mx-auto">
         <PageHeader title="Share Contact" onBack={onBack} />
 
         <div className="px-4 pb-20 space-y-6">
@@ -28,12 +52,12 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
             <TabSwitcher
               options={[
                 {
-                  value: 'files',
-                  label: 'Files',
+                  value: 'qr',
+                  label: 'Scan QR code',
                 },
                 {
-                  value: 'qr',
-                  label: 'QR code',
+                  value: 'files',
+                  label: 'File',
                 },
               ]}
               value={activeTab}
@@ -41,7 +65,48 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
             />
           </div>
 
-          {/* Content */}
+          {activeTab === 'qr' && (
+            <div className="space-y-3">
+              <div className="bg-card rounded-lg p-6">
+                <div className="text-center mb-6">
+                  <h4 className="text-lg font-semibold text-foreground mb-2">
+                    Scan QR code
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Share your contact information via QR code
+                  </p>
+                </div>
+                {userProfile?.userId ? (
+                  <div className="flex justify-center">
+                    <QRCode
+                      value={
+                        // For now we use only userId
+                        userProfile.userId
+                        //   generateQRCodeUrl(
+                        //   userProfile.userId,
+                        //   userProfile.username
+                        // )
+                      }
+                      size={300}
+                      level="H"
+                      type="svg"
+                      dotsOptions={qrCodeOptions.dotsOptions}
+                      cornersSquareOptions={qrCodeOptions.cornersSquareOptions}
+                      cornersDotOptions={qrCodeOptions.cornersDotOptions}
+                      image={qrCodeOptions.image}
+                      imageOptions={qrCodeOptions.imageOptions}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex justify-center items-center h-64">
+                    <p className="text-sm text-muted-foreground">
+                      No user ID available
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {activeTab === 'files' && (
             <div className="bg-card rounded-lg p-6">
               <div className="text-center mb-6">
@@ -60,7 +125,7 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                     />
                   </svg>
                 </div>
-                <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
+                <h4 className="text-lg font-semibold text-foreground mb-2">
                   Share with file
                 </h4>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -103,39 +168,10 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 )}
               </Button>
               {fileState.error && (
-                <div className="mt-4 text-sm text-red-600 dark:text-red-400 text-center">
+                <div className="mt-4 text-sm text-destructive text-center">
                   {fileState.error}
                 </div>
               )}
-            </div>
-          )}
-
-          {activeTab === 'qr' && (
-            <div className="bg-card rounded-lg p-6">
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-6 h-6 text-muted-foreground"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2.01M19 8h2.01M12 19h.01M12 4h.01"
-                    />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-semibold text-black dark:text-white mb-2">
-                  Scan QR code
-                </h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Share your contact information via QR code
-                </p>
-              </div>
-              <QrCodePlaceholder />
             </div>
           )}
         </div>

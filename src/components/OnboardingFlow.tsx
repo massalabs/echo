@@ -87,7 +87,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   };
 
   return (
-    <div className="h-full p-4 md:p-8 py-14 w-full max-w-md mx-auto flex flex-col justify-center items-center">
+    <div className="h-full p-4 md:p-8 py-14 w-full mx-auto flex flex-col justify-center items-center">
       {/* Content */}
       <div className="flex-1 flex flex-col justify-around text-center ">
         {/* Progress indicator */}
@@ -117,7 +117,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
               steps[currentStep].title
             )}
           </h1>
-          <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-sm mx-auto px-2">
+          <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-md mx-auto px-2">
             {steps[currentStep].description}
           </p>
         </div>

@@ -29,7 +29,7 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
       {discussions.filter(d => d.status !== 'closed').length === 0 ? (
         <EmptyDiscussions />
       ) : (
-        <div className="bg-card rounded-lg h-full">
+        <>
           {discussions
             .filter(d => d.status !== 'closed')
             .map(discussion => {
@@ -61,7 +61,7 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
                 </div>
               );
             })}
-        </div>
+        </>
       )}
     </>
   );

@@ -56,29 +56,22 @@ export function useContactForm() {
 
     setUserId(prev => ({ ...prev, loading: true, error: null }));
 
-    try {
-      const result = await authService.fetchPublicKeyByUserId(trimmed);
+    const { success, publicKey } =
+      await authService.fetchPublicKeyByUserId(trimmed);
 
-      if (!result.success || !result.publicKey) {
-        setUserId(prev => ({
-          ...prev,
-          loading: false,
-          error:
-            result.error || 'This user ID does not exist or has no public keys',
-        }));
-        setPublicKeys(null);
-      } else {
-        publicKeysCache.current.set(trimmed, result.publicKey);
-        setPublicKeys(result.publicKey);
-        setUserId(prev => ({ ...prev, loading: false, error: null }));
-      }
-    } catch {
+    if (!success || !publicKey) {
       setUserId(prev => ({
         ...prev,
         loading: false,
-        error: 'Failed to check user ID — please try again',
+        // TODO: Improve user feedback: Network, api, not found...
+        // If can't fetch public key create discussion with announcement not sent, and retry regularly?
+        error: 'Associated public keys not found',
       }));
       setPublicKeys(null);
+    } else {
+      publicKeysCache.current.set(trimmed, publicKey);
+      setPublicKeys(publicKey);
+      setUserId(prev => ({ ...prev, loading: false, error: null }));
     }
   }, []);
 

@@ -2,7 +2,7 @@ import React from 'react';
 
 interface FormInputProps {
   id: string;
-  label: string | React.ReactNode;
+  label?: string | React.ReactNode;
   value: string;
   onChange: (value: string) => void;
   onBlur?: (value: string) => void;

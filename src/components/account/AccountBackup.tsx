@@ -59,27 +59,29 @@ const AccountBackup: React.FC<AccountBackupProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="max-w-sm mx-auto">
+    <div className="bg-card h-full overflow-auto">
       <PageHeader title="Account Backup" onBack={onBack} />
 
-      <div className="px-4 pb-20 space-y-6">
+      <div className="px-4 pb-20 ">
         {/* Tabs */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-          <TabSwitcher
-            options={[
-              {
-                value: 'mnemonic',
-                label: 'Mnemonic',
-              },
-              {
-                value: 'privateKey',
-                label: 'Private Key',
-              },
-            ]}
-            value={method}
-            onChange={setMethod}
-          />
-        </div>
+        {backupInfo && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <TabSwitcher
+              options={[
+                {
+                  value: 'mnemonic',
+                  label: 'Mnemonic',
+                },
+                {
+                  value: 'privateKey',
+                  label: 'Private Key',
+                },
+              ]}
+              value={method}
+              onChange={setMethod}
+            />
+          </div>
+        )}
 
         {/* Input/auth */}
         {((method === 'mnemonic' && !backupInfo) ||

@@ -43,8 +43,7 @@
   --sidebar-ring: #0d9488;
   --tail-border: #e5e7eb; /* soft gray border for light mode tail */
   /* Bottom navigation spacing */
-  /* Accounts for: nav height (64px) + margin (12px) + spacing (24px) = 100px */
-  --bottom-nav-backdrop-height: 100px;
+  --bottom-nav-height: 64px;
 }
 
 .dark {
@@ -86,6 +85,7 @@
   --sidebar-border: #2a2a2e;
   --sidebar-ring: #2dd4bf;
   --tail-border: transparent; /* transparent border for dark mode tail */
+  --bottom-nav-height: 64px;
 }
 
 @theme inline {
@@ -292,23 +292,6 @@
 
   .pr-safe {
     padding-right: env(safe-area-inset-right);
-  }
-
-  /* Bottom navigation offset utility */
-  /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (24px) = 100px + safe area */
-  /* Used for absolutely/fixed positioned elements */
-  .bottom-nav-offset {
-    bottom: calc(
-      env(safe-area-inset-bottom, 0px) + var(--bottom-nav-backdrop-height)
-    );
-  }
-
-  /* Bottom navigation padding utility */
-  /* Accounts for: safe-area-inset-bottom + nav height (64px) + margin (12px) + spacing (24px) = 100px + safe area */
-  .pb-bottom-nav {
-    padding-bottom: calc(
-      env(safe-area-inset-bottom, 0px) + var(--bottom-nav-backdrop-height)
-    );
   }
 
   @keyframes fade-in {

@@ -78,7 +78,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <p className="text-xs font-medium text-muted-foreground mb-1.5">
               Announcement message:
             </p>
-            <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+            <p className="text-sm text-foreground whitespace-pre-wrap wrap-break-word">
               {discussion.announcementMessage}
             </p>
           </div>
