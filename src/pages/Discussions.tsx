@@ -18,7 +18,7 @@ const Discussions: React.FC = () => {
   }
 
   return (
-    <div className="h-full bg-background ">
+    <div className="h-full bg-background">
       <div className="max-w-md mx-auto h-full flex flex-col bg-card relative">
         <div className="px-6 py-4 border-b border-border flex justify-between items-center ">
           <h2 className="text-lg font-medium text-foreground">Discussions</h2>
