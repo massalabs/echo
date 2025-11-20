@@ -51,7 +51,6 @@ const MessageField: React.FC<MessageFieldProps> = ({ message, onChange }) => {
           >
             Use default message
           </button>
-          <span className="text-muted-foreground">0/500</span>
         </div>
       )}
     </div>
