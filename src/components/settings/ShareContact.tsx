@@ -3,7 +3,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import { useFileShareContact } from '../../hooks/useFileShareContact';
 import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
-import QRCodeSVG from '../ui/QRCodeSVG';
+import QRCode from '../ui/QRCode';
 import TabSwitcher from '../ui/TabSwitcher';
 import { generateQRCodeUrl } from '../../utils/qrCodeUrl';
 
@@ -78,13 +78,14 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 </div>
                 {userProfile?.userId ? (
                   <div className="flex justify-center">
-                    <QRCodeSVG
+                    <QRCode
                       value={generateQRCodeUrl(
                         userProfile.userId,
                         userProfile.username
                       )}
                       size={300}
                       level="H"
+                      type="svg"
                       dotsOptions={qrCodeOptions.dotsOptions}
                       cornersSquareOptions={qrCodeOptions.cornersSquareOptions}
                       cornersDotOptions={qrCodeOptions.cornersDotOptions}
