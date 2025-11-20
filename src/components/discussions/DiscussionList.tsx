@@ -24,43 +24,43 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
   const { handleAcceptDiscussionRequest, handleRefuseDiscussionRequest } =
     useDiscussionList();
 
-  const activeDiscussions = discussions.filter(d => d.status !== 'closed');
-
   return (
     <>
-      {activeDiscussions.length === 0 ? (
+      {discussions.filter(d => d.status !== 'closed').length === 0 ? (
         <EmptyDiscussions />
       ) : (
         <>
-          {activeDiscussions.map(discussion => {
-            const contact = contacts.find(
-              c => c.userId === discussion.contactUserId
-            );
-            if (!contact) return null;
+          {discussions
+            .filter(d => d.status !== 'closed')
+            .map(discussion => {
+              const contact = contacts.find(
+                c => c.userId === discussion.contactUserId
+              );
+              if (!contact) return null;
 
-            const lastMessage = lastMessages.get(discussion.contactUserId);
+              const lastMessage = lastMessages.get(discussion.contactUserId);
 
-            const isSelected = discussion.contactUserId === activeUserId;
+              const isSelected = discussion.contactUserId === activeUserId;
 
-            return (
-              <div
-                key={discussion.id}
-                className={isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
-              >
-                <DiscussionListItem
-                  discussion={discussion}
-                  contact={contact}
-                  lastMessage={lastMessage}
-                  onSelect={d => onSelect(d.contactUserId)}
-                  onAccept={async (d, newName) => {
-                    await handleAcceptDiscussionRequest(d, newName);
-                    navigate(`/discussion/${d.contactUserId}`);
-                  }}
-                  onRefuse={() => handleRefuseDiscussionRequest(discussion)}
-                />
-              </div>
-            );
-          })}
+              return (
+                <div
+                  key={discussion.id}
+                  className={isSelected ? 'bg-blue-50 dark:bg-blue-950/20' : ''}
+                >
+                  <DiscussionListItem
+                    discussion={discussion}
+                    contact={contact}
+                    lastMessage={lastMessage}
+                    onSelect={d => onSelect(d.contactUserId)}
+                    onAccept={async (d, newName) => {
+                      await handleAcceptDiscussionRequest(d, newName);
+                      navigate(`/discussion/${d.contactUserId}`);
+                    }}
+                    onRefuse={() => handleRefuseDiscussionRequest(discussion)}
+                  />
+                </div>
+              );
+            })}
         </>
       )}
     </>
