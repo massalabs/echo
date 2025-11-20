@@ -300,29 +300,29 @@ impl SessionManager {
         let mut keep_alive_needed = Vec::new();
         for (peer_id, peer_info) in self.peers.iter_mut() {
             // session expiry
-            if let Some(active_session) = &mut peer_info.active_session
-                && active_session.last_incoming_message_timestamp < oldest_message_timestamp
-            {
-                peer_info.active_session = None;
+            if let Some(active_session) = &mut peer_info.active_session {
+                if active_session.last_incoming_message_timestamp < oldest_message_timestamp {
+                    peer_info.active_session = None;
+                }
             }
 
             // announcement expiry
-            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request
-                && latest_incoming_init_request.timestamp_millis < oldest_announcement_timestamp
-            {
-                peer_info.latest_incoming_init_request = None;
+            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request {
+                if latest_incoming_init_request.timestamp_millis < oldest_announcement_timestamp {
+                    peer_info.latest_incoming_init_request = None;
+                }
             }
-            if let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request
-                && latest_outgoing_init_request.timestamp_millis < oldest_announcement_timestamp
-            {
-                peer_info.latest_outgoing_init_request = None;
+            if let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request {
+                if latest_outgoing_init_request.timestamp_millis < oldest_announcement_timestamp {
+                    peer_info.latest_outgoing_init_request = None;
+                }
             }
 
             // session keep-alive trigger
-            if let Some(active_session) = &peer_info.active_session
-                && active_session.last_outgoing_message_timestamp < keep_alive_timestamp
-            {
-                keep_alive_needed.push(peer_id.clone());
+            if let Some(active_session) = &peer_info.active_session {
+                if active_session.last_outgoing_message_timestamp < keep_alive_timestamp {
+                    keep_alive_needed.push(peer_id.clone());
+                }
             }
         }
 
@@ -407,28 +407,30 @@ impl SessionManager {
         let peer_id = incoming_initiation_request.origin_public_keys.derive_id();
 
         // make sure that it is newer than the latest incoming initiation request we processed, otherwise ignore
-        if let Some(peer_info) = self.peers.get(&peer_id)
-            && let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request
-            && incoming_initiation_request.timestamp_millis
-                <= latest_incoming_init_request.timestamp_millis
-        {
-            return None;
+        if let Some(peer_info) = self.peers.get(&peer_id) {
+            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request {
+                if incoming_initiation_request.timestamp_millis
+                    <= latest_incoming_init_request.timestamp_millis
+                {
+                    return None;
+                }
+            }
         }
 
         // now check if we have made an outgoing initiation request to this peer, in that case we can create a session
-        if let Some(peer_info) = self.peers.get_mut(&peer_id)
-            && let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request
-        {
-            // set new session or replace existing
-            let new_session = Session::from_initiation_request_pair(
-                latest_outgoing_init_request,
-                &incoming_initiation_request,
-            );
-            peer_info.active_session = Some(SessionInfo {
-                session: new_session,
-                last_incoming_message_timestamp: incoming_initiation_request.timestamp_millis,
-                last_outgoing_message_timestamp: latest_outgoing_init_request.timestamp_millis,
-            });
+        if let Some(peer_info) = self.peers.get_mut(&peer_id) {
+            if let Some(latest_outgoing_init_request) = &peer_info.latest_outgoing_init_request {
+                // set new session or replace existing
+                let new_session = Session::from_initiation_request_pair(
+                    latest_outgoing_init_request,
+                    &incoming_initiation_request,
+                );
+                peer_info.active_session = Some(SessionInfo {
+                    session: new_session,
+                    last_incoming_message_timestamp: incoming_initiation_request.timestamp_millis,
+                    last_outgoing_message_timestamp: latest_outgoing_init_request.timestamp_millis,
+                });
+            }
         }
 
         // update the latest incoming initiation request
@@ -511,19 +513,19 @@ impl SessionManager {
             OutgoingInitiationRequest::new(our_pk, our_sk, peer_pk, user_data);
 
         // check if we already have an incoming announcement from this peer
-        if let Some(peer_info) = self.peers.get_mut(&peer_id)
-            && let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request
-        {
-            // we have an incoming announcement. This means we should create a new session
-            let new_session = Session::from_initiation_request_pair(
-                &outgoing_initiation_request,
-                latest_incoming_init_request,
-            );
-            peer_info.active_session = Some(SessionInfo {
-                session: new_session,
-                last_incoming_message_timestamp: latest_incoming_init_request.timestamp_millis,
-                last_outgoing_message_timestamp: outgoing_initiation_request.timestamp_millis,
-            });
+        if let Some(peer_info) = self.peers.get_mut(&peer_id) {
+            if let Some(latest_incoming_init_request) = &peer_info.latest_incoming_init_request {
+                // we have an incoming announcement. This means we should create a new session
+                let new_session = Session::from_initiation_request_pair(
+                    &outgoing_initiation_request,
+                    latest_incoming_init_request,
+                );
+                peer_info.active_session = Some(SessionInfo {
+                    session: new_session,
+                    last_incoming_message_timestamp: latest_incoming_init_request.timestamp_millis,
+                    last_outgoing_message_timestamp: outgoing_initiation_request.timestamp_millis,
+                });
+            }
         }
 
         // update the latest outgoing initiation request
@@ -586,12 +588,12 @@ impl SessionManager {
     ) -> Option<FeedIncomingMessageOutput> {
         // try to decode message
         let mut msg = None;
-        if let Some(peer_info) = self.peers.get_mut(peer_id)
-            && let Some(active_session) = &mut peer_info.active_session
-        {
-            msg = active_session
-                .session
-                .try_feed_incoming_message(our_sk, seeker, bytes);
+        if let Some(peer_info) = self.peers.get_mut(peer_id) {
+            if let Some(active_session) = &mut peer_info.active_session {
+                msg = active_session
+                    .session
+                    .try_feed_incoming_message(our_sk, seeker, bytes);
+            }
         }
         let msg = msg?;
 
@@ -609,13 +611,13 @@ impl SessionManager {
 
         // check if the message timestamp is consistent with the latest one,
         // and update the last incoming message timestamp
-        if let Some(peer_info) = self.peers.get_mut(peer_id)
-            && let Some(active_session) = &mut peer_info.active_session
-        {
-            if msg.timestamp < active_session.last_incoming_message_timestamp {
-                return None;
+        if let Some(peer_info) = self.peers.get_mut(peer_id) {
+            if let Some(active_session) = &mut peer_info.active_session {
+                if msg.timestamp < active_session.last_incoming_message_timestamp {
+                    return None;
+                }
+                active_session.last_incoming_message_timestamp = msg.timestamp;
             }
-            active_session.last_incoming_message_timestamp = msg.timestamp;
         }
 
         // return the message
@@ -631,11 +633,11 @@ impl SessionManager {
         // find the peer that has the seeker
         let mut peer_id = None;
         for (p_id, peer_info) in self.peers.iter() {
-            if let Some(active_session) = &peer_info.active_session
-                && active_session.session.next_peer_message_seeker() == seeker
-            {
-                peer_id = Some(p_id.clone());
-                break;
+            if let Some(active_session) = &peer_info.active_session {
+                if active_session.session.next_peer_message_seeker() == seeker {
+                    peer_id = Some(p_id.clone());
+                    break;
+                }
             }
         }
         let peer_id = peer_id?;
@@ -644,10 +646,10 @@ impl SessionManager {
         let msg = self.inner_feed_incoming_msg(&peer_id, seeker, bytes, our_sk);
 
         // if the message is None here, it means the session has a problem: close it
-        if msg.is_none()
-            && let Some(peer_info) = self.peers.get_mut(&peer_id)
-        {
-            peer_info.active_session = None;
+        if msg.is_none() {
+            if let Some(peer_info) = self.peers.get_mut(&peer_id) {
+                peer_info.active_session = None;
+            }
         }
 
         // return the message
@@ -671,15 +673,15 @@ impl SessionManager {
         message: &[u8],
     ) -> Option<SendOutgoingMessageOutput> {
         // get the session and send
-        if let Some(peer_info) = self.peers.get_mut(peer_id)
-            && let Some(active_session) = &mut peer_info.active_session
-        {
-            if active_session.session.lag_length() >= self.config.max_session_lag_length {
-                return None;
+        if let Some(peer_info) = self.peers.get_mut(peer_id) {
+            if let Some(active_session) = &mut peer_info.active_session {
+                if active_session.session.lag_length() >= self.config.max_session_lag_length {
+                    return None;
+                }
+                let send_result = active_session.session.send_outgoing_message(message);
+                active_session.last_outgoing_message_timestamp = send_result.timestamp;
+                return Some(send_result);
             }
-            let send_result = active_session.session.send_outgoing_message(message);
-            active_session.last_outgoing_message_timestamp = send_result.timestamp;
-            return Some(send_result);
         }
         None
     }
