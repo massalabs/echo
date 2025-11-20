@@ -17,11 +17,6 @@ export function getBaseUrl(): string {
   }
 
   // Final fallback (shouldn't happen in normal usage)
-  if (Capacitor.isNativePlatform()) {
-    // For native apps, you might want to use a production URL
-    return 'https://gossip.app';
-  }
-
   return 'https://gossip.app';
 }
 
