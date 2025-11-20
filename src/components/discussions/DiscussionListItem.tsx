@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Discussion, Contact } from '../../db';
+import { Discussion, DiscussionStatus, Contact } from '../../db';
 import ContactAvatar from '../avatar/ContactAvatar';
 import { formatRelativeTime } from '../../utils/timeUtils';
 import { formatUserId } from '../../utils/userId';
@@ -54,7 +54,8 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   // Effect 1: Close the modal if the discussion is no longer pending
   useEffect(() => {
     const isPendingIncomingCheck =
-      discussion.status === 'pending' && discussion.direction === 'received';
+      discussion.status === DiscussionStatus.PENDING &&
+      discussion.direction === 'received';
 
     if (!isPendingIncomingCheck) {
       // Use functional update to avoid dependency on isNameModalOpen
@@ -73,7 +74,8 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   // Effect 2: Open the modal if the store says it should be open and discussion is pending
   useEffect(() => {
     const isPendingIncomingCheck =
-      discussion.status === 'pending' && discussion.direction === 'received';
+      discussion.status === DiscussionStatus.PENDING &&
+      discussion.direction === 'received';
 
     if (!isPendingIncomingCheck) {
       return;
@@ -100,9 +102,11 @@ const DiscussionListItem: React.FC<DiscussionListItemProps> = ({
   ]);
 
   const isPendingIncoming =
-    discussion.status === 'pending' && discussion.direction === 'received';
+    discussion.status === DiscussionStatus.PENDING &&
+    discussion.direction === 'received';
   const isPendingOutgoing =
-    discussion.status === 'pending' && discussion.direction === 'initiated';
+    discussion.status === DiscussionStatus.PENDING &&
+    discussion.direction === 'initiated';
 
   return (
     <div key={discussion.id} className="w-full px-2 py-1 text-left">

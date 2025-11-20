@@ -9,6 +9,7 @@ import ContactNameModal from '../components/ui/ContactNameModal';
 import Button from '../components/ui/Button';
 import BackButton from '../components/ui/BackButton';
 import CopyClipboard from '../components/ui/CopyClipboard';
+import { DiscussionStatus } from '../db';
 
 const Contact: React.FC = () => {
   const { userId } = useParams();
@@ -82,7 +83,9 @@ const Contact: React.FC = () => {
     );
   }
 
-  const canStart = discussion ? discussion.status === 'active' : true;
+  const canStart = discussion
+    ? discussion.status === DiscussionStatus.ACTIVE
+    : true;
 
   return (
     <div className=" h-full">
@@ -169,9 +172,9 @@ const Contact: React.FC = () => {
               </Button>
               {!canStart && (
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {discussion?.status === 'pending' &&
+                  {discussion?.status === DiscussionStatus.PENDING &&
                     'Connection pending. You cannot chat yet.'}
-                  {discussion?.status === 'closed' &&
+                  {discussion?.status === DiscussionStatus.CLOSED &&
                     'This discussion is closed.'}
                 </p>
               )}

@@ -13,7 +13,7 @@ import './App.css';
 // Hooks
 import { useProfileLoader } from './hooks/useProfileLoader';
 import { useAppStateRefresh } from './hooks/useAppStateRefresh';
-import { useResendFailedMessages } from './hooks/useResendFailedMessages';
+import { useResendFailedBlobs } from './hooks/useResendFailedBlobs.ts';
 import { useAccountInfo } from './hooks/useAccountInfo';
 
 // Route components
@@ -35,7 +35,7 @@ const AppContent: React.FC = () => {
 
   useProfileLoader();
   useAppStateRefresh();
-  useResendFailedMessages();
+  useResendFailedBlobs();
   const existingAccountInfo = useAccountInfo();
 
   // Setup service worker: register, listen for messages, start sync scheduler, and initialize background sync

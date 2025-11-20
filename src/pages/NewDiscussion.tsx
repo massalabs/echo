@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAccountStore } from '../stores/accountStore';
 import Button from '../components/ui/Button';
 import { useEffect, useState } from 'react';
-import { Contact, db } from '../db';
+import { Contact, DiscussionStatus, db } from '../db';
 import ContactAvatar from '../components/avatar/ContactAvatar';
 import { formatUserId } from '../utils';
 
@@ -51,7 +51,7 @@ const NewDiscussion: React.FC = () => {
       userProfile.userId,
       contact.userId
     );
-    if (discussion && discussion.status === 'active') {
+    if (discussion && discussion.status === DiscussionStatus.ACTIVE) {
       navigate(`/discussion/${contact.userId}`);
     }
   };
