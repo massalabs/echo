@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 // Removed static logo in favor of animated PrivacyGraphic
+import { Capacitor } from '@capacitor/core';
 import { useAccountStore } from '../../stores/accountStore';
 import { validatePassword, validateUsername } from '../../utils/validation';
 import PageHeader from '../ui/PageHeader';
 import TabSwitcher from '../ui/TabSwitcher';
 import Button from '../ui/Button';
+import ICloudSyncModal from '../ui/ICloudSyncModal';
 import { biometricService } from '../../services/biometricService';
 
 interface AccountCreationProps {
@@ -27,9 +29,12 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [usePassword, setUsePassword] = useState(true); // Default to password for safety
   const [accountCreationStarted, setAccountCreationStarted] = useState(false);
+  const [showICloudModal, setShowICloudModal] = useState(false);
 
   const { initializeAccountWithBiometrics, initializeAccount } =
     useAccountStore();
+
+  const isIOS = Capacitor.getPlatform() === 'ios';
 
   useEffect(() => {
     const checkBiometricMethods = async () => {
@@ -80,37 +85,49 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
 
   // No re-authentication in create flow
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent event bubbling that might cause issues on mobile
-
-    if (!canSubmit) {
-      return;
-    }
-
-    // Safety check: Never allow biometric auth if biometrics aren't actually available
-    const actualUsePassword = usePassword || !biometricAvailable;
-
+  const createAccount = async (enableICloudSync = false) => {
     setIsCreating(true);
-    setAccountCreationStarted(true); // Mark that we've started - prevent resets
+    setAccountCreationStarted(true);
     setError(null);
 
     try {
-      if (actualUsePassword) {
+      if (usePassword || !biometricAvailable) {
         await initializeAccount(username, password);
       } else {
-        await initializeAccountWithBiometrics(username);
+        await initializeAccountWithBiometrics(username, enableICloudSync);
       }
 
-      // Call onComplete - this should trigger DiscussionList to transition
       onComplete();
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : 'Failed to create account';
       setError(errorMsg);
       setIsCreating(false);
-      setAccountCreationStarted(false); // Reset on error so user can try again
+      setAccountCreationStarted(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!canSubmit) {
+      return;
+    }
+
+    const actualUsePassword = usePassword || !biometricAvailable;
+
+    // For iOS biometric accounts, show iCloud sync modal first
+    if (!actualUsePassword && isIOS && biometricAvailable) {
+      setShowICloudModal(true);
+    } else {
+      // For password accounts or non-iOS, create immediately
+      await createAccount(false);
+    }
+  };
+
+  const handleICloudSyncChoice = (enableSync: boolean) => {
+    createAccount(enableSync);
   };
 
   return (
@@ -301,6 +318,12 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
           </form>
         </div>
       </div>
+
+      <ICloudSyncModal
+        isOpen={showICloudModal}
+        onClose={() => setShowICloudModal(false)}
+        onConfirm={handleICloudSyncChoice}
+      />
     </div>
   );
 };

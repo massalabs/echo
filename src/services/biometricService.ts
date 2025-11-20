@@ -12,9 +12,12 @@ import {
   createWebAuthnCredential,
   authenticateWithWebAuthn,
 } from '../crypto/webauthn';
-import { EncryptionKey, generateEncryptionKey } from '../wasm';
-import { encodeToBase64, decodeFromBase64 } from '../utils/base64';
-import { encodeUserId } from '../utils/userId';
+import {
+  EncryptionKey,
+  encryptionKeyFromBytes,
+  generateEncryptionKey,
+} from '../wasm';
+import { encodeToBase64, decodeFromBase64, encodeUserId } from '../utils';
 
 export interface BiometricAvailability {
   available: boolean;
@@ -71,7 +74,7 @@ export class BiometricService {
   }
 
   /**
-   * Generate a secure storage key for the encryption key
+   * Get user storage key for the encryption key
    */
   private getEncryptionKeyStorageKey(userId: string): string {
     return `${BiometricService.ENCRYPTION_KEY_PREFIX}${userId}`;
@@ -79,17 +82,21 @@ export class BiometricService {
 
   /**
    * Store encryption key securely using Capacitor Secure Storage
+   * @param userId - The user ID (Bech32 string)
+   * @param encryptionKey - The encryption key to store
+   * @param syncToiCloud - Whether to sync to iCloud Keychain (iOS only)
    */
   private async storeEncryptionKey(
     userId: string,
-    encryptionKey: EncryptionKey
+    encryptionKey: EncryptionKey,
+    syncToiCloud = false
   ): Promise<void> {
     try {
       const storageKey = this.getEncryptionKeyStorageKey(userId);
       const keyBytes = encryptionKey.to_bytes();
       const keyBase64 = encodeToBase64(keyBytes);
 
-      await SecureStorage.set(storageKey, keyBase64);
+      await SecureStorage.set(storageKey, keyBase64, syncToiCloud);
     } catch (error) {
       console.error('Failed to store encryption key:', error);
       throw new Error(
@@ -100,18 +107,23 @@ export class BiometricService {
 
   /**
    * Retrieve encryption key from secure storage
+   * @param userId - The user ID (Bech32 string)
+   * @param syncFromiCloud - Whether to retrieve from iCloud Keychain (iOS only)
    */
-  private async retrieveEncryptionKey(userId: string): Promise<EncryptionKey> {
+  private async retrieveEncryptionKey(
+    userId: string,
+    syncFromiCloud = false
+  ): Promise<EncryptionKey> {
     try {
       const storageKey = this.getEncryptionKeyStorageKey(userId);
-      const keyBase64 = await SecureStorage.get(storageKey);
+      const keyBase64 = await SecureStorage.get(storageKey, syncFromiCloud);
 
       if (!keyBase64 || typeof keyBase64 !== 'string') {
         throw new Error('Encryption key not found in secure storage');
       }
 
       const keyBytes = decodeFromBase64(keyBase64);
-      return EncryptionKey.from_bytes(keyBytes);
+      return encryptionKeyFromBytes(keyBytes);
     } catch (error) {
       console.error('Failed to retrieve encryption key:', error);
       throw new Error(
@@ -122,12 +134,16 @@ export class BiometricService {
 
   /**
    * Remove encryption key from secure storage (for account deletion)
+   * @param userId - The user ID (Bech32 string)
+   * @param syncToiCloud - Whether to also remove from iCloud Keychain (iOS only)
    */
-  public async removeEncryptionKey(userId: string): Promise<void> {
+  public async removeEncryptionKey(
+    userId: string,
+    syncToiCloud = false
+  ): Promise<void> {
     try {
       const storageKey = this.getEncryptionKeyStorageKey(userId);
-      await SecureStorage.remove(storageKey);
-      console.log('Encryption key removed from secure storage');
+      await SecureStorage.remove(storageKey, syncToiCloud);
     } catch (error) {
       console.error('Failed to remove encryption key:', error);
       // Don't throw error on removal failure
@@ -216,11 +232,16 @@ export class BiometricService {
 
   /**
    * Create a new biometric credential
+   * @param username - Username for credential creation
+   * @param userId - User ID bytes
+   * @param salt - Salt for PRF extension (required for WebAuthn)
+   * @param syncToiCloud - Whether to sync to iCloud Keychain (iOS only, default: false)
    */
   public async createCredential(
     username: string,
     userId: Uint8Array,
-    salt: Uint8Array
+    salt: Uint8Array,
+    syncToiCloud = false
   ): Promise<BiometricCreationResult> {
     // For native platforms, create biometric credentials without WebAuthn browser APIs
     if (this.capacitorAvailable) {
@@ -236,7 +257,7 @@ export class BiometricService {
 
         // Store the encryption key securely
         const userIdStr = encodeUserId(userId);
-        await this.storeEncryptionKey(userIdStr, encryptionKey);
+        await this.storeEncryptionKey(userIdStr, encryptionKey, syncToiCloud);
 
         return {
           success: true,
@@ -289,11 +310,13 @@ export class BiometricService {
    * @param method - The authentication method to use
    * @param userIdOrCredentialId - For Capacitor: the userId (Bech32 string) to retrieve encryption key. For WebAuthn: the credential ID
    * @param salt - The salt used during credential creation (required for WebAuthn PRF)
+   * @param syncFromiCloud - Whether to retrieve from iCloud Keychain (iOS only, for Capacitor method)
    */
   public async authenticate(
     method: 'capacitor' | 'webauthn',
     userIdOrCredentialId?: string,
-    salt?: Uint8Array
+    salt?: Uint8Array,
+    syncFromiCloud = false
   ): Promise<BiometricResult> {
     try {
       // Use Capacitor Biometric Auth for native platforms
@@ -309,8 +332,10 @@ export class BiometricService {
         });
 
         // Retrieve the encryption key from secure storage
-        const encryptionKey =
-          await this.retrieveEncryptionKey(userIdOrCredentialId);
+        const encryptionKey = await this.retrieveEncryptionKey(
+          userIdOrCredentialId,
+          syncFromiCloud
+        );
 
         return { success: true, data: { encryptionKey } };
       } else if (method === 'webauthn' && this.isWebAuthnSupported) {

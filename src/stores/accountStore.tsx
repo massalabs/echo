@@ -76,7 +76,7 @@ async function provisionAccount(
   username: string,
   userId: Uint8Array,
   mnemonic: string | undefined,
-  opts: { useBiometrics: boolean; password?: string },
+  opts: { useBiometrics: boolean; password?: string; iCloudSync?: boolean },
   session: SessionModule
 ): Promise<{ profile: UserProfile; encryptionKey: EncryptionKey }> {
   let built:
@@ -84,7 +84,12 @@ async function provisionAccount(
     | undefined;
 
   if (opts.useBiometrics) {
-    built = await buildSecurityFromBiometrics(mnemonic, username, userId);
+    built = await buildSecurityFromBiometrics(
+      mnemonic,
+      username,
+      userId,
+      opts.iCloudSync ?? false
+    );
   } else {
     const password = opts.password?.trim();
     if (!password) {
@@ -143,7 +148,8 @@ async function buildSecurityFromPassword(
 async function buildSecurityFromBiometrics(
   mnemonic: string | undefined,
   username: string,
-  userIdBytes: Uint8Array
+  userIdBytes: Uint8Array,
+  iCloudSync = false
 ): Promise<{
   security: UserProfile['security'];
   encryptionKey: EncryptionKey;
@@ -158,7 +164,8 @@ async function buildSecurityFromBiometrics(
   const credentialResult = await biometricService.createCredential(
     `Gossip:${username}`,
     userIdBytes,
-    salt
+    salt,
+    iCloudSync
   );
 
   if (!credentialResult.success || !credentialResult.data) {
@@ -184,6 +191,7 @@ async function buildSecurityFromBiometrics(
           credentialId,
         }
       : undefined,
+    iCloudSync,
     encKeySalt: salt,
     mnemonicBackup,
   };
@@ -204,7 +212,10 @@ interface AccountState {
   ourSk?: UserSecretKeys | null;
   // WASM session module
   session: SessionModule | null;
-  initializeAccountWithBiometrics: (username: string) => Promise<void>;
+  initializeAccountWithBiometrics: (
+    username: string,
+    iCloudSync?: boolean
+  ) => Promise<void>;
   initializeAccount: (username: string, password: string) => Promise<void>;
   loadAccount: (password?: string, userId?: string) => Promise<void>;
   restoreAccountFromMnemonic: (
@@ -486,7 +497,10 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
     },
 
     // Biometric-based account initialization
-    initializeAccountWithBiometrics: async (username: string) => {
+    initializeAccountWithBiometrics: async (
+      username: string,
+      iCloudSync = false
+    ) => {
       try {
         set({ isLoading: true });
 
@@ -520,6 +534,7 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
           mnemonic,
           {
             useBiometrics: true,
+            iCloudSync,
           },
           session
         );
