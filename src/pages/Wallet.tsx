@@ -140,8 +140,8 @@ const Wallet: React.FC = () => {
         </div>
 
         {/* Token List */}
-        <div className="px-6 pb-bottom-nav">
-          <div className="space-y-0">
+        <div className="px-6">
+          <div className="space-y-0 ">
             {tokens.map((token, index) => (
               <div key={index}>
                 <div className="flex items-center py-4">

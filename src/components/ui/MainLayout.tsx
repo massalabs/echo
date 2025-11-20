@@ -1,17 +1,17 @@
+// MainLayout.tsx
 import React from 'react';
 import BottomNavigation from './BottomNavigation';
 
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="h-full">
-      <div className="overflow-y-auto h-full">{children}</div>
-      <div className="flex  items-center bg-transparent fixed bottom-5 left-0 right-0">
-        <BottomNavigation />
+    <div className="relative h-full flex flex-col">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto min-h-0 relative pb-(--bottom-nav-height)">
+        {children}
       </div>
+
+      {/* Bottom navigation — now with a subtle top blur to melt perfectly */}
+      <BottomNavigation />
     </div>
   );
 };
