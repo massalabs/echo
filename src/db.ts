@@ -43,6 +43,9 @@ export interface UserProfile {
       credentialId?: string;
     };
 
+    // iCloud Keychain sync preference (iOS only)
+    iCloudSync?: boolean;
+
     // Mnemonic backup details
     mnemonicBackup: {
       encryptedMnemonic: Uint8Array;

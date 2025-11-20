@@ -38,10 +38,13 @@ export async function auth(
         ? profile.userId // For Capacitor: userId to retrieve encryption key from secure storage
         : profile.security.webauthn?.credentialId; // For WebAuthn: credential ID for PRF
 
+    const syncFromiCloud = profile.security.iCloudSync ?? false;
+
     const authResult = await biometricService.authenticate(
       authMethod,
       userIdOrCredentialId,
-      salt
+      salt,
+      syncFromiCloud
     );
 
     if (
