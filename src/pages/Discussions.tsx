@@ -22,7 +22,7 @@ const Discussions: React.FC = () => {
     <div className="h-full flex flex-col bg-card relative">
       <PageHeader title="Discussions" />
       {/* Scrollable content with bottom padding to prevent content from being hidden behind the button/nav */}
-      <div className="flex-1 overflow-y-auto pb-20">
+      <div className="flex-1 overflow-y-auto pt-4 px-2 pb-20">
         <DiscussionListPanel
           onSelect={id => {
             navigate(`/discussion/${id}`);
