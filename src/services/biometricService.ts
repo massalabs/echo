@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { SecureStorage } from '@aparajita/capacitor-secure-storage';
 import {
   BiometricAuth,
   BiometryError,
@@ -11,8 +12,9 @@ import {
   createWebAuthnCredential,
   authenticateWithWebAuthn,
 } from '../crypto/webauthn';
-import { EncryptionKey, generateEncryptionKeyFromSeed } from '../wasm';
-import { encodeUserId } from '../utils';
+import { EncryptionKey, generateEncryptionKey } from '../wasm';
+import { encodeToBase64, decodeFromBase64 } from '../utils/base64';
+import { encodeUserId } from '../utils/userId';
 
 export interface BiometricAvailability {
   available: boolean;
@@ -51,6 +53,9 @@ export class BiometricService {
   private capacitorAvailable: boolean;
   private isWebAuthnSupported: boolean;
 
+  // Key prefix for secure storage
+  private static readonly ENCRYPTION_KEY_PREFIX = 'gossip_encryption_key_';
+
   private constructor() {
     this.isNative = Capacitor.isNativePlatform();
     this.capacitorAvailable =
@@ -63,6 +68,70 @@ export class BiometricService {
       BiometricService.instance = new BiometricService();
     }
     return BiometricService.instance;
+  }
+
+  /**
+   * Generate a secure storage key for the encryption key
+   */
+  private getEncryptionKeyStorageKey(userId: string): string {
+    return `${BiometricService.ENCRYPTION_KEY_PREFIX}${userId}`;
+  }
+
+  /**
+   * Store encryption key securely using Capacitor Secure Storage
+   */
+  private async storeEncryptionKey(
+    userId: string,
+    encryptionKey: EncryptionKey
+  ): Promise<void> {
+    try {
+      const storageKey = this.getEncryptionKeyStorageKey(userId);
+      const keyBytes = encryptionKey.to_bytes();
+      const keyBase64 = encodeToBase64(keyBytes);
+
+      await SecureStorage.set(storageKey, keyBase64);
+    } catch (error) {
+      console.error('Failed to store encryption key:', error);
+      throw new Error(
+        `Failed to store encryption key: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Retrieve encryption key from secure storage
+   */
+  private async retrieveEncryptionKey(userId: string): Promise<EncryptionKey> {
+    try {
+      const storageKey = this.getEncryptionKeyStorageKey(userId);
+      const keyBase64 = await SecureStorage.get(storageKey);
+
+      if (!keyBase64 || typeof keyBase64 !== 'string') {
+        throw new Error('Encryption key not found in secure storage');
+      }
+
+      const keyBytes = decodeFromBase64(keyBase64);
+      return EncryptionKey.from_bytes(keyBytes);
+    } catch (error) {
+      console.error('Failed to retrieve encryption key:', error);
+      throw new Error(
+        `Failed to retrieve encryption key: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Remove encryption key from secure storage (for account deletion)
+   */
+  public async removeEncryptionKey(userId: string): Promise<void> {
+    try {
+      const storageKey = this.getEncryptionKeyStorageKey(userId);
+      await SecureStorage.remove(storageKey);
+      console.log('Encryption key removed from secure storage');
+    } catch (error) {
+      console.error('Failed to remove encryption key:', error);
+      // Don't throw error on removal failure
+    }
   }
 
   private checkCapacitorAvailability(): boolean {
@@ -156,20 +225,18 @@ export class BiometricService {
     // For native platforms, create biometric credentials without WebAuthn browser APIs
     if (this.capacitorAvailable) {
       try {
-        // temp workaround waiting for secure storage implem
-        const seed = encodeUserId(userId);
-        const encryptionKey = await generateEncryptionKeyFromSeed(seed, salt);
+        // Verify biometric authentication first
+        await BiometricAuth.authenticate({
+          reason: 'Authenticate to complete account setup',
+          allowDeviceCredential: true,
+        });
 
-        const verifyResult = await this.authenticate('capacitor', seed, salt);
+        // Generate a new encryption key
+        const encryptionKey = await generateEncryptionKey();
 
-        if (!verifyResult.success) {
-          throw new Error(
-            verifyResult.error ||
-              'Biometric verification failed. Please try again.'
-          );
-        }
-
-        // const encryptionKey = await generateEncryptionKey();
+        // Store the encryption key securely
+        const userIdStr = encodeUserId(userId);
+        await this.storeEncryptionKey(userIdStr, encryptionKey);
 
         return {
           success: true,
@@ -220,37 +287,40 @@ export class BiometricService {
   /**
    * Authenticate using existing biometric credential
    * @param method - The authentication method to use
-   * @param credentialId - The credential ID to authenticate with (required for WebAuthn PRF)
+   * @param userIdOrCredentialId - For Capacitor: the userId (Bech32 string) to retrieve encryption key. For WebAuthn: the credential ID
    * @param salt - The salt used during credential creation (required for WebAuthn PRF)
    */
   public async authenticate(
     method: 'capacitor' | 'webauthn',
-    credentialId?: string,
+    userIdOrCredentialId?: string,
     salt?: Uint8Array
   ): Promise<BiometricResult> {
     try {
       // Use Capacitor Biometric Auth for native platforms
       if (method === 'capacitor' && this.capacitorAvailable) {
+        if (!userIdOrCredentialId) {
+          throw new Error('User ID is required for Capacitor authentication');
+        }
+
+        // Authenticate with biometrics first
         await BiometricAuth.authenticate({
           reason: 'Authenticate to access your account',
           allowDeviceCredential: true,
         });
 
-        // temp workaround waiting for secure storage implem
-        const encryptionKey = await generateEncryptionKeyFromSeed(
-          credentialId!,
-          salt!
-        );
+        // Retrieve the encryption key from secure storage
+        const encryptionKey =
+          await this.retrieveEncryptionKey(userIdOrCredentialId);
 
         return { success: true, data: { encryptionKey } };
       } else if (method === 'webauthn' && this.isWebAuthnSupported) {
-        if (!credentialId || !salt) {
+        if (!userIdOrCredentialId || !salt) {
           throw new Error(
             'Credential ID and salt are required for WebAuthn authentication'
           );
         }
         const webAuthnResult = await authenticateWithWebAuthn(
-          credentialId,
+          userIdOrCredentialId,
           salt
         );
         return {

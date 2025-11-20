@@ -32,16 +32,15 @@ export async function auth(
     }
     encryptionKey = await deriveKey(password, salt);
   } else {
-    // temp workaround waiting for secure storage implem
-
     // For biometric authentication (capacitor or webauthn)
-    const credentialId =
-      authMethod === 'webauthn'
-        ? profile.security.webauthn?.credentialId
-        : profile.userId;
+    const userIdOrCredentialId =
+      authMethod === 'capacitor'
+        ? profile.userId // For Capacitor: userId to retrieve encryption key from secure storage
+        : profile.security.webauthn?.credentialId; // For WebAuthn: credential ID for PRF
+
     const authResult = await biometricService.authenticate(
       authMethod,
-      credentialId,
+      userIdOrCredentialId,
       salt
     );
 
