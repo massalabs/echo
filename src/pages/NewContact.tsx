@@ -50,7 +50,7 @@ const NewContact: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-card h-full overflow-auto max-w-md  mx-auto">
+    <div className="bg-card h-full overflow-auto max-w-md mx-auto">
       <PageHeader title="New contact" onBack={handleBack} />
 
       {/* Main Form */}
