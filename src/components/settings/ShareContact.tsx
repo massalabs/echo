@@ -5,7 +5,7 @@ import PageHeader from '../ui/PageHeader';
 import Button from '../ui/Button';
 import QRCode from '../ui/QRCode';
 import TabSwitcher from '../ui/TabSwitcher';
-import { generateQRCodeUrl } from '../../utils/qrCodeUrl';
+// import { generateQRCodeUrl } from '../../utils/qrCodeUrl';
 
 interface ShareContactProps {
   onBack: () => void;
@@ -79,10 +79,14 @@ const ShareContact: React.FC<ShareContactProps> = ({ onBack }) => {
                 {userProfile?.userId ? (
                   <div className="flex justify-center">
                     <QRCode
-                      value={generateQRCodeUrl(
-                        userProfile.userId,
-                        userProfile.username
-                      )}
+                      value={
+                        // For now we use only userId
+                        userProfile.userId
+                        //   generateQRCodeUrl(
+                        //   userProfile.userId,
+                        //   userProfile.username
+                        // )
+                      }
                       size={300}
                       level="H"
                       type="svg"
