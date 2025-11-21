@@ -1,8 +1,7 @@
 git_url("https://github.com/massalabs/fastlane-match-certs")
 storage_mode("git")
-# type("appstore")
 type("development")
 
 app_identifier(["net.massa.gossip"])
-username(ENV["lu@massa.net"])
-team_id(ENV["9X8NWA3JHQ"])
+username(ENV["APPLE_ID"])
+team_id(ENV["APPLE_TEAM_ID"])

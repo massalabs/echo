@@ -54,12 +54,10 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Install iOS Platform
+      - name: Verify iOS SDK
         run: |
-          # Install iOS platform components for Xcode
-          sudo xcodebuild -downloadAllPlatforms || true
-          # Verify available SDKs
-          xcodebuild -showsdks
+          # Verify iOS SDK is available
+          xcodebuild -showsdks | grep -i ios
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
