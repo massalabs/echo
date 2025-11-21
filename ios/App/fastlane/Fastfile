@@ -28,7 +28,8 @@ platform :ios do
       api_key: api_key  # Use API Key for authentication
     )
 
-    # Build the app
+    # Build the app with automatic signing
+    # Xcode will automatically use the certificates installed by Match
     build_app(
       workspace: "App.xcworkspace",
       scheme: "Gossip",
@@ -37,16 +38,10 @@ platform :ios do
       output_directory: "./",
       output_name: "Gossip.ipa",
       clean: false,
-      codesigning_identity: "Apple Distribution",
       export_options: {
         method: "app-store",
-        provisioningProfiles: {
-          "net.massa.gossip" => "match AppStore net.massa.gossip"
-        },
-        signingStyle: "manual",
         teamID: ENV["APPLE_TEAM_ID"]
-      },
-      xcargs: "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}"
+      }
     )
 
     UI.success("✅ Build completed successfully!")
