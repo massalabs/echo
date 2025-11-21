@@ -22,7 +22,7 @@ platform :ios do
     # Use match for code signing
     # In CI, create certificates if they don't exist
     match(
-      type: "development",
+      type: "appstore",  # App Store type for TestFlight distribution
       readonly: false,  # Create certificates if needed
       app_identifier: "net.massa.gossip",
       api_key: api_key  # Use API Key for authentication
@@ -89,7 +89,7 @@ platform :ios do
     UI.message("Setting up code signing with match...")
     
     match(
-      type: "development",
+      type: "appstore",
       app_identifier: "net.massa.gossip"
     )
     
@@ -101,7 +101,7 @@ platform :ios do
     UI.message("Creating certificates with match...")
     
     match(
-      type: "development",
+      type: "appstore",
       app_identifier: "net.massa.gossip"
     )
     
