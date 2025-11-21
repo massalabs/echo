@@ -46,7 +46,7 @@ platform :ios do
         signingStyle: "manual",
         teamID: ENV["APPLE_TEAM_ID"]
       },
-      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']} PROVISIONING_PROFILE_SPECIFIER='match AppStore net.massa.gossip'"
+      xcargs: "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}"
     )
 
     UI.success("✅ Build completed successfully!")
