@@ -28,8 +28,17 @@ platform :ios do
       api_key: api_key  # Use API Key for authentication
     )
 
-    # Build the app with automatic signing
-    # Xcode will automatically use the certificates installed by Match
+    # Update project settings to use manual signing with Match profiles
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "App.xcodeproj",
+      team_id: ENV["APPLE_TEAM_ID"],
+      profile_name: "match AppStore net.massa.gossip",
+      code_sign_identity: "Apple Distribution",
+      bundle_identifier: "net.massa.gossip"
+    )
+    
+    # Build the app with manual signing using Match certificates
     build_app(
       workspace: "App.xcworkspace",
       scheme: "Gossip",
@@ -40,9 +49,11 @@ platform :ios do
       clean: false,
       export_options: {
         method: "app-store",
+        provisioningProfiles: {
+          "net.massa.gossip" => "match AppStore net.massa.gossip"
+        },
         teamID: ENV["APPLE_TEAM_ID"]
-      },
-      xcargs: "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}"
+      }
     )
 
     UI.success("✅ Build completed successfully!")
