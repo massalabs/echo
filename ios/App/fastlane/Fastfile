@@ -41,7 +41,8 @@ platform :ios do
       export_options: {
         method: "app-store",
         teamID: ENV["APPLE_TEAM_ID"]
-      }
+      },
+      xcargs: "DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']}"
     )
 
     UI.success("✅ Build completed successfully!")
