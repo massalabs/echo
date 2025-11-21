@@ -41,6 +41,7 @@ const Login: React.FC<LoginProps> = React.memo(
     const [autoAuthTriggered, setAutoAuthTriggered] = useState(false);
     const [platformResolved, setPlatformResolved] = useState(false);
     const lastAutoAuthCredentialIdRef = useRef<string | null>(null);
+    const autoAuthAttempted = useRef(false);
 
     const currentAccount = selectedAccountInfo || accountInfo;
 
@@ -81,29 +82,101 @@ const Login: React.FC<LoginProps> = React.memo(
         onAccountSelected();
       } catch (error) {
         console.error('Biometric authentication failed:', error);
-        onErrorChange?.(
-          error instanceof Error
-            ? error.message
-            : 'Biometric authentication failed. Please try again.'
-        );
+
+        // Provide user-friendly error messages
+        let userMessage = 'Biometric authentication failed. Please try again.';
+
+        if (error instanceof Error) {
+          const errorMsg = error.message.toLowerCase();
+
+          // Handle WebAuthn "NotAllowedError" - user cancelled or timed out
+          if (
+            errorMsg.includes('not allowed') ||
+            errorMsg.includes('timed out') ||
+            errorMsg.includes('cancel') ||
+            errorMsg.includes('cancelled')
+          ) {
+            userMessage =
+              'Authentication cancelled. Please try again or use password to login.';
+          }
+          // Handle biometric not available
+          else if (errorMsg.includes('not available')) {
+            userMessage =
+              'Biometric authentication is not available. Please use password to login.';
+          }
+          // Handle invalid password/credentials
+          else if (
+            errorMsg.includes('invalid') ||
+            errorMsg.includes('incorrect')
+          ) {
+            userMessage = 'Authentication failed. Please try again.';
+          }
+          // Use the original message if it's already user-friendly (short and clear)
+          else if (error.message.length < 100 && !errorMsg.includes('http')) {
+            userMessage = error.message;
+          }
+        }
+
+        onErrorChange?.(userMessage);
       } finally {
         setIsLoading(false);
       }
     }, [currentAccount, onErrorChange, loadAccount, onAccountSelected]);
 
+    // Auto-trigger biometric auth when account is selected from account picker
     useEffect(() => {
       if (autoAuthTriggered || !selectedAccountInfo) return;
       const authMethod = selectedAccountInfo.security?.authMethod;
       if (authMethod === 'password') return;
       if (lastAutoAuthCredentialIdRef.current === selectedAccountInfo.userId)
         return;
-      if (!webauthnSupported || !platformAuthenticatorAvailable) return;
+      if (!platformResolved) return;
+
+      // Check platform availability for the specific auth method
+      if (authMethod === 'webauthn') {
+        if (!webauthnSupported || !platformAuthenticatorAvailable) return;
+      }
+
       lastAutoAuthCredentialIdRef.current = selectedAccountInfo.userId;
       setAutoAuthTriggered(true);
       handleBiometricAuth();
     }, [
       autoAuthTriggered,
       selectedAccountInfo,
+      webauthnSupported,
+      platformAuthenticatorAvailable,
+      platformResolved,
+      handleBiometricAuth,
+    ]);
+
+    // Auto-trigger biometric auth on mount if account (from accountInfo) has biometric auth enabled
+    // Only triggers for accountInfo, not selectedAccountInfo (which is handled by the effect above)
+    useEffect(() => {
+      // Skip if already attempted, no accountInfo, or user has manually selected a different account
+      if (
+        autoAuthAttempted.current ||
+        !accountInfo ||
+        selectedAccountInfo ||
+        !platformResolved
+      )
+        return;
+
+      const authMethod = accountInfo.security?.authMethod;
+
+      // Only auto-trigger for biometric auth methods (not password)
+      if (authMethod === 'capacitor' || authMethod === 'webauthn') {
+        // Check platform availability for the specific auth method
+        if (authMethod === 'webauthn') {
+          if (!webauthnSupported || !platformAuthenticatorAvailable) return;
+        }
+
+        autoAuthAttempted.current = true;
+        handleBiometricAuth();
+      }
+    }, [
+      accountInfo,
+      selectedAccountInfo,
+      platformResolved,
       webauthnSupported,
       platformAuthenticatorAvailable,
       handleBiometricAuth,

@@ -415,9 +415,17 @@ const useAccountStoreBase = create<AccountState>((set, get) => {
 
         session.load(profile, encryptionKey);
 
+        // Update lastSeen timestamp for the logged-in user
+        const lastSeen = new Date();
+        const updatedProfile = {
+          ...profile,
+          lastSeen,
+        };
+        await db.userProfile.update(profile.userId, { lastSeen });
+
         useAppStore.getState().setIsInitialized(true);
         set({
-          userProfile: profile,
+          userProfile: updatedProfile,
           account,
           encryptionKey,
           ourPk,
