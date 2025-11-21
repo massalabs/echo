@@ -7,7 +7,6 @@ import { useTheme } from '../hooks/useTheme';
 import { formatUserId } from '../utils/userId';
 import appLogo from '../assets/gossip_face.svg';
 import AccountBackup from '../components/account/AccountBackup';
-import ShareContact from '../components/settings/ShareContact';
 import Button from '../components/ui/Button';
 import Toggle from '../components/ui/Toggle';
 import InfoRow from '../components/ui/InfoRow';
@@ -29,6 +28,8 @@ import {
 import { APP_VERSION } from '../config/version';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useNavigate } from 'react-router-dom';
+import ShareContact from '../components/settings/ShareContact';
+import { usePreloadShareContact } from '../hooks/usePreloadShareContact';
 
 enum SettingsView {
   SHOW_ACCOUNT_BACKUP = 'SHOW_ACCOUNT_BACKUP',
@@ -46,14 +47,7 @@ const Settings = (): React.ReactElement => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const { isVersionDifferent, handleForceUpdate } = useVersionCheck();
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Failed to logout:', error);
-    }
-  };
+  const pregeneratedQR = usePreloadShareContact(userProfile?.userId);
 
   const mnemonicBackupInfo = getMnemonicBackupInfo();
 
@@ -93,12 +87,24 @@ const Settings = (): React.ReactElement => {
     }
   }, [resetAccount]);
 
-  // Show sub-views based on activeView
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
+
   switch (activeView) {
     case SettingsView.SHOW_ACCOUNT_BACKUP:
       return <AccountBackup onBack={() => setActiveView(null)} />;
     case SettingsView.SHARE_CONTACT:
-      return <ShareContact onBack={() => setActiveView(null)} />;
+      return (
+        <ShareContact
+          onBack={() => setActiveView(null)}
+          pregeneratedQR={pregeneratedQR || ''}
+        />
+      );
     default:
       break;
   }
