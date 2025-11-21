@@ -5,12 +5,12 @@ on:
   workflow_dispatch:
     inputs:
       upload_to_testflight:
-        description: "Upload to TestFlight"
+        description: 'Upload to TestFlight'
         required: false
         default: true
         type: boolean
       skip_waiting_for_build_processing:
-        description: "Skip waiting for build processing"
+        description: 'Skip waiting for build processing'
         required: false
         default: true
         type: boolean
@@ -20,11 +20,11 @@ on:
       - main
       - fastlane
     paths:
-      - "src/**"
-      - "ios/**"
-      - "capacitor.config.ts"
-      - "package.json"
-      - ".github/workflows/fastlane.yml"
+      - 'src/**'
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - '.github/workflows/fastlane.yml'
 
 jobs:
   build-ios-fastlane:
@@ -37,8 +37,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          cache: "npm"
+          node-version: '24'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -68,7 +68,7 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3.10"
+          ruby-version: '3.3.10'
           bundler-cache: true
           working-directory: ios/App
 
