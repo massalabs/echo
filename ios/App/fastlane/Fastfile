@@ -8,12 +8,24 @@ platform :ios do
     # Setup CI environment (creates temporary keychain)
     setup_ci if ENV['CI']
     
+    # Create API Key for App Store Connect authentication (if available)
+    api_key = nil
+    if ENV['APP_STORE_CONNECT_API_KEY_KEY_ID'] && ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID'] && ENV['APP_STORE_CONNECT_API_KEY_KEY']
+      api_key = app_store_connect_api_key(
+        key_id: ENV['APP_STORE_CONNECT_API_KEY_KEY_ID'],
+        issuer_id: ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID'],
+        key_content: ENV['APP_STORE_CONNECT_API_KEY_KEY'],
+        is_key_content_base64: false
+      )
+    end
+    
     # Use match for code signing
     # In CI, create certificates if they don't exist
     match(
       type: "development",
       readonly: false,  # Create certificates if needed
-      app_identifier: "net.massa.gossip"
+      app_identifier: "net.massa.gossip",
+      api_key: api_key  # Use API Key for authentication
     )
 
     # Build the app
@@ -48,9 +60,20 @@ platform :ios do
     # Build the app using common logic
     build_app_common
 
+    # Create API Key for App Store Connect authentication (if available)
+    api_key = nil
+    if ENV['APP_STORE_CONNECT_API_KEY_KEY_ID'] && ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID'] && ENV['APP_STORE_CONNECT_API_KEY_KEY']
+      api_key = app_store_connect_api_key(
+        key_id: ENV['APP_STORE_CONNECT_API_KEY_KEY_ID'],
+        issuer_id: ENV['APP_STORE_CONNECT_API_KEY_ISSUER_ID'],
+        key_content: ENV['APP_STORE_CONNECT_API_KEY_KEY'],
+        is_key_content_base64: false
+      )
+    end
+
     # Upload to TestFlight
     upload_to_testflight(
-      apple_id: ENV["APPLE_ID"],
+      api_key: api_key,
       skip_waiting_for_build_processing: ENV["FASTLANE_SKIP_WAITING_FOR_BUILD_PROCESSING"] == "true",
       skip_submission: true,
       distribute_external: false,
