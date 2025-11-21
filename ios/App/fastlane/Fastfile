@@ -13,8 +13,7 @@ platform :ios do
     match(
       type: "development",
       readonly: ENV['CI'] ? false : true,  # Create certificates in CI if needed
-      app_identifier: "net.massa.gossip",
-      skip_certificate_verification: ENV['CI'] ? true : false  # Skip verification in CI for speed
+      app_identifier: "net.massa.gossip"
     )
 
     # Build the app
@@ -68,8 +67,7 @@ platform :ios do
     
     match(
       type: "development",
-      app_identifier: "net.massa.gossip",
-      skip_certificate_verification: ENV['CI'] ? true : false
+      app_identifier: "net.massa.gossip"
     )
     
     UI.success("✅ Code signing setup completed!")
@@ -81,8 +79,7 @@ platform :ios do
     
     match(
       type: "development",
-      app_identifier: "net.massa.gossip",
-      skip_certificate_verification: false  # Always verify when creating new certs
+      app_identifier: "net.massa.gossip"
     )
     
     UI.success("✅ Certificates created and stored in git!")
