@@ -37,6 +37,7 @@ platform :ios do
       output_directory: "./",
       output_name: "Gossip.ipa",
       clean: false,
+      codesigning_identity: "Apple Distribution",
       export_options: {
         method: "app-store",
         provisioningProfiles: {
@@ -44,7 +45,8 @@ platform :ios do
         },
         signingStyle: "manual",
         teamID: ENV["APPLE_TEAM_ID"]
-      }
+      },
+      xcargs: "CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=#{ENV['APPLE_TEAM_ID']} PROVISIONING_PROFILE_SPECIFIER='match AppStore net.massa.gossip'"
     )
 
     UI.success("✅ Build completed successfully!")
