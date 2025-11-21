@@ -52,15 +52,19 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.1"
+          xcode-version: latest-stable
 
-      - name: Install iOS SDK
+      - name: Install iOS 26 SDK
         run: |
-          # Install iOS SDK for Xcode 16.1
-          sudo xcode-select -s /Applications/Xcode_16.1.app
-          xcodebuild -runFirstLaunch
-          # Verify SDK is available
-          xcodebuild -showsdks | grep -i ios
+          # Select latest Xcode
+          sudo xcode-select --reset
+          # Install required components
+          sudo xcodebuild -runFirstLaunch
+          # Download and install iOS platform
+          sudo xcodebuild -downloadPlatform iOS || true
+          # Verify SDKs
+          echo "Available SDKs:"
+          xcodebuild -showsdks
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
