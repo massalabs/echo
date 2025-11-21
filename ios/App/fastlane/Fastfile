@@ -12,7 +12,7 @@ platform :ios do
     # In CI, create certificates if they don't exist
     match(
       type: "development",
-      readonly: ENV['CI'] ? false : true,  # Create certificates in CI if needed
+      readonly: false,  # Create certificates if needed
       app_identifier: "net.massa.gossip"
     )
 
