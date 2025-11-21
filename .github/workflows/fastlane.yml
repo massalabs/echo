@@ -54,9 +54,12 @@ jobs:
         with:
           xcode-version: "16.1"
 
-      - name: Verify iOS SDK
+      - name: Install iOS SDK
         run: |
-          # Verify iOS SDK is available
+          # Install iOS SDK for Xcode 16.1
+          sudo xcode-select -s /Applications/Xcode_16.1.app
+          xcodebuild -runFirstLaunch
+          # Verify SDK is available
           xcodebuild -showsdks | grep -i ios
 
       - name: Setup Ruby
