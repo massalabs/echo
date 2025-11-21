@@ -5,15 +5,15 @@ default_platform(:ios)
 platform :ios do
   # Private lane containing common build logic
   private_lane :build_app_common do
-    # Setup code signing with match or manual certificate
+    # Setup CI environment (creates temporary keychain)
     setup_ci if ENV['CI']
     
-    # Import certificate
-    import_certificate(
-      certificate_path: ENV["CERTIFICATE_PATH"] || "#{ENV['RUNNER_TEMP']}/certificate.p12",
-      certificate_password: ENV["APPLE_CERTIFICATE_P12_PASSWORD"],
-      keychain_name: "fastlane_tmp_keychain",
-      keychain_password: ""
+    # Use match for code signing
+    # In CI, create certificates if they don't exist
+    match(
+      type: "development",
+      readonly: ENV['CI'] ? false : true,  # Create certificates in CI if needed
+      app_identifier: "net.massa.gossip"
     )
 
     # Build the app
@@ -27,8 +27,10 @@ platform :ios do
       clean: false,
       export_options: {
         method: "app-store",
-        provisioningProfiles: {},
-        signingStyle: "automatic",
+        provisioningProfiles: {
+          "net.massa.gossip" => "match AppStore net.massa.gossip"
+        },
+        signingStyle: "manual",
         teamID: ENV["APPLE_TEAM_ID"]
       }
     )
@@ -59,15 +61,28 @@ platform :ios do
     UI.success("🚀 Successfully uploaded to TestFlight!")
   end
 
-  desc "Download certificates and provisioning profiles"
+  desc "Download certificates and provisioning profiles using match"
   lane :setup_signing do
-    # This lane helps you set up code signing locally
-    UI.message("Setting up code signing...")
+    UI.message("Setting up code signing with match...")
     
-    # You can use match for automated certificate management
-    # Or manually manage certificates
+    match(
+      type: "development",
+      app_identifier: "net.massa.gossip"
+    )
     
     UI.success("✅ Code signing setup completed!")
+  end
+  
+  desc "Create new certificates and provisioning profiles"
+  lane :match_init do
+    UI.message("Creating certificates with match...")
+    
+    match(
+      type: "development",
+      app_identifier: "net.massa.gossip"
+    )
+    
+    UI.success("✅ Certificates created and stored in git!")
   end
 
   # Error handling
